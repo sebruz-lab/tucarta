@@ -42,7 +42,7 @@
 
     /* Aspectos: tensos en el rojo de fuego; semisextil azul; quincuncio verde. */
     --asp-tenso: var(--fuego);
-    --asp-armonico: var(--turquesa);
+    --asp-armonico: #00ffff;
     --asp-semisextil: var(--agua);
     --asp-quincuncio: var(--tierra);
     --ac: #8a1c02;
