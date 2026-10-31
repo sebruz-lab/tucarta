@@ -385,11 +385,11 @@ details > summary {
 .rueda .marca-punto { stroke: currentColor; stroke-width: 2; }
 .rueda .grado-punto {
     fill: currentColor;
-    font-size: 20px;
+    font-size: 15px;
     text-anchor: middle;
     dominant-baseline: central;
 }
-.rueda .retro { fill: var(--rosa); font-size: 14px; }
+.rueda .retro { fill: var(--rosa); font-size: 10.5px; }
 
 .detalle-punto {
     text-align: center;
@@ -457,6 +457,12 @@ details > summary {
     padding: 14px 0;
     border-top: 1px solid var(--linea);
     border-bottom: 1px solid var(--linea);
+}
+.desplegable-interp .bajada {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.9rem;
+    color: var(--texto-suave);
 }
 .interpretacion {
     border-top: 1px solid var(--linea);

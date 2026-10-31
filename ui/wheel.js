@@ -9,13 +9,14 @@
 import { SIGNOS as G_SIGNOS, PUNTOS as G_PUNTOS, glifo } from './glyphs.js';
 import { SIGNOS } from '../engine/chart.js';
 
+// De afuera hacia adentro: signos, numeros de casa, planetas y aspectos.
 const R = {
     exterior: 294,   // borde del anillo de signos
     signos: 254,     // borde interior del anillo de signos
-    planetas: 216,   // glifos de los planetas
-    grados: 181,     // grado de cada planeta
-    casas: 156,      // borde del anillo de numeros de casa
-    aspectos: 130    // circulo interior donde llegan los aspectos
+    casas: 228,      // borde interior del anillo de numeros de casa
+    planetas: 200,   // glifos de los planetas
+    grados: 168,     // grado de cada planeta
+    aspectos: 138    // circulo interior donde llegan los aspectos
 };
 
 // Clase de linea de cada aspecto (los colores estan en tucarta.css).
@@ -86,7 +87,7 @@ export function ubicarEnCasas(puntos, cusps, { minimo = 10, margen = 4.5, apreta
 // En una casa cargada el escalonado da aire extra: el glifo puede ser mas
 // grande que lo que entra en linea recta.
 const tamGlifo = (u) => Math.max(24, Math.min(34, u.paso * (R.planetas * Math.PI / 180) * (u.nivel === undefined ? 0.92 : 1.15)));
-const ESCALON = { glifo: 14, grado: 20 }; // cuanto se mete hacia adentro el nivel 1
+const ESCALON = { glifo: 12, grado: 16 }; // cuanto se mete hacia adentro el nivel 1
 
 // clara: rueda para el fondo blanco; si no, para el fondo oscuro. En las
 // dos los signos van en el color de su elemento.
@@ -106,7 +107,8 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         out.push(`<circle class="${c}" r="${r}"/>`);
     }
 
-    // Anillo de signos: divisiones, marcas de grados y glifos.
+    // Anillo de signos: divisiones, marcas de grados (en su borde interior)
+    // y glifos.
     SIGNOS.forEach((s, i) => {
         out.push(linea(i * 30, R.signos, R.exterior, 'borde'));
         const [x, y] = polar(i * 30 + 15, (R.exterior + R.signos) / 2);
@@ -115,7 +117,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
     for (let g = 0; g < 360; g++) {
         if (g % 30 === 0) continue;
         const largo = g % 10 === 0 ? 9 : g % 5 === 0 ? 6 : 3;
-        out.push(linea(g, R.signos, R.signos - largo, 'marca'));
+        out.push(linea(g, R.signos, R.signos + largo, 'marca'));
     }
 
     // Casas: cuspides y numeros.
@@ -126,7 +128,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         out.push(linea(c.lon, largo, R.aspectos, clase));
         const sig = carta.cusps[(i + 1) % 12].lon;
         const medio = c.lon + (((sig - c.lon) % 360) + 360) % 360 / 2;
-        const [x, y] = polar(medio, (R.casas + R.aspectos) / 2);
+        const [x, y] = polar(medio, (R.signos + R.casas) / 2);
         out.push(`<text class="num-casa" x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
     });
     // Rotulos de los angulos, por fuera del anillo.
@@ -155,7 +157,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
     carta.puntos.forEach((p, i) => {
         const sel = seleccion === p.id ? ' sel' : '';
         out.push(`<g class="punto${sel}" data-punto="${p.id}" tabindex="0" role="button" aria-label="${nombres[p.id] || p.id}">`);
-        out.push(linea(p.lon, R.signos, R.signos - 12, 'marca-punto'));
+        out.push(linea(p.lon, R.signos, R.signos + 10, 'marca-punto'));
         out.push(linea(p.lon, R.aspectos, R.aspectos + 5, 'marca-punto'));
         const u = pos[i];
         const t = u.paso < 10 ? tamGlifo(u) : 34;
@@ -163,7 +165,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         out.push(`<circle class="toque" cx="${f(x)}" cy="${f(y)}" r="22"/>`);
         out.push(glifo(G_PUNTOS[p.id], x, y, t));
         const [gx, gy] = polar(u.lon, R.grados - u.nivel * ESCALON.grado);
-        const fuente = u.paso < 10 ? ` font-size="${Math.max(14, Math.min(20, u.paso * 2.6)).toFixed(1)}"` : '';
+        const fuente = u.paso < 10 ? ` font-size="${Math.max(10.5, Math.min(15, u.paso * 1.95)).toFixed(1)}"` : '';
         out.push(`<text class="grado-punto"${fuente} x="${f(gx)}" y="${f(gy)}">${p.grado}°${p.retro ? '<tspan class="retro">r</tspan>' : ''}</text>`);
         out.push('</g>');
     });
