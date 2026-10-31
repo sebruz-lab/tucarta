@@ -1,0 +1,40 @@
+name: Release
+
+# Al subir una etiqueta vX.Y.Z: arma el indice de lugares, corre los tests,
+# compila y publica dist/ como tucarta-dist.tar.gz en una release. El deploy
+# de sebabru.com baja la version fijada en su archivo tucarta.version.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Indice de lugares (GeoNames)
+        run: npm run lugares
+
+      - run: npm test
+
+      - run: npm run build
+
+      - name: Publicar la release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tar -czf tucarta-dist.tar.gz -C dist .
+          gh release create "$GITHUB_REF_NAME" tucarta-dist.tar.gz --title "$GITHUB_REF_NAME" --notes "Build de sebabru.com/tucarta"
