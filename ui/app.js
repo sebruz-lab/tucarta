@@ -13,6 +13,8 @@ import { CONFIG_POR_DEFECTO } from './config.js';
 import { evento } from './analytics.js';
 import { NOMBRE_PUNTO, escapar } from './textos.js';
 import { SISTEMAS_CASAS } from '../engine/config.js';
+import { almacenLocal, igualQue } from './miscartas.js';
+import { imagenCarta, entregarImagen } from './descarga.js';
 
 const $ = (sel) => document.querySelector(sel);
 const CLAVE_DATOS = 'tucarta:ultima';
@@ -143,6 +145,7 @@ async function calcular({ nueva = false } = {}) {
     $('#cargando').hidden = true;
     guardarDatos();
     pintar();
+    pintarBotonGuardar();
 
     if (nueva) {
         evento('carta_calculada', {
@@ -151,8 +154,10 @@ async function calcular({ nueva = false } = {}) {
             huso_corregido: Boolean(d.correccion)
         });
         $('#huso').open = false;
+        $('#aviso-carta').hidden = true;
         form.hidden = true;
         $('.intro').hidden = true;
+        $('#mis-cartas').hidden = true;
         $('#resultado').hidden = false;
         $('#resultado').scrollIntoView({ block: 'start' });
     }
@@ -309,11 +314,13 @@ document.querySelector('.acciones').addEventListener('click', (e) => {
     if (accion === 'otra-carta') {
         mostrarFormulario();
     } else if (accion === 'borrar') {
+        if (!confirm('Se borran de este dispositivo tus datos, tus ajustes y las cartas guardadas en él. ¿Seguimos?')) return;
         try {
             localStorage.removeItem(CLAVE_DATOS);
             localStorage.removeItem('tucarta:ajustes');
             localStorage.removeItem('tucarta:tema');
         } catch {}
+        almacenLocal.borrarTodas();
         estado.ajustes = leerAjustes();
         form.reset();
         lugarElegido = null;
@@ -325,7 +332,118 @@ function mostrarFormulario() {
     $('#resultado').hidden = true;
     form.hidden = false;
     $('.intro').hidden = false;
+    pintarMisCartas();
     window.scrollTo({ top: 0 });
+}
+
+// ---------- Mis cartas ----------
+
+// Al iniciar sesion se cambia por el almacen de la cuenta.
+let almacen = almacenLocal;
+let guardadas = [];
+
+async function pintarMisCartas() {
+    try { guardadas = await almacen.listar(); } catch (e) { console.error(e); guardadas = []; }
+    $('#mis-cartas').hidden = !guardadas.length || !$('#resultado').hidden;
+    $('#lista-cartas').innerHTML = guardadas.map((c) => {
+        const nombre = c.nombre || 'Sin nombre';
+        const lugar = c.lugar.manual ? 'Coordenadas a mano' : c.lugar.nombre;
+        return `<li>
+            <button type="button" class="carta-guardada" data-abrir="${escapar(c.id)}">
+                <span class="nombre">${escapar(nombre)}</span>
+                <span class="nota">${c.fecha.split('-').reverse().join('/')} · ${escapar(c.hora)} h · ${escapar(lugar)}</span>
+            </button>
+            <button type="button" class="quitar" data-quitar="${escapar(c.id)}" aria-label="Borrar la carta de ${escapar(nombre)}">×</button>
+        </li>`;
+    }).join('');
+}
+
+$('#lista-cartas').addEventListener('click', async (e) => {
+    const abrir = e.target.closest('[data-abrir]')?.dataset.abrir;
+    const quitar = e.target.closest('[data-quitar]')?.dataset.quitar;
+    if (abrir) {
+        const c = guardadas.find((x) => x.id === abrir);
+        if (!c) return;
+        estado.datos = {
+            nombre: c.nombre || '', fecha: c.fecha, hora: c.hora, lugar: c.lugar,
+            correccion: c.correccion || null, eleccion: c.eleccion || 0
+        };
+        estado.seleccion = null;
+        estado.corrigiendoHuso = false;
+        evento('carta_abierta', {});
+        await calcular({ nueva: true });
+    } else if (quitar) {
+        const c = guardadas.find((x) => x.id === quitar);
+        if (!c || !confirm(`¿Borrar la carta de ${c.nombre || 'Sin nombre'}?`)) return;
+        await almacen.borrar(quitar);
+        pintarMisCartas();
+    }
+});
+
+function avisar(texto) {
+    $('#aviso-carta').textContent = texto;
+    $('#aviso-carta').hidden = !texto;
+}
+
+async function pintarBotonGuardar() {
+    try { guardadas = await almacen.listar(); } catch { guardadas = []; }
+    const ya = guardadas.some((c) => igualQue(c, estado.datos));
+    const b = document.querySelector('[data-accion="guardar"]');
+    b.textContent = ya ? 'Guardada en mis cartas ✓' : 'Guardar en mis cartas';
+    b.disabled = ya;
+}
+
+document.querySelector('.barra-carta').addEventListener('click', async (e) => {
+    const accion = e.target.closest('[data-accion]')?.dataset.accion;
+    if (accion === 'guardar') {
+        try {
+            await almacen.guardar(estado.datos);
+            evento('carta_guardada', {});
+            avisar(almacen === almacenLocal
+                ? 'Listo: la vas a encontrar en "Mis cartas", en este dispositivo.'
+                : 'Listo: la vas a encontrar en "Mis cartas", desde cualquier dispositivo.');
+        } catch (err) {
+            console.error(err);
+            avisar('No pudimos guardarla. Probá de nuevo en un rato.');
+        }
+        pintarBotonGuardar();
+    } else if (accion === 'descargar') {
+        const b = e.target.closest('button');
+        b.disabled = true;
+        try {
+            await descargarImagen();
+        } catch (err) {
+            console.error(err);
+            avisar('No pudimos armar la imagen. Probá de nuevo.');
+        }
+        b.disabled = false;
+    }
+});
+
+// ---------- Imagen para descargar ----------
+
+const slug = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+async function descargarImagen() {
+    // Rueda limpia, sin el planeta tocado, en un contenedor fuera de la vista.
+    const caja = $('#para-imagen');
+    caja.innerHTML = dibujarRueda(estado.carta, { nombres: NOMBRE_PUNTO, clara: tema === 'claro' });
+    const cs = getComputedStyle(document.body);
+    const color = (v) => cs.getPropertyValue(v).trim();
+    const d = estado.datos;
+    try {
+        const blob = await imagenCarta(caja.querySelector('svg'), {
+            titulo: $('#titulo-carta').textContent,
+            datos: $('#resumen-datos').textContent,
+            colores: { fondo: color('--bg'), texto: color('--texto'), suave: color('--texto-suave') }
+        });
+        const archivo = `carta-${slug(d.nombre || 'natal') || 'natal'}-${d.fecha}.png`;
+        const como = await entregarImagen(blob, archivo, $('#titulo-carta').textContent);
+        if (como !== 'cancelada') evento('imagen_descargada', { fondo: tema, como });
+    } finally {
+        caja.innerHTML = '';
+    }
 }
 
 // Llamado a consultar.
@@ -389,3 +507,4 @@ function restaurar() {
     }
 }
 restaurar();
+pintarMisCartas();

@@ -551,6 +551,52 @@ details > summary {
 .tipo-aspecto.quincuncio .icono { color: var(--asp-quincuncio); }
 .tipo-aspecto .icono { margin: 0 2px; }
 
+/* ---------- Descargar y guardar ---------- */
+
+.barra-carta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+.barra-carta .boton { flex: 1 1 150px; }
+.barra-carta .boton:disabled { opacity: 0.6; cursor: default; }
+.aviso-carta { text-align: center; }
+/* Rueda que se arma para la imagen: en la pagina pero fuera de la vista. */
+.para-imagen { position: absolute; left: -10000px; top: 0; width: 640px; }
+
+/* ---------- Mis cartas ---------- */
+
+.mis-cartas { margin: 0 0 28px; }
+.mis-cartas h2 { font-size: 1.1rem; font-weight: 400; margin: 0 0 10px; }
+.lista-cartas { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--linea); }
+.lista-cartas li { display: flex; align-items: center; border-bottom: 1px solid var(--linea); }
+.carta-guardada {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font: inherit;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--texto);
+    padding: 12px 0;
+    cursor: pointer;
+}
+.carta-guardada .nombre { font-size: 1rem; }
+.carta-guardada .nota { font-size: 0.82rem; margin: 0; }
+.lista-cartas .quitar {
+    font: inherit;
+    font-size: 1.4rem;
+    line-height: 1;
+    background: none;
+    border: none;
+    color: var(--texto-suave);
+    padding: 10px 6px 10px 16px;
+    cursor: pointer;
+}
+
 /* ---------- Ajustes ---------- */
 
 .ajustes {

@@ -43,6 +43,12 @@
         <p>Completá tus datos y mirá tu carta: la rueda, dónde estaba cada planeta y qué dicen tu Sol, tu Luna y tu Ascendente.</p>
     </section>
 
+    <section id="mis-cartas" class="mis-cartas" aria-labelledby="titulo-mis-cartas" hidden>
+        <h2 id="titulo-mis-cartas">Mis cartas</h2>
+        <ul id="lista-cartas" class="lista-cartas"></ul>
+        <p class="nota" id="nota-mis-cartas">Guardadas en este dispositivo.</p>
+    </section>
+
     <form id="datos" class="datos" novalidate>
         <label class="campo"><span>Nombre <span class="opcional">(opcional)</span></span>
             <input type="text" name="nombre" autocomplete="given-name" maxlength="60">
@@ -102,6 +108,13 @@
             <div id="rueda"></div>
             <figcaption id="detalle-punto" class="detalle-punto" aria-live="polite">Tocá un planeta para ver dónde está y con quién se relaciona.</figcaption>
         </figure>
+
+        <div class="barra-carta">
+            <button type="button" class="boton" data-accion="descargar">Descargar imagen</button>
+            <button type="button" class="boton" data-accion="guardar">Guardar en mis cartas</button>
+        </div>
+        <p id="aviso-carta" class="nota aviso-carta" role="status" hidden></p>
+        <div id="para-imagen" class="para-imagen" aria-hidden="true"></div>
 
         <section class="interpretaciones" aria-label="Tu Sol, tu Luna y tu Ascendente">
             <details class="desplegable-interp">
