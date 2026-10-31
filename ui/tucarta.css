@@ -536,6 +536,12 @@ details > summary {
 .tabla .icono.elem-agua { color: var(--agua); }
 .tabla .retro, .tabla .ap { color: var(--rosa); text-align: center; width: 1.5em; }
 .tabla abbr { text-decoration: none; }
+/* Celulares angostos: menos aire para que la tabla no se salga de la pantalla. */
+@media (max-width: 420px) {
+    .tabla th, .tabla td { padding: 9px 3px; }
+    .tabla .icono { margin-right: 4px; }
+    .tabla thead th { letter-spacing: 0.5px; }
+}
 .tabla .aspecto { white-space: normal; }
 .tabla .aspecto span { margin-right: 4px; }
 .tipo-aspecto.trigono .icono, .tipo-aspecto.sextil .icono { color: var(--asp-armonico); }
