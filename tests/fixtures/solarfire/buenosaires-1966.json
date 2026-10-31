@@ -1,0 +1,33 @@
+{
+    "nombre": "Referencia Buenos Aires 1966",
+    "_nota": "Anterior a 1970, con horario de verano argentino (huso base -4 + 1 h). UT = ET 08:30:36 - DeltaT 36s.",
+    "local": { "fecha": "1966-11-28", "hora": "05:30" },
+    "lugar": {
+        "nombre": "Buenos Aires",
+        "lat": -34.6,
+        "lon": -58.45,
+        "zona": "America/Argentina/Buenos_Aires"
+    },
+    "offsetSolarFire": "-03:00",
+    "utc": { "anio": 1966, "mes": 11, "dia": 28, "hora": 8, "minuto": 30 },
+    "posiciones": {
+        "luna": "08Ge32'06\"",
+        "sol": "05Sg39'26\"",
+        "mercurio": "17Sc20'43\"",
+        "venus": "10Sg26'13\"",
+        "marte": "26Vi55'20\"",
+        "jupiter": "04Le24'12\"",
+        "saturno": "22Pi54'57\"",
+        "urano": "23Vi56'58\"",
+        "neptuno": "22Sc24'52\"",
+        "pluton": "20Vi28'14\"",
+        "quiron": "21Pi40'54\"",
+        "nodo": "16Ta11'27\"",
+        "lilith": "26Pi54'46\""
+    },
+    "retrogrados": ["jupiter", "quiron", "nodo"],
+    "cuspides": {
+        "P": ["03Sg03'38\"", "27Sg39'01\"", "19Cp37'45\"", "13Aq22'47\"", "12Pi57'54\"", "21Ar19'34\"",
+              "03Ge03'38\"", "27Ge39'01\"", "19Cn37'45\"", "13Le22'47\"", "12Vi57'54\"", "21Li19'34\""]
+    }
+}

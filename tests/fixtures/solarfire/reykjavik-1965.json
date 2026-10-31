@@ -1,0 +1,33 @@
+{
+    "nombre": "Referencia Reykjavik 1965",
+    "_nota": "Latitud alta y pre-1970. Islandia usaba UTC-1 hasta 1968; en la base IANA estandar (desde 2022b) Atlantic/Reykjavik es un alias de Africa/Abidjan (UTC+0) y esa historia solo esta en backzone. UT = ET 08:50:36 - DeltaT 36s.",
+    "local": { "fecha": "1965-11-21", "hora": "07:50" },
+    "lugar": {
+        "nombre": "Reykjavik, Islandia",
+        "lat": 64.15,
+        "lon": -21.85,
+        "zona": "Atlantic/Reykjavik"
+    },
+    "offsetSolarFire": "-01:00",
+    "utc": { "anio": 1965, "mes": 11, "dia": 21, "hora": 8, "minuto": 50 },
+    "posiciones": {
+        "luna": "06Sc51'15\"",
+        "sol": "28Sc50'07\"",
+        "mercurio": "18Sg50'28\"",
+        "venus": "15Cp51'24\"",
+        "marte": "05Cp21'14\"",
+        "jupiter": "29Ge35'42\"",
+        "saturno": "10Pi31'59\"",
+        "urano": "19Vi05'59\"",
+        "neptuno": "20Sc04'19\"",
+        "pluton": "18Vi13'42\"",
+        "quiron": "17Pi59'47\"",
+        "nodo": "04Ge39'56\"",
+        "lilith": "15Aq17'00\""
+    },
+    "retrogrados": ["jupiter", "quiron", "nodo"],
+    "cuspides": {
+        "P": ["15Sc33'55\"", "13Sg20'00\"", "02Aq49'23\"", "19Pi59'17\"", "17Ar23'19\"", "04Ta12'30\"",
+              "15Ta33'55\"", "13Ge20'00\"", "02Le49'23\"", "19Vi59'17\"", "17Li23'19\"", "04Sc12'30\""]
+    }
+}

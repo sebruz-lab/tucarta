@@ -1,0 +1,70 @@
+// Tablas de posiciones y de aspectos.
+
+import { SIGNOS as G_SIGNOS, PUNTOS as G_PUNTOS, ASPECTOS as G_ASPECTOS, iconoSvg } from './glyphs.js';
+import { NOMBRE_SIGNO, NOMBRE_PUNTO, NOMBRE_ASPECTO, gradoMin, orbeTexto } from './textos.js';
+import { SIGNOS } from '../engine/chart.js';
+
+const ELEMENTOS = ['fuego', 'tierra', 'aire', 'agua'];
+const iconoSigno = (s) => iconoSvg(G_SIGNOS[s], 16, NOMBRE_SIGNO[s], 'elem-' + ELEMENTOS[SIGNOS.indexOf(s) % 4], 1.35);
+
+function filaPunto(p, glifoPunto) {
+    return `<tr data-punto="${p.id}">
+        <th scope="row">${glifoPunto ? iconoSvg(glifoPunto, 18, NOMBRE_PUNTO[p.id]) : ''}<span>${NOMBRE_PUNTO[p.id]}</span></th>
+        <td>${iconoSigno(p.signo)}<span>${NOMBRE_SIGNO[p.signo]}</span></td>
+        <td class="num">${gradoMin(p)}</td>
+        <td class="num">${p.casa ?? ''}</td>
+        <td class="retro">${p.retro ? '<abbr title="Retrógrado">R</abbr>' : ''}</td>
+    </tr>`;
+}
+
+export function tablaPosiciones(carta) {
+    const filas = [
+        ...carta.puntos.map((p) => filaPunto(p, G_PUNTOS[p.id])),
+        ...carta.angulos.map((a) => filaPunto(a, null))
+    ];
+    return `<table class="tabla">
+        <thead><tr><th>Punto</th><th>Signo</th><th class="num">Posición</th><th class="num">Casa</th><th><span class="visualmente-oculto">Retrógrado</span></th></tr></thead>
+        <tbody>${filas.join('')}</tbody>
+    </table>`;
+}
+
+export function tablaCasas(carta) {
+    return `<table class="tabla tabla-casas">
+        <thead><tr><th>Casa</th><th>Signo</th><th class="num">Cúspide</th></tr></thead>
+        <tbody>${carta.cusps.map((c) => `<tr>
+            <th scope="row">${c.casa}</th>
+            <td>${iconoSigno(c.signo)}<span>${NOMBRE_SIGNO[c.signo]}</span></td>
+            <td class="num">${gradoMin(c)}</td>
+        </tr>`).join('')}</tbody>
+    </table>`;
+}
+
+export function tablaAspectos(carta) {
+    if (!carta.aspectos.length) return '<p class="nota">No hay aspectos mayores con los orbes elegidos.</p>';
+    const icono = (id) => (G_PUNTOS[id] ? iconoSvg(G_PUNTOS[id], 16, NOMBRE_PUNTO[id]) : '');
+    return `<table class="tabla">
+        <thead><tr><th>Aspecto</th><th class="num">Orbe</th><th><span class="visualmente-oculto">Aplicativo o separativo</span></th></tr></thead>
+        <tbody>${carta.aspectos.map((a) => `<tr data-a="${a.a}" data-b="${a.b}">
+            <th scope="row" class="aspecto">
+                ${icono(a.a)}<span>${NOMBRE_PUNTO[a.a]}</span>
+                <span class="tipo-aspecto ${a.aspecto}">${iconoSvg(G_ASPECTOS[a.aspecto], 16, NOMBRE_ASPECTO[a.aspecto])}</span>
+                ${icono(a.b)}<span>${NOMBRE_PUNTO[a.b]}</span>
+            </th>
+            <td class="num">${orbeTexto(a.orbe)}</td>
+            <td class="ap">${a.aplicativo == null ? '' : a.aplicativo ? '<abbr title="Aplicativo">a</abbr>' : '<abbr title="Separativo">s</abbr>'}</td>
+        </tr>`).join('')}</tbody>
+    </table>`;
+}
+
+// Texto del detalle al tocar un planeta en la rueda.
+export function detallePunto(carta, id) {
+    const p = carta.puntos.find((x) => x.id === id);
+    if (!p) return '';
+    const asp = carta.aspectos.filter((a) => a.a === id || a.b === id).map((a) => {
+        const otro = a.a === id ? a.b : a.a;
+        return `${NOMBRE_ASPECTO[a.aspecto].toLowerCase()} a ${NOMBRE_PUNTO[otro]} (${orbeTexto(a.orbe)})`;
+    });
+    return `<strong>${NOMBRE_PUNTO[id]}</strong> en ${gradoMin(p)} de ${NOMBRE_SIGNO[p.signo]}, casa ${p.casa}` +
+        `${p.retro ? ', retrógrado' : ''}.` +
+        (asp.length ? `<br><span class="nota">${asp.join(' · ')}</span>` : '');
+}

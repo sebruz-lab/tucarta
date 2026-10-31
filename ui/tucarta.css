@@ -1,0 +1,603 @@
+/* =========================================
+   tucarta: estilos propios (no importa style.css del sitio, para que el
+   codigo publico sea autocontenido). Tokens tomados de sebabru.com.
+   ========================================= */
+
+@font-face {
+    font-family: 'Outfit';
+    font-style: normal;
+    font-weight: 300 600;
+    font-display: swap;
+    src: url('/tucarta/fonts/outfit-latin-ext.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+    font-family: 'Outfit';
+    font-style: normal;
+    font-weight: 300 600;
+    font-display: swap;
+    src: url('/tucarta/fonts/outfit-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+    --bg: #07070a;
+    --superficie: #12141d;
+    --superficie-2: #1a1c29;
+    --texto: #e0e0e0;
+    --texto-suave: #9a9ca8;
+    --linea: rgba(224, 230, 237, 0.18);
+    --linea-fuerte: rgba(224, 230, 237, 0.45);
+    --turquesa: #3bc2bc;
+    --amarillo: #f7d239;
+    --lila: #bfaee0;
+    --rosa: #f56d96;
+    --radio: 14px;
+
+    /* Colores de los elementos, de la paleta de Seba. */
+    --fuego: #b22403;
+    --tierra: #249b95;
+    --aire: #f0c516;
+    --agua: #5b74b8; /* sobre fondo oscuro; el original #242c3f va en la rueda clara */
+
+    /* Aspectos: tensos en el rojo de fuego; semisextil azul; quincuncio verde. */
+    --asp-tenso: var(--fuego);
+    --asp-armonico: var(--turquesa);
+    --asp-semisextil: var(--agua);
+    --asp-quincuncio: var(--tierra);
+    --ac: #8a1c02;
+
+    /* Planetas sobre fondo oscuro (paleta de Seba). */
+    --p-sol: #fcf3d0;
+    --p-luna: #e6e6e6;
+    --p-mercurio: #f0f3a6;
+    --p-venus: #f9d5a1;
+    --p-marte: #f0d3cd;
+    --p-jupiter: #f0d3cd;
+    --p-saturno: #f0d3cd;
+    --p-urano: #f79c7c;
+    --p-neptuno: #99c6e4;
+    --p-pluton: #9fa0b5;
+    --p-quiron: #c2abd3;
+    --p-nodo: #ffffff;
+    --p-lilith: #ffffff;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--texto);
+}
+
+body {
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-weight: 300;
+    font-size: 16px;
+    line-height: 1.65;
+    letter-spacing: 0.2px;
+    -webkit-text-size-adjust: 100%;
+}
+
+a { color: var(--turquesa); }
+
+h1, h2, h3 { font-weight: 300; line-height: 1.2; margin: 0 0 0.6em; }
+h1 { font-size: clamp(2rem, 8vw, 3.2rem); letter-spacing: -0.5px; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.15rem; font-weight: 400; }
+
+[hidden] { display: none !important; }
+
+.visualmente-oculto {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* ---------- Estructura ---------- */
+
+.cabecera {
+    padding: 20px 16px;
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+/* Selector de fondo oscuro / claro. */
+.selector-tema {
+    display: inline-flex;
+    border: 1px solid var(--linea-fuerte);
+    border-radius: 50px;
+    padding: 3px;
+    gap: 2px;
+}
+.selector-tema button {
+    font: inherit;
+    font-size: 0.8rem;
+    background: none;
+    border: none;
+    color: var(--texto-suave);
+    padding: 6px 12px;
+    border-radius: 50px;
+    cursor: pointer;
+}
+.selector-tema button[aria-pressed="true"] {
+    background: var(--texto);
+    color: var(--bg);
+}
+.marca {
+    color: var(--texto);
+    text-decoration: none;
+    font-weight: 400;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+}
+
+main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 16px 48px;
+}
+
+.intro { padding: 32px 0 24px; }
+.sobretitulo {
+    color: var(--amarillo);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-size: 0.75rem;
+    margin: 0 0 12px;
+}
+.intro p:last-child { color: var(--texto-suave); max-width: 34em; }
+
+.nota { color: var(--texto-suave); font-size: 0.88rem; }
+
+/* ---------- Formulario ---------- */
+
+.datos {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.campo {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: var(--texto-suave);
+    position: relative;
+    min-width: 0;
+}
+.opcional { opacity: 0.7; }
+
+.fila {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+input, select {
+    font: inherit;
+    font-size: 1rem; /* 16px: evita el zoom automatico de iOS */
+    color: var(--texto);
+    background: var(--superficie);
+    border: 1px solid var(--linea);
+    border-radius: 10px;
+    padding: 12px 14px;
+    width: 100%;
+    min-width: 0;
+    color-scheme: dark;
+}
+input:focus, select:focus, button:focus-visible, a:focus-visible, .punto:focus-visible {
+    outline: 2px solid var(--turquesa);
+    outline-offset: 2px;
+}
+
+.sugerencias {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 6px;
+    background: var(--superficie-2);
+    border: 1px solid var(--linea);
+    border-radius: 12px;
+    max-height: 60vh;
+    overflow-y: auto;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+.sugerencias li {
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+}
+.sugerencias li[aria-selected="true"], .sugerencias li:hover { background: rgba(59, 194, 188, 0.15); }
+.lugar-nombre { color: var(--texto); }
+.lugar-region { color: var(--texto-suave); font-size: 0.85rem; }
+.sin-resultados { color: var(--texto-suave); font-size: 0.9rem; cursor: default !important; }
+
+details > summary {
+    cursor: pointer;
+    color: var(--texto-suave);
+    font-size: 0.92rem;
+    padding: 4px 0;
+}
+.manual[open] { display: flex; flex-direction: column; gap: 12px; }
+
+.error {
+    color: var(--rosa);
+    margin: 0;
+}
+
+/* ---------- Botones ---------- */
+
+.boton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font: inherit;
+    font-weight: 400;
+    color: var(--texto);
+    background: transparent;
+    border: 1px solid var(--linea-fuerte);
+    border-radius: 50px;
+    padding: 13px 26px;
+    text-decoration: none;
+    cursor: pointer;
+    min-height: 48px;
+}
+.boton-principal {
+    background: var(--texto);
+    color: var(--bg);
+    border-color: var(--texto);
+}
+.boton-texto {
+    font: inherit;
+    font-size: 0.9rem;
+    background: none;
+    border: none;
+    color: var(--turquesa);
+    padding: 8px 0;
+    cursor: pointer;
+    text-align: left;
+}
+
+.cargando {
+    text-align: center;
+    padding: 48px 0;
+    color: var(--texto-suave);
+}
+
+/* ---------- Resultado ---------- */
+
+.resultado {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    padding-top: 24px;
+}
+.resultado-cabecera h2 { font-size: clamp(1.8rem, 7vw, 2.6rem); margin-bottom: 4px; }
+
+.advertencia {
+    border: 1px solid var(--amarillo);
+    border-radius: var(--radio);
+    padding: 14px 16px;
+    font-size: 0.95rem;
+}
+.advertencia strong { color: var(--amarillo); font-weight: 500; letter-spacing: 1px; }
+.advertencia .boton-texto { display: block; padding-bottom: 0; }
+
+.hora24 { border: none; padding: 0; margin: 0; }
+.hora24 legend { padding: 0; margin-bottom: 6px; }
+.hora24-selects { display: flex; align-items: center; gap: 6px; }
+.hora24-selects select { flex: 1; text-align: center; }
+
+.huso {
+    border: 1px solid var(--linea);
+    border-radius: var(--radio);
+    padding: 12px 16px;
+}
+.huso[open] { padding-bottom: 16px; }
+.huso-datos {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 16px;
+    margin: 12px 0;
+}
+.huso-datos dt { color: var(--texto-suave); }
+.huso-datos dd { margin: 0; }
+.aviso {
+    border-left: 2px solid var(--amarillo);
+    padding-left: 12px;
+    font-size: 0.92rem;
+}
+.eleccion {
+    border: none;
+    padding: 0;
+    margin: 12px 0;
+}
+.eleccion legend { margin-bottom: 8px; }
+.eleccion label { display: flex; gap: 8px; align-items: center; padding: 6px 0; }
+.eleccion input, .casilla input { width: auto; }
+.correccion {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+    margin-top: 12px;
+}
+.correccion label { display: flex; flex-direction: column; gap: 4px; font-size: 0.88rem; color: var(--texto-suave); flex: 1 1 140px; }
+
+/* ---------- Rueda ---------- */
+
+.figura-rueda { margin: 0 -10px; }
+@media (min-width: 640px) { .figura-rueda { margin: 0; } }
+.rueda {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 640px;
+    margin: 0 auto;
+    overflow: visible;
+}
+.rueda .borde { fill: none; stroke: var(--linea-fuerte); stroke-width: 1.8; }
+.rueda .fino { fill: none; stroke: var(--linea-fuerte); stroke-width: 1.4; }
+.rueda .marca { stroke: var(--linea-fuerte); stroke-width: 1.3; }
+.rueda .cuspide { stroke: var(--linea-fuerte); stroke-width: 1.5; }
+.rueda .eje { stroke: var(--texto); stroke-width: 2.6; }
+.rueda .num-casa {
+    fill: var(--texto-suave);
+    font-size: 16px;
+    text-anchor: middle;
+    dominant-baseline: central;
+}
+.rueda .rotulo-eje {
+    fill: var(--texto);
+    font-size: 18px;
+    font-weight: 400;
+    text-anchor: middle;
+    dominant-baseline: central;
+    letter-spacing: 1px;
+}
+.elem-fuego { color: var(--fuego); }
+.elem-tierra { color: var(--tierra); }
+.elem-aire { color: var(--aire); }
+.elem-agua { color: var(--agua); }
+.rueda .asp-armonico { stroke: var(--asp-armonico); stroke-width: 2.2; }
+.rueda .asp-tenso { stroke: var(--asp-tenso); stroke-width: 2.2; }
+.rueda .asp-semisextil { stroke: var(--asp-semisextil); stroke-width: 2; }
+.rueda .asp-quincuncio { stroke: var(--asp-quincuncio); stroke-width: 2; }
+.rueda .asp-menor { stroke-dasharray: 7 5; }
+.rueda .punto { color: var(--texto); cursor: pointer; outline: none; }
+.rueda .eje-ac { stroke: var(--ac); }
+.rueda .rotulo-ac { fill: var(--ac); }
+.rueda .punto .toque { fill: transparent; }
+.rueda .punto.sel .toque { fill: rgba(247, 210, 57, 0.12); }
+.rueda .marca-punto { stroke: currentColor; stroke-width: 2; }
+.rueda .grado-punto {
+    fill: currentColor;
+    font-size: 20px;
+    text-anchor: middle;
+    dominant-baseline: central;
+}
+.rueda .retro { fill: var(--rosa); font-size: 14px; }
+
+.detalle-punto {
+    text-align: center;
+    color: var(--texto-suave);
+    font-size: 0.95rem;
+    min-height: 3.2em;
+    margin-top: 12px;
+}
+.detalle-punto strong { color: var(--amarillo); font-weight: 400; }
+
+/* Color de cada planeta, en la rueda y en las tablas. */
+[data-punto="sol"] { --p: var(--p-sol); }
+[data-punto="luna"] { --p: var(--p-luna); }
+[data-punto="mercurio"] { --p: var(--p-mercurio); }
+[data-punto="venus"] { --p: var(--p-venus); }
+[data-punto="marte"] { --p: var(--p-marte); }
+[data-punto="jupiter"] { --p: var(--p-jupiter); }
+[data-punto="saturno"] { --p: var(--p-saturno); }
+[data-punto="urano"] { --p: var(--p-urano); }
+[data-punto="neptuno"] { --p: var(--p-neptuno); }
+[data-punto="pluton"] { --p: var(--p-pluton); }
+[data-punto="quiron"] { --p: var(--p-quiron); }
+[data-punto="nodo"] { --p: var(--p-nodo); }
+[data-punto="lilith"] { --p: var(--p-lilith); }
+.rueda .punto[data-punto], .tabla tr[data-punto] th .icono { color: var(--p, var(--texto)); }
+
+/* ---------- Fondo claro (lo elige la persona) ---------- */
+.tema-claro {
+    --bg: #ffffff;
+    --superficie: #f4f4f6;
+    --superficie-2: #ffffff;
+    --texto: #15151a;
+    --texto-suave: #5c5f6b;
+    --linea: rgba(20, 20, 30, 0.12);
+    --linea-fuerte: rgba(20, 20, 30, 0.35);
+    --turquesa: #178580;
+    --amarillo: #9a6b00;
+
+    --agua: #242c3f;
+    --asp-armonico: #178580;
+
+    /* Planetas: los tonos de Seba, mas profundos para leerse sobre blanco. */
+    --p-sol: #9a6b00;
+    --p-luna: #4d535c;
+    --p-mercurio: #6b7000;
+    --p-venus: #a85a12;
+    --p-marte: #a2463a;
+    --p-jupiter: #a2463a;
+    --p-saturno: #a2463a;
+    --p-urano: #c0321a;
+    --p-neptuno: #1f6799;
+    --p-pluton: #4f5072;
+    --p-quiron: #6e4a94;
+    --p-nodo: #1a1a1a;
+    --p-lilith: #1a1a1a;
+}
+.tema-claro input, .tema-claro select { color-scheme: light; }
+.tema-claro .sobretitulo { color: var(--fuego); }
+
+/* ---------- Interpretaciones ---------- */
+
+.desplegable-interp > summary {
+    color: var(--texto);
+    font-size: 1.1rem;
+    padding: 14px 0;
+    border-top: 1px solid var(--linea);
+    border-bottom: 1px solid var(--linea);
+}
+.interpretacion {
+    border-top: 1px solid var(--linea);
+    padding: 20px 0 4px;
+}
+.interpretacion h3 { color: var(--amarillo); }
+.proximamente {
+    color: var(--texto-suave);
+    letter-spacing: 1px;
+    font-size: 0.9rem;
+}
+
+/* ---------- Llamado a consultar ---------- */
+
+.consultar {
+    background: var(--superficie);
+    border-radius: var(--radio);
+    padding: 28px 20px;
+}
+.consultar > p:first-of-type { color: var(--texto-suave); }
+.botones-consulta {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 20px 0 8px;
+}
+
+/* ---------- Tablas ---------- */
+
+.pestanas {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--linea);
+    margin-bottom: 8px;
+    overflow-x: auto;
+}
+.pestanas button {
+    font: inherit;
+    background: none;
+    border: none;
+    color: var(--texto-suave);
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+}
+.pestanas button[aria-selected="true"] {
+    color: var(--texto);
+    border-bottom-color: var(--amarillo);
+}
+
+.tabla {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+.tabla th, .tabla td {
+    text-align: left;
+    padding: 9px 6px;
+    border-bottom: 1px solid var(--linea);
+    font-weight: 300;
+    vertical-align: middle;
+}
+.tabla thead th { color: var(--texto-suave); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+.tabla .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tabla th[scope="row"], .tabla td:nth-child(2) { white-space: nowrap; }
+.tabla .icono { vertical-align: -3px; margin-right: 6px; color: var(--texto); }
+.tabla .icono.elem-fuego { color: var(--fuego); }
+.tabla .icono.elem-tierra { color: var(--tierra); }
+.tabla .icono.elem-aire { color: var(--aire); }
+.tabla .icono.elem-agua { color: var(--agua); }
+.tabla .retro, .tabla .ap { color: var(--rosa); text-align: center; width: 1.5em; }
+.tabla abbr { text-decoration: none; }
+.tabla .aspecto { white-space: normal; }
+.tabla .aspecto span { margin-right: 4px; }
+.tipo-aspecto.trigono .icono, .tipo-aspecto.sextil .icono { color: var(--asp-armonico); }
+.tipo-aspecto.cuadratura .icono, .tipo-aspecto.oposicion .icono,
+.tipo-aspecto.semicuadratura .icono, .tipo-aspecto.sesquicuadratura .icono { color: var(--asp-tenso); }
+.tipo-aspecto.semisextil .icono { color: var(--asp-semisextil); }
+.tipo-aspecto.quincuncio .icono { color: var(--asp-quincuncio); }
+.tipo-aspecto .icono { margin: 0 2px; }
+
+/* ---------- Ajustes ---------- */
+
+.ajustes {
+    border: 1px solid var(--linea);
+    border-radius: var(--radio);
+    padding: 12px 16px;
+}
+#form-ajustes {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-top: 12px;
+}
+.casilla { display: flex; gap: 10px; align-items: center; font-size: 0.95rem; }
+.orbes { border: none; padding: 0; margin: 0; }
+.orbes legend { font-size: 0.9rem; color: var(--texto-suave); }
+.grilla-orbes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 360px;
+}
+/* Fila: punto | orbe mayor | orbe menor. */
+.orbe {
+    display: grid;
+    grid-template-columns: 1fr 5.5em 5.5em;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+}
+.orbe .valor { white-space: nowrap; text-align: right; }
+.orbe input { width: 4.2em; padding: 8px; text-align: right; }
+.orbe.encabezado { font-size: 0.8rem; color: var(--texto-suave); }
+.orbe.apagado { opacity: 0.4; }
+.grilla-menores { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.menor { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
+.menor input[type="checkbox"] { width: auto; }
+
+.acciones {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* ---------- Pie ---------- */
+
+.pie {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px 16px 40px;
+    border-top: 1px solid var(--linea);
+    color: var(--texto-suave);
+    font-size: 0.8rem;
+}
+.pie a { color: var(--texto-suave); }
+
+/* ---------- Pantallas grandes ---------- */
+
+@media (min-width: 640px) {
+    .botones-consulta { flex-direction: row; }
+    .acciones { flex-direction: row; gap: 24px; }
+}

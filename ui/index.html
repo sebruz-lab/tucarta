@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tu carta natal | Seba Bru</title>
+<meta name="description" content="Calculá tu carta natal gratis: rueda, posiciones, aspectos y textos sobre tu Sol, tu Luna y tu Ascendente.">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sebabru.com/tucarta">
+<meta property="og:title" content="Tu carta natal | Seba Bru Astrología">
+<meta property="og:description" content="Calculá tu carta natal gratis: rueda, posiciones, aspectos y textos sobre tu Sol, tu Luna y tu Ascendente.">
+<meta property="og:image" content="https://sebabru.com/img/tucarta.webp">
+<meta property="og:site_name" content="Seba Bru Astrología">
+
+<link rel="icon" type="image/x-icon" href="/img/favicon.ico">
+<link rel="preload" href="/tucarta/fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="./tucarta.css">
+
+<!-- Google tag (gtag.js), el mismo del sitio -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-GDLRMR5D57');
+</script>
+</head>
+<body>
+
+<header class="cabecera">
+    <a class="marca" href="/">Seba Bru</a>
+    <div class="selector-tema" role="group" aria-label="Fondo">
+        <button type="button" data-tema="oscuro" aria-pressed="true">Oscuro</button>
+        <button type="button" data-tema="claro" aria-pressed="false">Claro</button>
+    </div>
+</header>
+
+<main>
+    <section class="intro">
+        <p class="sobretitulo">Carta natal</p>
+        <h1>¿Cómo estaba el cielo cuando naciste?</h1>
+        <p>Completá tus datos y mirá tu carta: la rueda, dónde estaba cada planeta y qué dicen tu Sol, tu Luna y tu Ascendente.</p>
+    </section>
+
+    <form id="datos" class="datos" novalidate>
+        <label class="campo"><span>Nombre <span class="opcional">(opcional)</span></span>
+            <input type="text" name="nombre" autocomplete="given-name" maxlength="60">
+        </label>
+        <div class="fila">
+            <label class="campo"><span>Fecha <span class="opcional">(DD/MM/AAAA)</span></span>
+                <input type="text" name="fecha" required inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" autocomplete="bday">
+            </label>
+            <fieldset class="campo hora24">
+                <legend>Hora (24 h)</legend>
+                <div class="hora24-selects">
+                    <select name="hh" aria-label="Hora" required></select>
+                    <span aria-hidden="true">:</span>
+                    <select name="mm" aria-label="Minutos" required></select>
+                </div>
+            </fieldset>
+        </div>
+        <p class="nota">Si no sabés la hora exacta, poné la más aproximada: el Ascendente y las casas cambian bastante con pocos minutos.</p>
+
+        <div class="campo lugar">
+            <label for="lugar">¿Dónde naciste?</label>
+            <input id="lugar" type="text" name="lugar" autocomplete="off" placeholder="Escribí tu ciudad o pueblo"
+                role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias">
+            <ul id="sugerencias" class="sugerencias" role="listbox" hidden></ul>
+        </div>
+
+        <details class="manual" id="manual">
+            <summary>¿No encontrás tu lugar? Cargá las coordenadas</summary>
+            <div class="fila">
+                <label class="campo">Latitud <input type="text" name="lat" inputmode="decimal" placeholder="-34.65 o 34°39'S"></label>
+                <label class="campo">Longitud <input type="text" name="lon" inputmode="decimal" placeholder="-58.62 o 58°37'O"></label>
+            </div>
+            <label class="campo">Zona horaria <select name="zona"></select></label>
+        </details>
+
+        <p class="error" id="error-form" role="alert" hidden></p>
+        <button type="submit" class="boton boton-principal">Calcular mi carta</button>
+        <p class="nota privacidad">Tus datos no salen de tu dispositivo: la carta se calcula en tu navegador.</p>
+    </form>
+
+    <div id="cargando" class="cargando" hidden aria-live="polite">Calculando…</div>
+
+    <section id="resultado" class="resultado" hidden>
+        <header class="resultado-cabecera">
+            <h2 id="titulo-carta">Tu carta</h2>
+            <p id="resumen-datos" class="nota"></p>
+        </header>
+
+        <div id="advertencia-huso" class="advertencia" role="alert" hidden></div>
+
+        <details class="huso" id="huso">
+            <summary>Huso horario usado</summary>
+            <div id="huso-contenido"></div>
+        </details>
+
+        <figure class="figura-rueda">
+            <div id="rueda"></div>
+            <figcaption id="detalle-punto" class="detalle-punto" aria-live="polite">Tocá un planeta para ver dónde está y con quién se relaciona.</figcaption>
+        </figure>
+
+        <section class="interpretaciones" aria-label="Tu Sol, tu Luna y tu Ascendente">
+            <details class="desplegable-interp">
+                <summary>¿Querés saber algo de lo que esto significa?</summary>
+                <div id="interpretaciones"></div>
+            </details>
+        </section>
+
+        <section class="consultar" aria-labelledby="titulo-consultar">
+            <h2 id="titulo-consultar">¿Querés profundizar en tu carta?</h2>
+            <p>Una lectura completa mira la carta entera: cómo se combinan los planetas, las casas y los aspectos, y qué momento estás atravesando.</p>
+            <div class="botones-consulta">
+                <a id="cta-seba" class="boton boton-principal" href="https://wa.me/5493544559877?text=Quisiera%20coordinar%20una%20consulta%20con%20Seba" target="_blank" rel="noopener" data-destino="seba">Consultar con Seba</a>
+                <a id="cta-egresadxs" class="boton" href="https://wa.me/5493544559877?text=Quisiera%20coordinar%20una%20consulta%20con%20Seba" target="_blank" rel="noopener" data-destino="egresadxs">Consultar con egresadxs</a>
+            </div>
+            <p class="nota" id="nota-egresadxs">Lxs egresadxs de la escuela ofrecen consultas a un valor más accesible.</p>
+        </section>
+
+        <section class="tablas">
+            <div class="pestanas" role="tablist">
+                <button type="button" role="tab" id="pestana-posiciones" aria-controls="tabla-posiciones" aria-selected="true">Posiciones</button>
+                <button type="button" role="tab" id="pestana-aspectos" aria-controls="tabla-aspectos" aria-selected="false">Aspectos</button>
+                <button type="button" role="tab" id="pestana-casas" aria-controls="tabla-casas" aria-selected="false">Casas</button>
+            </div>
+            <div id="tabla-posiciones" role="tabpanel" aria-labelledby="pestana-posiciones"></div>
+            <div id="tabla-aspectos" role="tabpanel" aria-labelledby="pestana-aspectos" hidden></div>
+            <div id="tabla-casas" role="tabpanel" aria-labelledby="pestana-casas" hidden></div>
+        </section>
+
+        <details class="ajustes">
+            <summary>Ajustes de la carta</summary>
+            <form id="form-ajustes"></form>
+        </details>
+
+        <div class="acciones">
+            <button type="button" class="boton-texto" data-accion="otra-carta">Calcular otra carta</button>
+            <button type="button" class="boton-texto" data-accion="borrar">Borrar mis datos de este dispositivo</button>
+        </div>
+    </section>
+</main>
+
+<footer class="pie">
+    <p>Calculado con <a href="https://www.astro.com/swisseph/">Swiss Ephemeris</a> (zodíaco tropical).
+        Lugares: <a href="https://www.geonames.org/">GeoNames</a>. Husos horarios: base IANA.</p>
+    <p><a id="enlace-repo" href="https://github.com/sebruz-lab/tucarta">Código fuente</a> bajo licencia AGPL-3.0.</p>
+</footer>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>

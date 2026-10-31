@@ -1,0 +1,33 @@
+{
+    "nombre": "Referencia San Salvador de Jujuy 1991",
+    "_nota": "Jujuy en UTC-4 sin horario de verano (17/3 al 6/10/1991), cuando Buenos Aires estaba en -3. Nodo verdadero directo. UT = ET 17:00:57 - DeltaT 57s.",
+    "local": { "fecha": "1991-06-30", "hora": "13:00" },
+    "lugar": {
+        "nombre": "San Salvador de Jujuy",
+        "lat": -24.183333333333333,
+        "lon": -65.3,
+        "zona": "America/Argentina/Jujuy"
+    },
+    "offsetSolarFire": "-04:00",
+    "utc": { "anio": 1991, "mes": 6, "dia": 30, "hora": 17, "minuto": 0 },
+    "posiciones": {
+        "luna": "17Aq29'12\"",
+        "sol": "08Cn24'37\"",
+        "mercurio": "23Cn33'17\"",
+        "venus": "22Le32'35\"",
+        "marte": "20Le57'39\"",
+        "jupiter": "14Le18'41\"",
+        "saturno": "05Aq21'04\"",
+        "urano": "11Cp58'26\"",
+        "neptuno": "15Cp34'38\"",
+        "pluton": "17Sc46'47\"",
+        "quiron": "27Cn36'35\"",
+        "nodo": "18Cp54'55\"",
+        "lilith": "07Cp17'54\""
+    },
+    "retrogrados": ["saturno", "urano", "neptuno", "pluton"],
+    "cuspides": {
+        "P": ["23Li57'04\"", "26Sc18'52\"", "22Sg20'28\"", "16Cp33'42\"", "12Aq52'17\"", "14Pi59'36\"",
+              "23Ar57'04\"", "26Ta18'52\"", "22Ge20'28\"", "16Cn33'42\"", "12Le52'17\"", "14Vi59'36\""]
+    }
+}

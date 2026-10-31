@@ -1,0 +1,33 @@
+{
+    "nombre": "Referencia Morón 1984",
+    "_nota": "El reporte de Solar Fire no imprime lugar ni hora local. UT = ET 16:15:54 - DeltaT 54s. Lugar: Morón, 34°39'S 58°37'W.",
+    "local": { "fecha": "1984-03-01", "hora": "13:15" },
+    "lugar": {
+        "nombre": "Morón, Buenos Aires",
+        "lat": -34.65,
+        "lon": -58.616666666666667,
+        "zona": "America/Argentina/Buenos_Aires"
+    },
+    "offsetSolarFire": "-03:00",
+    "utc": { "anio": 1984, "mes": 3, "dia": 1, "hora": 16, "minuto": 15 },
+    "posiciones": {
+        "luna": "29Aq23'16\"",
+        "sol": "11Pi16'30\"",
+        "mercurio": "05Pi11'43\"",
+        "venus": "14Aq08'52\"",
+        "marte": "22Sc05'24\"",
+        "jupiter": "07Cp56'49\"",
+        "saturno": "16Sc21'08\"",
+        "urano": "13Sg26'29\"",
+        "neptuno": "01Cp08'29\"",
+        "pluton": "01Sc55'58\"",
+        "quiron": "28Ta07'05\"",
+        "nodo": "11Ge22'00\"",
+        "lilith": "09Pi00'04\""
+    },
+    "retrogrados": ["saturno", "pluton", "nodo"],
+    "cuspides": {
+        "P": ["01Ge52'34\"", "02Cn54'54\"", "07Le58'10\"", "13Vi29'12\"", "14Li36'42\"", "10Sc08'59\"",
+              "01Sg52'34\"", "02Cp54'54\"", "07Aq58'10\"", "13Pi29'12\"", "14Ar36'42\"", "10Ta08'59\""]
+    }
+}

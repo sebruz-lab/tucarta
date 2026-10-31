@@ -1,0 +1,22 @@
+{
+    "_nota": "Plantilla: los archivos que empiezan con _ no se testean. Copiala con otro nombre y completala con los datos de Solar Fire. Los valores de abajo son de ejemplo, no son una carta real.",
+    "nombre": "Ejemplo Buenos Aires con horario de verano",
+    "local": { "fecha": "1989-12-15", "hora": "14:30" },
+    "lugar": {
+        "nombre": "Buenos Aires",
+        "lat": -34.6,
+        "lon": -58.45,
+        "zona": "America/Argentina/Buenos_Aires"
+    },
+    "offsetSolarFire": "-02:00",
+    "utc": { "anio": 1989, "mes": 12, "dia": 15, "hora": 16, "minuto": 30 },
+    "posiciones": {
+        "sol": "23Sg41", "luna": "...", "mercurio": "...", "venus": "...", "marte": "...",
+        "jupiter": "...", "saturno": "...", "urano": "...", "neptuno": "...", "pluton": "...",
+        "nodo": "...", "lilith": "...", "quiron": "..."
+    },
+    "retrogrados": ["jupiter", "nodo"],
+    "cuspides": {
+        "P": ["...", "...", "...", "...", "...", "...", "...", "...", "...", "...", "...", "..."]
+    }
+}

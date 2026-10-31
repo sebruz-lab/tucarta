@@ -1,0 +1,33 @@
+{
+    "nombre": "Referencia Buenos Aires 1991",
+    "_nota": "Horario de verano argentino 1990-91 (huso base -3 + 1 h). UT = ET 23:33:57 - DeltaT 57s.",
+    "local": { "fecha": "1991-02-01", "hora": "21:33" },
+    "lugar": {
+        "nombre": "Buenos Aires",
+        "lat": -34.6,
+        "lon": -58.45,
+        "zona": "America/Argentina/Buenos_Aires"
+    },
+    "offsetSolarFire": "-02:00",
+    "utc": { "anio": 1991, "mes": 2, "dia": 1, "hora": 23, "minuto": 33 },
+    "posiciones": {
+        "luna": "18Vi28'46\"",
+        "sol": "12Aq36'30\"",
+        "mercurio": "24Cp05'03\"",
+        "venus": "04Pi42'49\"",
+        "marte": "03Ge11'52\"",
+        "jupiter": "08Le03'26\"",
+        "saturno": "29Cp26'30\"",
+        "urano": "11Cp34'36\"",
+        "neptuno": "15Cp17'53\"",
+        "pluton": "20Sc15'23\"",
+        "quiron": "23Cn02'15\"",
+        "nodo": "27Cp59'25\"",
+        "lilith": "20Sg47'32\""
+    },
+    "retrogrados": ["jupiter", "quiron", "nodo"],
+    "cuspides": {
+        "P": ["24Le50'05\"", "08Li47'11\"", "12Sc37'21\"", "08Sg13'13\"", "00Cp36'39\"", "24Cp10'50\"",
+              "24Aq50'05\"", "08Ar47'11\"", "12Ta37'21\"", "08Ge13'13\"", "00Cn36'39\"", "24Cn10'50\""]
+    }
+}
