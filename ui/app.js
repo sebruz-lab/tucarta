@@ -15,6 +15,7 @@ import { NOMBRE_PUNTO, escapar } from './textos.js';
 import { SISTEMAS_CASAS } from '../engine/config.js';
 import { almacenLocal, igualQue } from './miscartas.js';
 import { imagenCarta, entregarImagen } from './descarga.js';
+import { conectarCuenta, sesionIniciada } from './panelCuenta.js';
 
 const $ = (sel) => document.querySelector(sel);
 const CLAVE_DATOS = 'tucarta:ultima';
@@ -344,7 +345,7 @@ let guardadas = [];
 
 async function pintarMisCartas() {
     try { guardadas = await almacen.listar(); } catch (e) { console.error(e); guardadas = []; }
-    $('#mis-cartas').hidden = !guardadas.length || !$('#resultado').hidden;
+    $('#mis-cartas').hidden = !$('#resultado').hidden || (!guardadas.length && !sesionIniciada());
     $('#lista-cartas').innerHTML = guardadas.map((c) => {
         const nombre = c.nombre || 'Sin nombre';
         const lugar = c.lugar.manual ? 'Coordenadas a mano' : c.lugar.nombre;
@@ -508,3 +509,16 @@ function restaurar() {
 }
 restaurar();
 pintarMisCartas();
+
+// Cuenta: al entrar o salir cambia donde se guardan las cartas.
+conectarCuenta({
+    alCambiarAlmacen(nuevo) {
+        almacen = nuevo;
+        pintarMisCartas();
+        if (estado.carta) pintarBotonGuardar();
+    }
+});
+document.addEventListener('tucarta:mis-cartas', () => {
+    mostrarFormulario();
+    $('#mis-cartas').scrollIntoView({ block: 'start' });
+});

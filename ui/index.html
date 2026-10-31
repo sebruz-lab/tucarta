@@ -30,11 +30,42 @@
 
 <header class="cabecera">
     <a class="marca" href="/">Seba Bru</a>
-    <div class="selector-tema" role="group" aria-label="Fondo">
-        <button type="button" data-tema="oscuro" aria-pressed="true">Oscuro</button>
-        <button type="button" data-tema="claro" aria-pressed="false">Claro</button>
+    <div class="cabecera-derecha">
+        <button type="button" id="boton-cuenta" class="boton-cuenta" hidden>Entrar</button>
+        <div class="selector-tema" role="group" aria-label="Fondo">
+            <button type="button" data-tema="oscuro" aria-pressed="true">Oscuro</button>
+            <button type="button" data-tema="claro" aria-pressed="false">Claro</button>
+        </div>
     </div>
 </header>
+
+<dialog id="ventana-cuenta" class="ventana-cuenta" aria-labelledby="titulo-cuenta">
+    <button type="button" class="cerrar" data-cuenta="cerrar" aria-label="Cerrar">×</button>
+    <div data-paso="entrar">
+        <h2 id="titulo-cuenta">Entrá con tu cuenta</h2>
+        <p class="nota">Es la misma cuenta de la escuela de Seba Bru. Si no tenés, la creás acá.</p>
+        <button type="button" class="boton" data-cuenta="google">Entrar con Google</button>
+        <p class="separador"><span>o con tu mail</span></p>
+        <form id="form-cuenta" novalidate>
+            <label class="campo">Mail <input type="email" name="email" autocomplete="email" required></label>
+            <label class="campo">Contraseña <input type="password" name="pass" autocomplete="current-password" minlength="6" required></label>
+            <p class="error" id="error-cuenta" role="alert" hidden></p>
+            <p class="nota" id="info-cuenta" role="status" hidden></p>
+            <button type="submit" class="boton boton-principal">Entrar</button>
+            <button type="button" class="boton-texto" data-cuenta="modo">¿No tenés cuenta? Creala</button>
+            <button type="button" class="boton-texto" data-cuenta="olvide">¿Olvidaste tu contraseña?</button>
+        </form>
+    </div>
+    <div data-paso="aceptar" hidden>
+        <h2>Antes de guardar tus cartas</h2>
+        <p>Las cartas que guardes (nombre, fecha, hora y lugar de nacimiento) quedan en tu cuenta para que las veas desde cualquier dispositivo. Solo vos podés verlas, y podés borrarlas cuando quieras.</p>
+        <p id="pasar-locales" class="nota" hidden></p>
+        <label class="casilla"><input type="checkbox" id="acepta-novedades">
+            Quiero recibir novedades de Seba Bru por mail</label>
+        <button type="button" class="boton boton-principal" data-cuenta="aceptar">Aceptar y seguir</button>
+        <button type="button" class="boton-texto" data-cuenta="no-aceptar">Ahora no</button>
+    </div>
+</dialog>
 
 <main>
     <section class="intro">
@@ -46,7 +77,7 @@
     <section id="mis-cartas" class="mis-cartas" aria-labelledby="titulo-mis-cartas" hidden>
         <h2 id="titulo-mis-cartas">Mis cartas</h2>
         <ul id="lista-cartas" class="lista-cartas"></ul>
-        <p class="nota" id="nota-mis-cartas">Guardadas en este dispositivo.</p>
+        <div class="nota" id="nota-mis-cartas">Guardadas en este dispositivo.</div>
     </section>
 
     <form id="datos" class="datos" novalidate>
@@ -86,7 +117,7 @@
 
         <p class="error" id="error-form" role="alert" hidden></p>
         <button type="submit" class="boton boton-principal">Calcular mi carta</button>
-        <p class="nota privacidad">Tus datos no salen de tu dispositivo: la carta se calcula en tu navegador.</p>
+        <p class="nota privacidad">La carta se calcula en tu navegador: tus datos no salen de tu dispositivo, salvo las cartas que guardes en tu cuenta.</p>
     </form>
 
     <div id="cargando" class="cargando" hidden aria-live="polite">Calculando…</div>

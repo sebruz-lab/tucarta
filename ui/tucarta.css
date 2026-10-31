@@ -597,6 +597,62 @@ details > summary {
     cursor: pointer;
 }
 
+/* ---------- Cuenta ---------- */
+
+.cabecera-derecha { display: flex; align-items: center; gap: 10px; }
+.boton-cuenta {
+    font: inherit;
+    font-size: 0.85rem;
+    background: none;
+    border: none;
+    color: var(--texto);
+    padding: 6px 2px;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+.ventana-cuenta {
+    width: min(420px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    background: var(--bg);
+    color: var(--texto);
+    border: 1px solid var(--linea-fuerte);
+    border-radius: var(--radio);
+    padding: 28px 20px 20px;
+}
+.ventana-cuenta::backdrop { background: rgba(0, 0, 0, 0.6); }
+.ventana-cuenta h2 { font-size: 1.3rem; font-weight: 400; margin: 0 0 8px; }
+.ventana-cuenta [data-paso], #form-cuenta { display: flex; flex-direction: column; gap: 12px; }
+.ventana-cuenta [data-paso][hidden] { display: none; }
+.ventana-cuenta .cerrar {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font: inherit;
+    font-size: 1.6rem;
+    background: none;
+    border: none;
+    color: var(--texto-suave);
+    cursor: pointer;
+}
+.separador {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--texto-suave);
+    font-size: 0.85rem;
+    margin: 4px 0;
+}
+.separador::before, .separador::after { content: ''; flex: 1; border-top: 1px solid var(--linea); }
+.boton-texto.en-linea { display: inline; padding: 0; text-decoration: underline; }
+.boton-texto.peligro { color: var(--fuego); }
+#nota-mis-cartas { margin-top: 10px; line-height: 1.6; }
+#nota-mis-cartas > .boton-texto:not(.en-linea) { display: block; }
+.tu-cuenta { margin-top: 8px; }
+.tu-cuenta summary { cursor: pointer; color: var(--texto); }
+.tu-cuenta .casilla { margin: 10px 0 4px; }
+.tu-cuenta .boton-texto { display: block; }
+
 /* ---------- Ajustes ---------- */
 
 .ajustes {

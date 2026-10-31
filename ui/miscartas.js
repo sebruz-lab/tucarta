@@ -8,8 +8,17 @@
 const CLAVE = 'tucarta:cartas';
 const CAMPOS = ['nombre', 'fecha', 'hora', 'lugar', 'correccion', 'eleccion'];
 
+// Del lugar solo se guarda lo necesario para recalcular y mostrarlo.
+const CAMPOS_LUGAR = ['nombre', 'provincia', 'pais', 'paisNombre', 'lat', 'lon', 'zona', 'manual'];
+
 // Lo que se guarda de los datos del formulario (sin nada de mas).
-export const datosDeCarta = (d) => Object.fromEntries(CAMPOS.map((k) => [k, d[k] ?? null]));
+export function datosDeCarta(d) {
+    const res = Object.fromEntries(CAMPOS.map((k) => [k, d[k] ?? null]));
+    res.nombre = res.nombre || '';
+    res.eleccion = res.eleccion || 0;
+    res.lugar = Object.fromEntries(CAMPOS_LUGAR.filter((k) => d.lugar?.[k] != null).map((k) => [k, d.lugar[k]]));
+    return res;
+}
 
 // Misma persona y mismo momento: se actualiza en lugar de duplicarse.
 export const mismaCarta = (a, b) =>
