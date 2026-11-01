@@ -860,21 +860,28 @@ async function pintarMisCartas() {
 }
 
 // "Mis cartas" es un casillero que se despliega: con mouse, al pasar por
-// encima (y se cierra al salir, salvo que se este escribiendo adentro);
-// en pantallas tactiles, al tocarlo.
+// encima (y se cierra al salir, salvo que se este escribiendo en el
+// buscador o eligiendo en el filtro); en pantallas tactiles, al tocarlo.
+// El titulo (y su flecha) siempre lo abre o lo cierra; cerrado asi, no se
+// vuelve a abrir hasta que el mouse sale y vuelve a entrar.
 const conMouse = matchMedia('(hover: hover) and (pointer: fine)');
+const escribiendo = () => $('#mis-cartas').contains(document.activeElement) && document.activeElement.matches('input, select');
+let cerradoAMano = false;
 $('#mis-cartas').addEventListener('mouseenter', () => {
-    if (conMouse.matches) $('#mis-cartas').open = true;
+    if (conMouse.matches && !cerradoAMano) $('#mis-cartas').open = true;
 });
 $('#mis-cartas').addEventListener('mouseleave', () => {
-    if (conMouse.matches && !$('#mis-cartas').contains(document.activeElement)) $('#mis-cartas').open = false;
+    cerradoAMano = false;
+    if (conMouse.matches && !escribiendo()) $('#mis-cartas').open = false;
 });
 $('#mis-cartas').addEventListener('focusout', (e) => {
     if (conMouse.matches && !$('#mis-cartas').contains(e.relatedTarget) && !$('#mis-cartas').matches(':hover')) $('#mis-cartas').open = false;
 });
-// Con mouse ya se abrio al pasar: el clic no lo vuelve a cerrar.
 $('#titulo-mis-cartas').addEventListener('click', (e) => {
-    if (conMouse.matches && $('#mis-cartas').open) e.preventDefault();
+    e.preventDefault();
+    const abrir = !$('#mis-cartas').open;
+    $('#mis-cartas').open = abrir;
+    cerradoAMano = !abrir;
 });
 
 // ---------- Menu del sitio ----------
