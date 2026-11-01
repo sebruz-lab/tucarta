@@ -41,11 +41,11 @@
     --agua: #5b74b8; /* sobre fondo oscuro; el original #242c3f va en la rueda clara */
 
     /* Aspectos: tensos en el rojo de fuego; semisextil azul; quincuncio verde. */
-    /* Aspectos: rojos (tensos), azules (armonicos y semisextil) y verdes
-       (quincuncio), los mismos en los dos fondos. */
+    /* Aspectos: rojos (tensos), azules (armonicos y semisextil, el mismo
+       azul) y verdes (quincuncio), los mismos en los dos fondos. */
     --asp-tenso: #e30613;
     --asp-armonico: #3434f4;
-    --asp-semisextil: #36a9e1;
+    --asp-semisextil: #3434f4;
     --asp-quincuncio: #009640;
     --ac: #8a1c02;
     /* Planetas en transito: un solo color, que no usa ningun otro glifo. */

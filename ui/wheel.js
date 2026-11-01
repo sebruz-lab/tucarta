@@ -241,7 +241,9 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         const largo = Math.hypot(x2 - x1, y2 - y1);
         const mx = (x1 + x2) / 2;
         const my = (y1 + y2) / 2;
-        const hueco = 9;
+        // Hueco limpio para el glifo: en las lineas partidas, un trazo y
+        // dos espacios (14 + 5 + 5); la linea nunca lo pisa.
+        const hueco = 12;
         if (largo < hueco * 4) {
             out.push(`<line class="${clase}" x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" ${op}/>`);
             continue;

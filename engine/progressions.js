@@ -8,6 +8,7 @@
 
 import { AJUSTES_POR_DEFECTO } from './config.js';
 import { calcularCarta } from './chart.js';
+import { calcularAspectos } from './aspects.js';
 import { utcDeJd } from './solarReturn.js';
 
 export const ANIO_TROPICO = 365.24219;
@@ -17,6 +18,10 @@ export const METODOS_PROGRESION = [
     { id: 'naibod', nombre: 'Naibod en ascensión recta' }
 ];
 const NAIBOD = 0.98564733; // grados por anio
+// En las progresiones el orbe es de 1° para todos los aspectos y puntos.
+export const ORBES_PROGRESION = {
+    conjuncion: 1, oposicion: 1, trigono: 1, cuadratura: 1, sextil: 1, menor: 1
+};
 const SOL = 0;
 const SE_ECL_NUT = -1;
 const SEFLG_MOSEPH = 4;
@@ -63,5 +68,11 @@ export function calcularProgresion(swe, { natal, jdObjetivo, ajustes = AJUSTES_P
     const lonCorrida = dif(lon + avance, 0);
     const casas = swe.houses(jdNatal, lat, lonCorrida, ajustes.casas);
     const carta = calcularCarta(swe, { utc, lat, lon, ajustes, casas });
-    return { edad, jd: jdProg, jdObjetivo, metodo, arco: norm(solProg.lon - solNatal.lon), carta };
+    const opciones = { orbesPorAspecto: ORBES_PROGRESION, menores: ajustes.menores };
+    const participantes = ajustes.aspectosAngulos ? [...carta.puntos, ...carta.angulos] : carta.puntos;
+    carta.aspectos = calcularAspectos(participantes, participantes, { ...opciones, mismaCarta: true });
+    // Progresada -> natal (la natal quieta, con sus angulos).
+    const natales = [...natal.puntos, ...natal.angulos].map((p) => ({ id: p.id, lon: p.lon, vel: 0 }));
+    const aspectosNatal = calcularAspectos([...carta.puntos, ...carta.angulos], natales, opciones);
+    return { edad, jd: jdProg, jdObjetivo, metodo, arco: norm(solProg.lon - solNatal.lon), carta, aspectosNatal };
 }

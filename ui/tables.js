@@ -167,3 +167,21 @@ export function detalleNatalConTransitos(carta, transitos, id) {
     return `<strong>${NOMBRE_PUNTO[id]}</strong> natal en ${gradoMin(p)} de ${NOMBRE_SIGNO[p.signo]}.` +
         `<br><span class="nota">${asp.length ? 'Recibe: ' + asp.join(' · ') : 'No recibe tránsitos con los orbes elegidos.'}</span>`;
 }
+
+// Aspectos de una carta exterior (progresada) a la natal.
+export function tablaAspectosANatal(aspectos, titulo) {
+    if (!aspectos.length) return '<p class="nota">No hay aspectos con los orbes elegidos.</p>';
+    const icono = (id) => (G_PUNTOS[id] ? iconoSvg(G_PUNTOS[id], 16, NOMBRE_PUNTO[id]) : '');
+    return `<table class="tabla">
+        <thead><tr><th>${titulo} → natal</th><th class="num">Orbe</th><th><span class="visualmente-oculto">Aplicativo o separativo</span></th></tr></thead>
+        <tbody>${aspectos.map((a) => `<tr>
+            <th scope="row" class="aspecto">
+                ${icono(a.a)}<span>${NOMBRE_PUNTO[a.a]}</span>
+                <span class="tipo-aspecto ${a.aspecto}">${iconoSvg(G_ASPECTOS[a.aspecto], 16, NOMBRE_ASPECTO[a.aspecto])}</span>
+                ${icono(a.b)}<span>${NOMBRE_PUNTO[a.b]}</span>
+            </th>
+            <td class="num">${orbeTexto(a.orbe)}</td>
+            <td class="ap">${apTexto(a)}</td>
+        </tr>`).join('')}</tbody>
+    </table>`;
+}

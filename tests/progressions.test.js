@@ -45,3 +45,44 @@ describe('progresiones secundarias', () => {
         expect(Math.abs(avance - 30 * 0.98564733)).toBeLessThan(0.02);
     });
 });
+
+// Progresada de la carta de prueba al 1/11/2026 10:51:34 (UTC-3), en
+// Solar Fire con "SA in Long" y dia "Standard (Q2)".
+describe('progresiones contra Solar Fire', () => {
+    const SIG = { Ar: 0, Ta: 1, Ge: 2, Cn: 3, Le: 4, Vi: 5, Li: 6, Sc: 7, Sg: 8, Cp: 9, Aq: 10, Pi: 11 };
+    const lonSF = (t) => {
+        const m = t.match(/(\d+)°(\w\w)(\d+)'(\d+)''/);
+        return SIG[m[2]] * 30 + Number(m[1]) + Number(m[3]) / 60 + Number(m[4]) / 3600;
+    };
+    const sf = {
+        asc: "06°Cn03'46''", mc: "25°Ar48'15''",
+        cusps: ["06°Cn03'46''", "13°Le25'49''", "22°Vi38'54''", "25°Li48'15''", "21°Sc56'50''", "14°Sg10'24''"],
+        puntos: {
+            luna: "19°Vi16'27''", sol: "23°Ar35'33''", mercurio: "06°Ta34'48''", venus: "06°Ar47'01''",
+            marte: "27°Sc57'58''", jupiter: "12°Cp32'26''", saturno: "14°Sc32'25''", urano: "13°Sg16'30''",
+            neptuno: "01°Cp23'33''", pluton: "00°Sc57'23''", quiron: "00°Ge08'07''", nodo: "07°Ge26'12''"
+        }
+    };
+
+    it('fecha derivada, planetas, ángulos y casas dentro de 1′', () => {
+        const jdObjetivo = swe.julday(2026, 11, 1, 13 + 51 / 60 + 34 / 3600);
+        const p = calcularProgresion(swe, { natal, jdObjetivo });
+        const derivada = swe.julday(1984, 4, 13, 8 + 19 / 60 + 51 / 3600);
+        expect(Math.abs(p.jd - derivada) * 86400, 'segundos de diferencia en la fecha derivada').toBeLessThan(60);
+        for (const [id, t] of Object.entries(sf.puntos)) {
+            expect(distancia(lonDe(p.carta, id), lonSF(t)) * 60, id).toBeLessThan(1);
+        }
+        expect(distancia(lonDe(p.carta, 'asc'), lonSF(sf.asc)) * 60, 'asc').toBeLessThan(1);
+        expect(distancia(lonDe(p.carta, 'mc'), lonSF(sf.mc)) * 60, 'mc').toBeLessThan(1);
+        sf.cusps.forEach((t, i) => expect(distancia(p.carta.cusps[i].lon, lonSF(t)) * 60, `casa ${i + 1}`).toBeLessThan(1));
+    });
+});
+
+describe('orbes de las progresiones', () => {
+    it('1° para todos los aspectos, entre sí y a la natal', () => {
+        const p = calcularProgresion(swe, { natal, jdObjetivo: natal.meta.jd + 42.7 * ANIO_TROPICO });
+        expect(p.carta.aspectos.every((a) => a.orbeMax === 1 && a.orbe <= 1)).toBe(true);
+        expect(p.aspectosNatal.length).toBeGreaterThan(0);
+        expect(p.aspectosNatal.every((a) => a.orbeMax === 1 && a.orbe <= 1)).toBe(true);
+    });
+});

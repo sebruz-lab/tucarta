@@ -6,7 +6,7 @@ import { dibujarRueda } from './wheel.js';
 import {
     tablaPosiciones, tablaAspectos, tablaCasas, detallePunto,
     tablaPosicionesTransito, tablaAspectosTransito, detalleTransito, detalleNatalConTransitos,
-    tablaPosicionesRevolucion, detalleRevolucion
+    tablaPosicionesRevolucion, detalleRevolucion, tablaAspectosANatal
 } from './tables.js';
 import { husoEn } from '../time/tz.js';
 import { panelHuso } from './huso.js';
@@ -249,7 +249,9 @@ function pintar() {
     $('#tabla-posiciones').innerHTML = sola ? tablaPosiciones(sola)
         : externa ? tablaPosicionesRevolucion(externa, carta, etiquetaExterna())
             : conTransitos ? tablaPosicionesTransito(estado.transitos) : tablaPosiciones(carta);
-    $('#tabla-aspectos').innerHTML = sola || externa ? tablaAspectos(sola || externa)
+    const prANatal = externa && esPR(estado.modo) && estado.progresion?.resultado?.aspectosNatal;
+    $('#tabla-aspectos').innerHTML = prANatal ? tablaAspectosANatal(prANatal, 'Progresión')
+        : sola || externa ? tablaAspectos(sola || externa)
         : conTransitos ? tablaAspectosTransito(estado.transitos) : tablaAspectos(carta);
     $('#tabla-casas').innerHTML = tablaCasas(sola || externa || carta);
     $('#form-ajustes').innerHTML = panelAjustes(estado.ajustes);
