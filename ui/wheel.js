@@ -202,26 +202,33 @@ function columnas(puntos, cusps, { polar, linea, rTope, marca, escala = 1, m, pr
         out.push(`<text class="grado-punto"${letra(m.fG)} x="${f(gx)}" y="${f(gy)}">${dos(p.grado)}°</text>`);
         const [sx, sy] = polar(a, rS);
         const iSigno = SIGNOS.indexOf(p.signo);
-        out.push(glifo(G_SIGNOS[p.signo], sx, sy, m.tS / escala, '', `signo-columna elem-${ELEMENTOS[iSigno % 4]}`, 1.3));
+        out.push(glifo(G_SIGNOS[p.signo], sx, sy, m.tS / escala, '', `signo-columna elem-${ELEMENTOS[iSigno % 4]}`, 0.75));
         const [mx, my] = polar(a, rM);
         out.push(`<text class="grado-punto minuto"${letra(m.fM)} x="${f(mx)}" y="${f(my)}">${dos(p.minuto)}'${p.retro ? `<tspan class="retro"${letra(m.retro)}>r</tspan>` : ''}</text>`);
         out.push('</g>');
     });
-    return { svg: out, paso, codo: rG + (m.tG / 2 + 3) / escala };
+    return {
+        svg: out, paso,
+        codo: rG + (m.tG / 2 + 3) / escala,          // arriba de los glifos
+        codoAbajo: rM - (m.fM * 0.6 + 3) / escala     // debajo de los minutos
+    };
 }
 
-// Cuspide desde `rAdentro` hasta `rAfuera`: recta por su paso entre las
-// columnas y, si hace falta, quebrada arriba (en `codo`) hasta su grado
-// real en el borde del zodiaco (`rTope`).
-function cuspide(polar, c, paso, rAdentro, codo, rTope, rAfuera, clase) {
+// Cuspide desde `rAdentro` hasta `rAfuera`. Si las columnas no le dejan
+// pasar por su grado, en el tramo de los planetas se corre a su paso entre
+// columnas y se quiebra en los dos extremos: arriba hasta su grado en el
+// borde del zodiaco (`rTope`) y abajo hasta su grado en `rQuiebre` (el
+// anillo de numeros de casa, o el borde de la carta de adentro).
+function cuspide(polar, c, paso, { rAdentro, rQuiebre, codoAbajo, codo, rTope, rAfuera }, clase) {
     const pts = Math.abs(difAng(paso, c)) < 0.01
         ? [polar(c, rAdentro), polar(c, rAfuera)]
-        : [polar(paso, rAdentro), polar(paso, codo), polar(c, rTope), polar(c, rAfuera)];
+        : [polar(c, rAdentro), polar(c, rQuiebre), polar(paso, codoAbajo), polar(paso, codo), polar(c, rTope), polar(c, rAfuera)];
     return `<polyline class="${clase}" fill="none" points="${pts.map(([x, y]) => `${f(x)},${f(y)}`).join(' ')}"/>`;
 }
 
-// Numeros de casa a mitad de camino entre los pasos de sus cuspides.
-const medioCasa = (paso, i) => paso[i] + ((((paso[(i + 1) % 12] - paso[i]) % 360) + 360) % 360) / 2;
+// Numeros de casa a mitad de camino entre sus cuspides (en su grado real:
+// ahi la cuspide ya volvio a su lugar).
+const medioCasa = (lons, i) => lons[i] + ((((lons[(i + 1) % 12] - lons[i]) % 360) + 360) % 360) / 2;
 
 // clara: rueda para el fondo blanco; si no, para el fondo oscuro. En las
 // dos los signos van en el color de su elemento.
@@ -273,8 +280,10 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         const angular = i % 3 === 0;
         const clase = i === 0 ? 'eje eje-ac' : angular ? 'eje' : 'cuspide';
         const largo = angular ? (revolucion ? R.exterior : R.exterior + 6) : R.signos;
-        out.push(cuspide(polar, c.lon, col.paso[i], R.aspectos, col.codo, R.signos, largo, clase));
-        const [x, y] = polar(medioCasa(col.paso, i), R.numeros);
+        out.push(cuspide(polar, c.lon, col.paso[i], {
+            rAdentro: R.aspectos, rQuiebre: R.casas, codoAbajo: col.codoAbajo, codo: col.codo, rTope: R.signos, rAfuera: largo
+        }, clase));
+        const [x, y] = polar(medioCasa(carta.cusps.map((k) => k.lon), i), R.numeros);
         out.push(`<text class="num-casa"${letra(LETRA_NATAL.casa)} x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
     });
     // Con revolucion, el AC de la natal va adentro, junto a su eje.
@@ -390,8 +399,11 @@ function anilloRevolucion(rs, natal, { polar, linea, seleccion, nombres }) {
     rs.cusps.forEach((c, i) => {
         const angular = i % 3 === 0;
         const clase = i === 0 ? 'eje eje-ac' : angular ? 'eje' : 'cuspide';
-        out.push(cuspide(polar, c.lon, col.paso[i], borde, col.codo, R2.signos, angular ? R2.exterior + 6 : R2.signos, clase));
-        const [x, y] = polar(medioCasa(col.paso, i), R2.casas);
+        out.push(cuspide(polar, c.lon, col.paso[i], {
+            rAdentro: borde, rQuiebre: R2.linea, codoAbajo: col.codoAbajo, codo: col.codo,
+            rTope: R2.signos, rAfuera: angular ? R2.exterior + 6 : R2.signos
+        }, clase));
+        const [x, y] = polar(medioCasa(rs.cusps.map((k) => k.lon), i), R2.casas);
         out.push(`<text class="num-casa" style="font-size:10px" x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
     });
     out.push(...col.svg);
