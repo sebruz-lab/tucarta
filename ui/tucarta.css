@@ -1228,6 +1228,8 @@ body.sin-scroll { overflow: hidden; }
     }
     .figura-rueda #rueda { width: 186mm; margin: 0 auto; }
     .figura-rueda .rueda { max-width: none; }
+    /* Sin fondo: solo las lineas, los glifos y los numeros. */
+    .rueda .fondo-rueda { fill: none !important; }
     /* Fichas como las de Solar Fire, arriba en las esquinas. */
     .ficha-impresion {
         display: flex;
