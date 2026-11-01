@@ -31,7 +31,13 @@
 <header class="cabecera">
     <a class="marca" href="/">Seba Bru</a>
     <div class="cabecera-derecha">
-        <button type="button" id="boton-cuenta" class="boton-cuenta" hidden>Entrar</button>
+        <div class="menu-cuenta">
+            <button type="button" id="boton-cuenta" class="boton-cuenta" aria-haspopup="true" hidden>Entrar</button>
+            <ul id="opciones-cuenta" class="opciones-cuenta" hidden>
+                <li><button type="button" data-cuenta-menu="administrar">Administrar mi cuenta</button></li>
+                <li><button type="button" data-cuenta-menu="salir">Salir</button></li>
+            </ul>
+        </div>
         <div class="selector-tema" role="group" aria-label="Fondo">
             <button type="button" data-tema="oscuro" aria-pressed="false">Oscuro</button>
             <button type="button" data-tema="claro" aria-pressed="true">Claro</button>
@@ -81,9 +87,18 @@
     </div>
 </dialog>
 
+<dialog id="ventana-mi-cuenta" class="ventana-cuenta" aria-labelledby="titulo-mi-cuenta">
+    <button type="button" class="cerrar" data-mi-cuenta="cerrar" aria-label="Cerrar">×</button>
+    <h2 id="titulo-mi-cuenta">Tu cuenta</h2>
+    <p class="nota" id="mail-mi-cuenta"></p>
+    <label class="casilla"><input type="checkbox" id="cambiar-novedades">
+        Quiero recibir novedades de Seba Bru por mail</label>
+    <button type="button" class="boton-texto" data-mi-cuenta="salir">Salir de mi cuenta</button>
+    <button type="button" class="boton-texto peligro" data-mi-cuenta="borrar-todo">Borrar todas mis cartas de la cuenta</button>
+</dialog>
+
 <main>
     <section class="intro">
-        <p class="sobretitulo">Carta natal</p>
         <h1>Calculadora de Cartas Astrales</h1>
         <p id="pregunta-intro" class="bajada-intro">¿Cómo estaba el cielo cuando naciste?</p>
         <p id="texto-intro">Completá tus datos y mirá tu carta: la rueda, dónde estaba cada planeta y qué dicen tu Sol, tu Luna y tu Ascendente.</p>

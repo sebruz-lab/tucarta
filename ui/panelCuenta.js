@@ -191,14 +191,7 @@ function pintar() {
     const nota = $('#nota-mis-cartas');
     const email = `<strong>${escapar(cuenta.email)}</strong>`;
     if (cuenta.estado === 'adentro') {
-        nota.innerHTML = `Guardadas en tu cuenta (${email}): las ves desde cualquier dispositivo.
-            <details class="tu-cuenta">
-                <summary>Tu cuenta</summary>
-                <label class="casilla"><input type="checkbox" id="cambiar-novedades" ${cuenta.novedades ? 'checked' : ''}>
-                    Quiero recibir novedades de Seba Bru por mail</label>
-                <button type="button" class="boton-texto" data-cuenta-panel="salir">Salir de mi cuenta</button>
-                <button type="button" class="boton-texto peligro" data-cuenta-panel="borrar-todo">Borrar todas mis cartas de la cuenta</button>
-            </details>`;
+        nota.innerHTML = `Guardadas en tu cuenta (${email}): las ves desde cualquier dispositivo.`;
     } else if (cuenta.estado === 'sin-aceptar') {
         nota.innerHTML = `Guardadas en este dispositivo. Entraste como ${email}:
             <button type="button" class="boton-texto en-linea" data-cuenta-panel="usar">guardalas en tu cuenta</button>
@@ -211,24 +204,61 @@ function pintar() {
     }
 }
 
+// Con sesion, "Mi cuenta" despliega un menu: administrar la cuenta y salir.
+function abrirOpciones(abrir) {
+    $('#opciones-cuenta').hidden = !abrir;
+    $('#boton-cuenta').setAttribute('aria-expanded', String(abrir));
+}
+
+function abrirMiCuenta() {
+    $('#mail-mi-cuenta').textContent = `Entraste como ${cuenta.email}.`;
+    $('#cambiar-novedades').checked = Boolean(cuenta.novedades);
+    // Sin aceptar el aviso todavia no hay nada que administrar.
+    const adentro = cuenta.estado === 'adentro';
+    $('#cambiar-novedades').closest('label').hidden = !adentro;
+    $('[data-mi-cuenta="borrar-todo"]').hidden = !adentro;
+    $('#ventana-mi-cuenta').showModal();
+}
+
 function conectarPanel() {
     $('#boton-cuenta').addEventListener('click', () => {
-        if (cuenta.estado === 'adentro') {
-            document.dispatchEvent(new CustomEvent('tucarta:mis-cartas'));
-        } else {
-            abrirEntrar();
+        if (sesionIniciada()) abrirOpciones($('#opciones-cuenta').hidden);
+        else abrirEntrar();
+    });
+    $('#opciones-cuenta').addEventListener('click', async (e) => {
+        const accion = e.target.closest('[data-cuenta-menu]')?.dataset.cuentaMenu;
+        if (!accion) return;
+        abrirOpciones(false);
+        if (accion === 'administrar') abrirMiCuenta();
+        else if (accion === 'salir') await mod?.salir();
+    });
+    document.addEventListener('click', (e) => {
+        if (!$('#opciones-cuenta').hidden && !e.target.closest('.menu-cuenta')) abrirOpciones(false);
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !$('#opciones-cuenta').hidden) {
+            abrirOpciones(false);
+            $('#boton-cuenta').focus();
         }
     });
     $('#nota-mis-cartas').addEventListener('click', async (e) => {
         const accion = e.target.closest('[data-cuenta-panel]')?.dataset.cuentaPanel;
         if (accion === 'entrar' || accion === 'usar') abrirEntrar();
         else if (accion === 'salir') await mod?.salir();
-        else if (accion === 'borrar-todo') {
+    });
+    $('#ventana-mi-cuenta').addEventListener('click', async (e) => {
+        const accion = e.target.closest('[data-mi-cuenta]')?.dataset.miCuenta;
+        if (accion === 'cerrar') $('#ventana-mi-cuenta').close();
+        else if (accion === 'salir') {
+            $('#ventana-mi-cuenta').close();
+            await mod?.salir();
+        } else if (accion === 'borrar-todo') {
             if (!confirm('Se borran todas las cartas guardadas en tu cuenta y tus preferencias de la calculadora. Tu cuenta de la escuela sigue igual. ¿Seguimos?')) return;
             try {
                 await cuenta.datos.borrarTodo();
                 evento('cuenta_borrada', {});
                 Object.assign(cuenta, { estado: 'sin-aceptar', novedades: false });
+                $('#ventana-mi-cuenta').close();
                 pintar();
                 alCambiar(almacenLocal);
             } catch (err) {
@@ -237,8 +267,7 @@ function conectarPanel() {
             }
         }
     });
-    $('#nota-mis-cartas').addEventListener('change', async (e) => {
-        if (e.target.id !== 'cambiar-novedades') return;
+    $('#cambiar-novedades').addEventListener('change', async (e) => {
         try {
             await cuenta.datos.cambiarNovedades(e.target.checked);
             cuenta.novedades = e.target.checked;

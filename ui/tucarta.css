@@ -831,10 +831,38 @@ details > summary {
 .boton-texto.peligro { color: var(--fuego); }
 #nota-mis-cartas { margin-top: 10px; line-height: 1.6; }
 #nota-mis-cartas > .boton-texto:not(.en-linea) { display: block; }
-.tu-cuenta { margin-top: 8px; }
-.tu-cuenta summary { cursor: pointer; color: var(--texto); }
-.tu-cuenta .casilla { margin: 10px 0 4px; }
-.tu-cuenta .boton-texto { display: block; }
+/* Menu de "Mi cuenta" en la cabecera. */
+.menu-cuenta { position: relative; }
+.opciones-cuenta {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 20;
+    list-style: none;
+    margin: 0;
+    padding: 6px 0;
+    min-width: 200px;
+    background: var(--bg);
+    border: 1px solid var(--linea-fuerte);
+    border-radius: var(--radio);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
+}
+.opciones-cuenta[hidden] { display: none; }
+.opciones-cuenta button {
+    display: block;
+    width: 100%;
+    font: inherit;
+    font-size: 0.9rem;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--texto);
+    padding: 10px 16px;
+    cursor: pointer;
+}
+.opciones-cuenta button:hover, .opciones-cuenta button:focus-visible { background: var(--superficie); }
+#ventana-mi-cuenta .casilla { margin: 14px 0 6px; }
+#ventana-mi-cuenta .boton-texto { display: block; }
 
 /* ---------- Importar cartas ---------- */
 

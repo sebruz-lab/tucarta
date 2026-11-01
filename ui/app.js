@@ -1190,8 +1190,3 @@ conectarCuenta({
         if (estado.carta) pintarBotonGuardar();
     }
 });
-document.addEventListener('tucarta:mis-cartas', () => {
-    mostrarFormulario();
-    $('#mis-cartas').open = true;
-    $('#mis-cartas').scrollIntoView({ block: 'start' });
-});
