@@ -864,18 +864,21 @@ async function pintarMisCartas() {
 // buscador o eligiendo en el filtro); en pantallas tactiles, al tocarlo.
 // El titulo (y su flecha) siempre lo abre o lo cierra; cerrado asi, no se
 // vuelve a abrir hasta que el mouse sale y vuelve a entrar.
-const conMouse = matchMedia('(hover: hover) and (pointer: fine)');
+// Se mira el puntero de cada movimiento (no el del dispositivo): las
+// compus con pantalla tactil tambien tienen mouse.
 const escribiendo = () => $('#mis-cartas').contains(document.activeElement) && document.activeElement.matches('input, select');
 let cerradoAMano = false;
-$('#mis-cartas').addEventListener('mouseenter', () => {
-    if (conMouse.matches && !cerradoAMano) $('#mis-cartas').open = true;
+let conMouse = false;
+$('#mis-cartas').addEventListener('pointerenter', (e) => {
+    conMouse = e.pointerType === 'mouse';
+    if (conMouse && !cerradoAMano) $('#mis-cartas').open = true;
 });
-$('#mis-cartas').addEventListener('mouseleave', () => {
+$('#mis-cartas').addEventListener('pointerleave', (e) => {
     cerradoAMano = false;
-    if (conMouse.matches && !escribiendo()) $('#mis-cartas').open = false;
+    if (e.pointerType === 'mouse' && !escribiendo()) $('#mis-cartas').open = false;
 });
 $('#mis-cartas').addEventListener('focusout', (e) => {
-    if (conMouse.matches && !$('#mis-cartas').contains(e.relatedTarget) && !$('#mis-cartas').matches(':hover')) $('#mis-cartas').open = false;
+    if (conMouse && !$('#mis-cartas').contains(e.relatedTarget) && !$('#mis-cartas').matches(':hover')) $('#mis-cartas').open = false;
 });
 $('#titulo-mis-cartas').addEventListener('click', (e) => {
     e.preventDefault();
