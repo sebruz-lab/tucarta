@@ -44,7 +44,7 @@
     /* Aspectos: rojos (tensos), azules (armonicos y semisextil) y verdes
        (quincuncio), los mismos en los dos fondos. */
     --asp-tenso: #e30613;
-    --asp-armonico: #36a9e1;
+    --asp-armonico: #3434f4;
     --asp-semisextil: #36a9e1;
     --asp-quincuncio: #009640;
     --ac: #8a1c02;
@@ -417,7 +417,11 @@ details > summary {
 .rueda .asp-tenso { stroke: var(--asp-tenso); stroke-width: 2.2; }
 .rueda .asp-semisextil { stroke: var(--asp-semisextil); stroke-width: 2; }
 .rueda .asp-quincuncio { stroke: var(--asp-quincuncio); stroke-width: 2; }
-.rueda .asp-menor { stroke-dasharray: 7 5; }
+.rueda .asp-menor { stroke-dasharray: 14 5; stroke-width: 2.8; }
+.rueda .glifo-aspecto.c-armonico { color: var(--asp-armonico); }
+.rueda .glifo-aspecto.c-tenso { color: var(--asp-tenso); }
+.rueda .glifo-aspecto.c-semisextil { color: var(--asp-semisextil); }
+.rueda .glifo-aspecto.c-quincuncio { color: var(--asp-quincuncio); }
 .rueda .punto { color: var(--texto); cursor: pointer; outline: none; }
 .rueda .eje-ac { stroke: var(--ac); }
 .rueda .rotulo-ac { fill: var(--ac); }

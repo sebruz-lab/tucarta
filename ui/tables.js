@@ -73,10 +73,11 @@ export function detallePunto(carta, id) {
 
 // Planetas de la revolucion: signo, grado, casa de la revolucion y casa
 // natal en la que caen.
-export function tablaPosicionesRevolucion(rs, natal) {
+// e: { titulo: 'Revolución', sigla: 'RS' } o la de la progresion.
+export function tablaPosicionesRevolucion(rs, natal, e = { titulo: 'Revolución', sigla: 'RS' }) {
     const cusps = natal.cusps.map((c) => c.lon);
     return `<table class="tabla">
-        <thead><tr><th>Revolución</th><th>Signo</th><th class="num">Posición</th><th class="num">Casa RS</th><th class="num">Casa natal</th><th><span class="visualmente-oculto">Retrógrado</span></th></tr></thead>
+        <thead><tr><th>${e.titulo}</th><th>Signo</th><th class="num">Posición</th><th class="num">Casa ${e.sigla}</th><th class="num">Casa natal</th><th><span class="visualmente-oculto">Retrógrado</span></th></tr></thead>
         <tbody>${rs.puntos.map((p) => `<tr data-punto="r-${p.id}">
             <th scope="row">${iconoSvg(G_PUNTOS[p.id], 18, NOMBRE_PUNTO[p.id])}<span>${NOMBRE_PUNTO[p.id]}</span></th>
             <td>${iconoSigno(p.signo)}<span>${NOMBRE_SIGNO[p.signo]}</span></td>
@@ -95,7 +96,7 @@ export function tablaPosicionesRevolucion(rs, natal) {
     </table>`;
 }
 
-export function detalleRevolucion(rs, natal, idR) {
+export function detalleRevolucion(rs, natal, idR, de = 'de la revolución') {
     const id = idR.slice(2);
     const p = rs.puntos.find((x) => x.id === id);
     if (!p) return '';
@@ -103,8 +104,8 @@ export function detalleRevolucion(rs, natal, idR) {
         const otro = a.a === id ? a.b : a.a;
         return `${NOMBRE_ASPECTO[a.aspecto].toLowerCase()} a ${NOMBRE_PUNTO[otro]} (${orbeTexto(a.orbe)})`;
     });
-    return `<strong>${NOMBRE_PUNTO[id]} de la revolución</strong> en ${gradoMin(p)} de ${NOMBRE_SIGNO[p.signo]}, ` +
-        `casa ${p.casa} de la revolución y casa ${casaDe(p.lon, natal.cusps.map((c) => c.lon))} natal${p.retro ? ', retrógrado' : ''}.` +
+    return `<strong>${NOMBRE_PUNTO[id]} ${de}</strong> en ${gradoMin(p)} de ${NOMBRE_SIGNO[p.signo]}, ` +
+        `casa ${p.casa} ${de} y casa ${casaDe(p.lon, natal.cusps.map((c) => c.lon))} natal${p.retro ? ', retrógrado' : ''}.` +
         (asp.length ? `<br><span class="nota">${asp.join(' · ')}</span>` : '');
 }
 

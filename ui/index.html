@@ -85,9 +85,12 @@
         <label class="campo"><span>¿Qué querés calcular?</span>
             <select name="tipo">
                 <option value="natal">Carta Natal</option>
+                <option value="revolucion-sola">Revolución Solar</option>
+                <option value="revolucion">Carta Natal + Revolución Solar</option>
                 <option value="transitos">Carta Natal + tránsitos</option>
                 <option value="calendario">Calendario de tránsitos</option>
-                <option value="revolucion">Carta Natal + Revolución Solar</option>
+                <option value="progresion-sola">Progresiones secundarias</option>
+                <option value="progresion">Carta Natal + Progresiones</option>
             </select>
         </label>
         <label class="campo"><span>Nombre <span class="opcional">(opcional)</span></span>
@@ -162,9 +165,12 @@
         <label class="campo modo-carta"><span class="visualmente-oculto">Qué querés ver</span>
             <select id="selector-modo">
                 <option value="natal">Carta Natal</option>
+                <option value="revolucion-sola">Revolución Solar</option>
+                <option value="revolucion">Carta Natal + Revolución Solar</option>
                 <option value="transitos">Carta Natal + tránsitos</option>
                 <option value="calendario">Calendario de tránsitos</option>
-                <option value="revolucion">Carta Natal + Revolución Solar</option>
+                <option value="progresion-sola">Progresiones secundarias</option>
+                <option value="progresion">Carta Natal + Progresiones</option>
             </select>
         </label>
 
@@ -198,6 +204,17 @@
                 <button type="button" data-rs="1">año siguiente ›</button>
             </div>
             <p class="nota" id="nota-rs"></p>
+        </div>
+
+        <div id="controles-pr" class="controles-transito" hidden>
+            <div class="pasos-transito">
+                <button type="button" data-pr="-12" aria-label="Un año antes">‹‹ año</button>
+                <button type="button" data-pr="-1" aria-label="Un mes antes">‹ mes</button>
+                <button type="button" data-pr="hoy">Hoy</button>
+                <button type="button" data-pr="1" aria-label="Un mes después">mes ›</button>
+                <button type="button" data-pr="12" aria-label="Un año después">año ››</button>
+            </div>
+            <p class="nota" id="nota-pr"></p>
         </div>
 
         <figure class="figura-rueda">

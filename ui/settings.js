@@ -3,6 +3,7 @@
 
 import { SISTEMAS_CASAS, AJUSTES_POR_DEFECTO, ORBES_POR_DEFECTO, ORBES_MENORES, MENORES_POR_DEFECTO, ORBES_TRANSITO } from '../engine/config.js';
 import { NOMBRE_PUNTO, NOMBRE_ASPECTO } from './textos.js';
+import { METODOS_PROGRESION } from '../engine/progressions.js';
 
 const CLAVE = 'tucarta:ajustes';
 
@@ -48,6 +49,10 @@ export function panelAjustes(a) {
         <label class="campo">Sistema de casas
             <select name="casas">${SISTEMAS_CASAS.map((s) =>
                 `<option value="${s.id}" ${s.id === a.casas ? 'selected' : ''}>${s.nombre}</option>`).join('')}</select>
+        </label>
+        <label class="campo">Progresiones: cómo avanzan el Ascendente y el Medio Cielo
+            <select name="metodo-progresion">${METODOS_PROGRESION.map((m) =>
+                `<option value="${m.id}" ${m.id === a.metodoProgresion ? 'selected' : ''}>${m.nombre}</option>`).join('')}</select>
         </label>
         <label class="casilla"><input type="checkbox" name="aspectos-angulos" ${a.aspectosAngulos ? 'checked' : ''}>
             Calcular aspectos al Ascendente y al Medio Cielo</label>
@@ -99,6 +104,7 @@ export function ajustesDesde(form, previos) {
     for (const id of Object.keys(MENORES_POR_DEFECTO)) menores[id] = form.elements['menor-' + id].checked;
     return {
         casas: form.elements.casas.value,
+        metodoProgresion: form.elements['metodo-progresion'].value,
         aspectosAngulos: form.elements['aspectos-angulos'].checked,
         orbes, menores, orbesMenores, orbesTransito
     };

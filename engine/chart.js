@@ -44,10 +44,12 @@ export function diaJuliano(swe, utc) {
     return swe.julday(utc.anio, utc.mes, utc.dia, utc.hora + utc.minuto / 60 + (utc.segundo || 0) / 3600);
 }
 
-export function calcularCarta(swe, { utc, lat, lon, ajustes = AJUSTES_POR_DEFECTO }) {
+// casas: si viene, se usan esas casas en lugar de las del instante (las
+// progresiones calculan sus angulos aparte).
+export function calcularCarta(swe, { utc, lat, lon, ajustes = AJUSTES_POR_DEFECTO, casas: dadas = null }) {
     const jd = diaJuliano(swe, utc);
 
-    const casas = swe.houses(jd, lat, lon, ajustes.casas);
+    const casas = dadas || swe.houses(jd, lat, lon, ajustes.casas);
 
     const puntos = PUNTOS.map((p) => {
         const r = swe.calc(jd, p.swe, flagsDe(p.swe));

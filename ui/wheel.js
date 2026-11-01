@@ -6,7 +6,7 @@
 // Orientacion clasica: Ascendente a la izquierda, el zodiaco avanza en
 // sentido antihorario.
 
-import { SIGNOS as G_SIGNOS, PUNTOS as G_PUNTOS, glifo } from './glyphs.js';
+import { SIGNOS as G_SIGNOS, PUNTOS as G_PUNTOS, ASPECTOS as G_ASPECTOS, glifo } from './glyphs.js';
 import { SIGNOS } from '../engine/chart.js';
 
 // De afuera hacia adentro: signos, planetas, numeros de casa y aspectos.
@@ -31,6 +31,12 @@ const CLASE_ASPECTO = {
     cuadratura: 'asp-tenso', oposicion: 'asp-tenso',
     semicuadratura: 'asp-tenso asp-menor', sesquicuadratura: 'asp-tenso asp-menor',
     semisextil: 'asp-semisextil asp-menor', quincuncio: 'asp-quincuncio asp-menor'
+};
+// Color del glifo que va en el medio de cada linea de aspecto.
+const COLOR_ASPECTO = {
+    trigono: 'c-armonico', sextil: 'c-armonico',
+    cuadratura: 'c-tenso', oposicion: 'c-tenso', semicuadratura: 'c-tenso', sesquicuadratura: 'c-tenso',
+    semisextil: 'c-semisextil', quincuncio: 'c-quincuncio'
 };
 const ELEMENTOS = ['fuego', 'tierra', 'aire', 'agua']; // Aries, Tauro, Geminis, Cancer...
 
@@ -197,6 +203,11 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         const [x, y] = polar(medio, R.numeros);
         out.push(`<text class="num-casa"${letra(LETRA_NATAL.casa)} x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
     });
+    // Con revolucion, el AC de la natal va adentro, junto a su eje.
+    if (revolucion) {
+        const [x, y] = polar(asc + 4, R.signos - 16);
+        out.push(`<text class="rotulo-eje rotulo-ac"${letra(12.5)} x="${f(x)}" y="${f(y)}">AC</text>`);
+    }
     // Rotulos de los angulos, por fuera del anillo.
     const rotulos = [];
     const radioRotulos = (transitos || revolucion ? R_DOBLE.exterior : R.exterior) + 16;
@@ -225,8 +236,21 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         const activo = seleccion && (a.a === seleccion || a.b === seleccion);
         const atenuado = seleccion && !activo;
         // Mas opaco cuanto mas exacto.
-        const opacidad = atenuado ? 0.1 : Math.max(0.5, 1 - a.orbe / a.orbeMax * 0.5);
-        out.push(`<line class="${clase}" x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" opacity="${opacidad.toFixed(2)}"/>`);
+        const op = `opacity="${(atenuado ? 0.1 : Math.max(0.5, 1 - a.orbe / a.orbeMax * 0.5)).toFixed(2)}"`;
+        // La linea se corta en el medio y ahi va el glifo del aspecto.
+        const largo = Math.hypot(x2 - x1, y2 - y1);
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2;
+        const hueco = 9;
+        if (largo < hueco * 4) {
+            out.push(`<line class="${clase}" x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" ${op}/>`);
+            continue;
+        }
+        const ux = (x2 - x1) / largo;
+        const uy = (y2 - y1) / largo;
+        out.push(`<line class="${clase}" x1="${f(x1)}" y1="${f(y1)}" x2="${f(mx - ux * hueco)}" y2="${f(my - uy * hueco)}" ${op}/>`);
+        out.push(`<line class="${clase}" x1="${f(mx + ux * hueco)}" y1="${f(my + uy * hueco)}" x2="${f(x2)}" y2="${f(y2)}" ${op}/>`);
+        out.push(glifo(G_ASPECTOS[a.aspecto], mx, my, 13, op, `glifo-aspecto ${COLOR_ASPECTO[a.aspecto]}`, 1.2));
     }
 
     // Planetas: posicion real (marca en el anillo) y glifo dentro de su

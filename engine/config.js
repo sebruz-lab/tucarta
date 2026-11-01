@@ -84,5 +84,6 @@ export const AJUSTES_POR_DEFECTO = {
     aspectosAngulos: false,
     menores: MENORES_POR_DEFECTO,
     orbesMenores: ORBES_MENORES,
-    orbesTransito: ORBES_TRANSITO
+    orbesTransito: ORBES_TRANSITO,
+    metodoProgresion: 'arco-long'
 };

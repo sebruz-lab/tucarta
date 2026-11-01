@@ -35,9 +35,12 @@ const estado = {
     carta: null,
     seleccion: null,    // punto tocado en la rueda ("t-..." si esta en transito)
     corrigiendoHuso: false,
-    modo: 'natal',      // 'natal' | 'transitos' | 'calendario'
+    // 'natal' | 'revolucion-sola' | 'revolucion' | 'transitos' | 'calendario'
+    // | 'progresion-sola' | 'progresion'
+    modo: 'natal',
     calendario: null,   // { desde: 'AAAA-MM-DD', lista }
     revolucion: null,   // { anio (null: el proximo cumpleanios), lugar (null: el de nacimiento), resultado }
+    progresion: null,   // { fecha: 'AAAA-MM-DD' (a la que se progresa), resultado }
     transito: null,     // { fecha: 'AAAA-MM-DD', hora: 'HH:MM' } en la hora del dispositivo
     transitos: null     // resultado de engine/transits.js
 };
@@ -128,14 +131,20 @@ function leerFormulario() {
     };
 }
 
-// Que calcular: la carta natal sola o con transitos (y, mas adelante,
-// revolucion solar). Con transitos se pide tambien la fecha, hoy por defecto.
+// Vistas que usan la revolucion o la progresion, y las que la muestran sola.
+const esRS = (m) => m === 'revolucion' || m === 'revolucion-sola';
+const esPR = (m) => m === 'progresion' || m === 'progresion-sola';
+const esSola = (m) => m === 'revolucion-sola' || m === 'progresion-sola';
+const MODOS = ['natal', 'revolucion-sola', 'revolucion', 'transitos', 'calendario', 'progresion-sola', 'progresion'];
+
+// Que calcular. Transitos, calendario y progresiones piden una fecha (hoy
+// por defecto); la revolucion, donde se pasa el cumpleanios.
 function tipoElegido() {
     const tipo = form.elements.tipo.value;
-    $('#campos-transito').hidden = tipo === 'natal' || tipo === 'revolucion';
-    $('#campos-revolucion').hidden = tipo !== 'revolucion';
-    $('#etiqueta-fechaT').textContent = tipo === 'calendario' ? 'Desde' : 'Fecha del tránsito';
-    $('#hora-transito').hidden = tipo === 'calendario';
+    $('#campos-transito').hidden = !(tipo === 'transitos' || tipo === 'calendario' || esPR(tipo));
+    $('#campos-revolucion').hidden = !esRS(tipo);
+    $('#etiqueta-fechaT').textContent = tipo === 'calendario' ? 'Desde' : esPR(tipo) ? 'Progresar al' : 'Fecha del tránsito';
+    $('#hora-transito').hidden = tipo !== 'transitos';
     try { localStorage.setItem('tucarta:tipo', tipo); } catch {}
     return tipo;
 }
@@ -155,7 +164,8 @@ function modoDelFormulario() {
     estado.modo = tipoElegido();
     if (estado.modo === 'transitos') estado.transito = transitoDelFormulario();
     if (estado.modo === 'calendario') estado.calendario = { desde: transitoDelFormulario().fecha };
-    if (estado.modo === 'revolucion') estado.revolucion = { anio: null, lugar: lugarRS };
+    if (esRS(estado.modo)) estado.revolucion = { anio: null, lugar: lugarRS };
+    if (esPR(estado.modo)) estado.progresion = { fecha: transitoDelFormulario().fecha };
 }
 
 form.addEventListener('submit', async (e) => {
@@ -193,7 +203,8 @@ async function calcular({ nueva = false } = {}) {
     }
     if (estado.modo === 'transitos') await calcularTransitos();
     if (estado.modo === 'calendario') await calcularCalendario();
-    if (estado.modo === 'revolucion') await calcularRevolucionSolar();
+    if (esRS(estado.modo)) await calcularRevolucionSolar();
+    if (esPR(estado.modo)) await calcularProgresion();
     $('#cargando').hidden = true;
     guardarDatos();
     pintar();
@@ -234,12 +245,13 @@ function pintar() {
 
     pintarRueda();
     const conTransitos = estado.modo === 'transitos' && estado.transitos;
-    const rs = estado.modo === 'revolucion' && estado.revolucion?.resultado?.carta;
-    $('#tabla-posiciones').innerHTML = rs ? tablaPosicionesRevolucion(rs, carta)
-        : conTransitos ? tablaPosicionesTransito(estado.transitos) : tablaPosiciones(carta);
-    $('#tabla-aspectos').innerHTML = rs ? tablaAspectos(rs)
+    const { sola, externa } = cartasVista();
+    $('#tabla-posiciones').innerHTML = sola ? tablaPosiciones(sola)
+        : externa ? tablaPosicionesRevolucion(externa, carta, etiquetaExterna())
+            : conTransitos ? tablaPosicionesTransito(estado.transitos) : tablaPosiciones(carta);
+    $('#tabla-aspectos').innerHTML = sola || externa ? tablaAspectos(sola || externa)
         : conTransitos ? tablaAspectosTransito(estado.transitos) : tablaAspectos(carta);
-    $('#tabla-casas').innerHTML = tablaCasas(rs || carta);
+    $('#tabla-casas').innerHTML = tablaCasas(sola || externa || carta);
     $('#form-ajustes').innerHTML = panelAjustes(estado.ajustes);
     pintarInterpretaciones();
 }
@@ -259,25 +271,39 @@ function pintarEsquinas(sistema) {
         ? '<span class="aviso-esquina">ADVERTENCIA</span><button type="button" data-accion="editar-huso">Revisar huso</button>'
         : '<button type="button" data-accion="editar-huso">Editar huso horario</button>';
     const verano = o.verano === null ? '' : o.verano ? `verano +${duracionTexto(o.verano)}` : 'sin horario de verano';
-    const rs = cartaRevolucion() && momentoRevolucionLocal();
+    const { sola, externa } = cartasVista();
+    const otra = sola || externa;
+    const coords = (x) => renglon(`${coordTexto(x.lat, 'N', 'S')} ${coordTexto(x.lon, 'E', 'O')}`);
+    const poner = (izq, der) => {
+        $('#esquina-izq').innerHTML = izq.join('');
+        $('#esquina-der').innerHTML = der.join('');
+    };
+    // La natal: el huso se edita tocando el UTC (o desde la Carta Natal).
+    const natal = (titulo = 'Carta Natal') => [
+        renglon(titulo, 'titulo-esquina'), renglon(`${dia}/${m}/${a}`, 'principal'),
+        `<span class="principal">${escapar(d.hora)} h (<button type="button" class="enlace-huso" data-accion="editar-huso">${utcTexto(o.total)}</button>)</span>`,
+        ...renglonesLugar(l).map((t) => renglon(t)),
+        estado.motivoHuso ? '<span class="aviso-esquina">ADVERTENCIA</span>' : ''
+    ];
 
-    if (rs) {
-        // Revolucion: a la izquierda la natal (adentro), a la derecha la
-        // revolucion (afuera), como en Solar Fire.
-        // El huso natal se edita tocando el UTC (o desde la Carta Natal).
-        $('#esquina-izq').innerHTML = [
-            renglon('Carta de adentro', 'leyenda'), renglon('Carta Natal', 'titulo-esquina'),
-            renglon(`${dia}/${m}/${a}`, 'principal'),
-            `<span class="principal">${escapar(d.hora)} h (<button type="button" class="enlace-huso" data-accion="editar-huso">${utcTexto(o.total)}</button>)</span>`,
-            ...renglonesLugar(l).map((t) => renglon(t)),
-            estado.motivoHuso ? '<span class="aviso-esquina">ADVERTENCIA</span>' : ''
-        ].join('');
-        $('#esquina-der').innerHTML = [
-            renglon('Carta de afuera', 'leyenda'), renglon(`Revolución solar ${estado.revolucion.anio}`, 'titulo-esquina'),
+    if (otra && esRS(estado.modo)) {
+        const rs = momentoRevolucionLocal();
+        const revo = [
+            renglon(`Revolución solar ${estado.revolucion.anio}`, 'titulo-esquina'),
             renglon(rs.fecha, 'principal'), renglon(`${rs.hora} h (${utcTexto(rs.huso)})`, 'principal'),
-            ...renglonesLugar(rs.lugar).map((t) => renglon(t)),
-            '<button type="button" data-accion="cambiar-lugar-rs">Cambiar lugar</button>'
-        ].join('');
+            ...renglonesLugar(rs.lugar).map((t) => renglon(t))
+        ];
+        const cambiar = '<button type="button" data-accion="cambiar-lugar-rs">Cambiar lugar</button>';
+        // Combinada: la natal adentro (izquierda) y la revolucion afuera
+        // (derecha), como en Solar Fire. Sola: la revolucion y su lugar.
+        if (externa) poner([renglon('Carta de adentro', 'leyenda'), ...natal()], [renglon('Carta de afuera', 'leyenda'), ...revo, cambiar]);
+        else poner(revo, [coords(rs.lugar), renglon(sistema), cambiar]);
+        return;
+    }
+    if (otra && esPR(estado.modo)) {
+        const pr = [renglon('Progresiones', 'titulo-esquina'), ...textoProgresion().map((t) => renglon(t, 'principal'))];
+        if (externa) poner([renglon('Carta de adentro', 'leyenda'), ...natal()], [renglon('Carta de afuera', 'leyenda'), ...pr]);
+        else poner(pr, natal('Natal'));
         return;
     }
     $('#esquina-izq').innerHTML = [
@@ -370,26 +396,36 @@ function pintarAdvertencia() {
     caja.innerHTML = motivo ? `<strong>ADVERTENCIA:</strong> ${motivo}` : '';
 }
 
-// La carta de la revolucion, si es lo que se esta mirando.
-const cartaRevolucion = () => (estado.modo === 'revolucion' ? estado.revolucion?.resultado?.carta : null) || null;
+// Que se dibuja: la otra carta (revolucion o progresion) sola, o afuera
+// de la natal.
+function cartasVista() {
+    const otra = esRS(estado.modo) ? estado.revolucion?.resultado?.carta
+        : esPR(estado.modo) ? estado.progresion?.resultado?.carta : null;
+    return esSola(estado.modo) ? { sola: otra || null, externa: null } : { sola: null, externa: otra || null };
+}
+const etiquetaExterna = () => (esPR(estado.modo)
+    ? { titulo: 'Progresión', sigla: 'PR', de: 'de la progresión' }
+    : { titulo: 'Revolución', sigla: 'RS', de: 'de la revolución' });
 
 function pintarRueda() {
     const transitos = estado.modo === 'transitos' ? estado.transitos : null;
-    const revolucion = cartaRevolucion();
-    $('#rueda').innerHTML = dibujarRueda(estado.carta, {
+    const { sola, externa } = cartasVista();
+    const base = sola || estado.carta;
+    $('#rueda').innerHTML = dibujarRueda(base, {
         nombres: NOMBRE_PUNTO, seleccion: estado.seleccion,
-        clara: tema === 'claro', transitos, revolucion
+        clara: tema === 'claro', transitos, revolucion: externa
     });
     acomodarLuego();
     const s = estado.seleccion;
+    const e = etiquetaExterna();
     $('#detalle-punto').innerHTML = !s
         ? (transitos ? 'Tocá un planeta natal o en tránsito para ver sus aspectos.'
-            : revolucion ? 'Tocá un planeta de la revolución (afuera) o natal (adentro).'
+            : externa ? `Tocá un planeta ${e.de} (afuera) o natal (adentro).`
                 : 'Tocá un planeta para ver dónde está y con quién se relaciona.')
-        : s.startsWith('r-') ? detalleRevolucion(revolucion, estado.carta, s)
+        : s.startsWith('r-') ? detalleRevolucion(externa, estado.carta, s, e.de)
         : s.startsWith('t-') ? detalleTransito(transitos, s)
             : transitos ? detalleNatalConTransitos(estado.carta, transitos, s)
-                : detallePunto(estado.carta, s);
+                : detallePunto(base, s);
 }
 
 // ---------- Transitos ----------
@@ -433,6 +469,7 @@ function pintarControlesTransito() {
     formTransito.hidden = !enTransitos;
     pintarCalendario();
     pintarControlesRevolucion();
+    pintarControlesProgresion();
     if (!enTransitos || !estado.transito) return;
     const f = formTransito.elements;
     if (document.activeElement !== f.fecha) f.fecha.value = estado.transito.fecha.split('-').reverse().join('/');
@@ -460,10 +497,14 @@ $('#selector-modo').addEventListener('change', async (e) => {
         await calcularTransitos();
         evento('transitos_vistos', {});
     }
-    if (modo === 'revolucion') {
+    if (esRS(modo)) {
         estado.revolucion ||= { anio: null, lugar: lugarRS };
         await calcularRevolucionSolar();
-        evento('revolucion_vista', {});
+        evento('revolucion_vista', { sola: esSola(modo) });
+    }
+    if (esPR(modo)) {
+        await calcularProgresion();
+        evento('progresion_vista', { sola: esSola(modo) });
     }
     if (modo === 'calendario') {
         $('#cargando').hidden = false;
@@ -506,7 +547,7 @@ function momentoRevolucionLocal() {
 }
 
 function pintarControlesRevolucion() {
-    const r = estado.modo === 'revolucion' && estado.revolucion?.resultado;
+    const r = esRS(estado.modo) && estado.revolucion?.resultado;
     $('#controles-rs').hidden = !r;
     if (!r) $('#panel-lugar-rs').hidden = true;
     if (!r) return;
@@ -521,6 +562,55 @@ $('#controles-rs').addEventListener('click', async (e) => {
     estado.revolucion.anio += Number(paso);
     estado.seleccion = null;
     await calcularRevolucionSolar();
+    pintar();
+});
+
+// ---------- Progresiones secundarias ----------
+
+const NOMBRE_METODO = {
+    'arco-long': 'arco solar en longitud', 'arco-ra': 'arco solar en ascensión recta', naibod: 'Naibod en ascensión recta'
+};
+
+async function calcularProgresion() {
+    estado.progresion ||= { fecha: momentoLocal(new Date()).fecha };
+    const [a, m, d] = estado.progresion.fecha.split('-').map(Number);
+    try {
+        estado.progresion.resultado = await calcularEnWorker({
+            tipo: 'progresion', natal: estado.carta,
+            jdObjetivo: jdDeFecha(new Date(a, m - 1, d, 12, 0)), ajustes: estado.ajustes
+        });
+    } catch (err) {
+        console.error(err);
+        estado.progresion.resultado = null;
+    }
+}
+
+// ['al 1/11/2026', '42,7 años']
+function textoProgresion() {
+    const r = estado.progresion.resultado;
+    const fecha = estado.progresion.fecha.split('-').reverse().map(Number).join('/');
+    return [`al ${fecha}`, `${r.edad.toFixed(1).replace('.', ',')} años`];
+}
+
+function pintarControlesProgresion() {
+    const r = esPR(estado.modo) && estado.progresion?.resultado;
+    $('#controles-pr').hidden = !r;
+    if (!r) return;
+    const [al, edad] = textoProgresion();
+    $('#nota-pr').textContent = `Progresiones ${al} (${edad}). Ascendente y Medio Cielo por ${NOMBRE_METODO[r.metodo]}; se cambia en Ajustes.`;
+}
+
+$('#controles-pr').addEventListener('click', async (e) => {
+    const paso = e.target.closest('[data-pr]')?.dataset.pr;
+    if (!paso) return;
+    if (paso === 'hoy') {
+        estado.progresion.fecha = momentoLocal(new Date()).fecha;
+    } else {
+        const [a, m, d] = estado.progresion.fecha.split('-').map(Number);
+        estado.progresion.fecha = momentoLocal(new Date(a, m - 1 + Number(paso), d)).fecha;
+    }
+    estado.seleccion = null;
+    await calcularProgresion();
     pintar();
 });
 
@@ -835,8 +925,10 @@ async function descargarImagen() {
     // Rueda limpia, sin el planeta tocado, en un contenedor fuera de la vista.
     const caja = $('#para-imagen');
     const transitos = estado.modo === 'transitos' ? estado.transitos : null;
-    const revolucion = cartaRevolucion();
-    caja.innerHTML = dibujarRueda(estado.carta, { nombres: NOMBRE_PUNTO, clara: tema === 'claro', transitos, revolucion });
+    const { sola, externa } = cartasVista();
+    const rs = esRS(estado.modo) && (sola || externa);
+    const pr = esPR(estado.modo) && (sola || externa);
+    caja.innerHTML = dibujarRueda(sola || estado.carta, { nombres: NOMBRE_PUNTO, clara: tema === 'claro', transitos, revolucion: externa });
     const cs = getComputedStyle(document.body);
     const color = (v) => cs.getPropertyValue(v).trim();
     const d = estado.datos;
@@ -844,14 +936,17 @@ async function descargarImagen() {
         const fechaT = transitos ? estado.transito.fecha.split('-').reverse().join('/') : '';
         const blob = await imagenCarta(caja.querySelector('svg'), {
             titulo: transitos ? `Tránsitos del ${fechaT}`
-                : revolucion ? `Revolución solar ${estado.revolucion.anio}` : $('#titulo-carta').textContent,
-            datos: revolucion ? $('#nota-rs').textContent.replace(/^Revolución solar \d+: /, '')
-                : transitos ? `${$('#titulo-carta').textContent} · ${$('#resumen-datos').textContent}`
+                : rs ? `Revolución solar ${estado.revolucion.anio}`
+                    : pr ? `Progresiones ${textoProgresion()[0]}` : $('#titulo-carta').textContent,
+            datos: rs ? $('#nota-rs').textContent.replace(/^Revolución solar \d+: /, '')
+                : transitos || pr ? `${$('#titulo-carta').textContent} · ${$('#resumen-datos').textContent}`
                     : $('#resumen-datos').textContent,
             colores: { fondo: color('--bg'), texto: color('--texto'), suave: color('--texto-suave') }
         });
-        const archivo = revolucion
+        const archivo = rs
             ? `revolucion-${slug(d.nombre || 'natal') || 'natal'}-${estado.revolucion.anio}.png`
+            : pr
+            ? `progresiones-${slug(d.nombre || 'natal') || 'natal'}-${estado.progresion.fecha}.png`
             : transitos
             ? `transitos-${slug(d.nombre || 'natal') || 'natal'}-${estado.transito.fecha}.png`
             : `carta-${slug(d.nombre || 'natal') || 'natal'}-${d.fecha}.png`;
@@ -935,7 +1030,7 @@ form.elements.mmT.innerHTML = opcionesNum(60).replace('<option value="">--</opti
     [form.elements.hhT.value, form.elements.mmT.value] = ahora.hora.split(':');
     try {
         const tipo = localStorage.getItem('tucarta:tipo');
-        if (['transitos', 'calendario', 'revolucion'].includes(tipo)) form.elements.tipo.value = tipo;
+        if (MODOS.includes(tipo)) form.elements.tipo.value = tipo;
     } catch {}
     tipoElegido();
 }
