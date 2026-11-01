@@ -859,32 +859,14 @@ async function pintarMisCartas() {
     }).join('');
 }
 
-// "Mis cartas" es un casillero que se despliega: con mouse, al pasar por
-// encima (y se cierra al salir, salvo que se este escribiendo en el
-// buscador o eligiendo en el filtro); en pantallas tactiles, al tocarlo.
-// El titulo (y su flecha) siempre lo abre o lo cierra; cerrado asi, no se
-// vuelve a abrir hasta que el mouse sale y vuelve a entrar.
-// Se mira el puntero de cada movimiento (no el del dispositivo): las
-// compus con pantalla tactil tambien tienen mouse.
-const escribiendo = () => $('#mis-cartas').contains(document.activeElement) && document.activeElement.matches('input, select');
-let cerradoAMano = false;
-let conMouse = false;
-$('#mis-cartas').addEventListener('pointerenter', (e) => {
-    conMouse = e.pointerType === 'mouse';
-    if (conMouse && !cerradoAMano) $('#mis-cartas').open = true;
+// "Mis cartas" es un casillero que se despliega encima del formulario: el
+// titulo (y su flecha) lo abre y lo cierra. Tambien se cierra al tocar
+// afuera o con Escape.
+document.addEventListener('click', (e) => {
+    if ($('#mis-cartas').open && !e.target.closest('#mis-cartas, #ventana-importar')) $('#mis-cartas').open = false;
 });
-$('#mis-cartas').addEventListener('pointerleave', (e) => {
-    cerradoAMano = false;
-    if (e.pointerType === 'mouse' && !escribiendo()) $('#mis-cartas').open = false;
-});
-$('#mis-cartas').addEventListener('focusout', (e) => {
-    if (conMouse && !$('#mis-cartas').contains(e.relatedTarget) && !$('#mis-cartas').matches(':hover')) $('#mis-cartas').open = false;
-});
-$('#titulo-mis-cartas').addEventListener('click', (e) => {
-    e.preventDefault();
-    const abrir = !$('#mis-cartas').open;
-    $('#mis-cartas').open = abrir;
-    cerradoAMano = !abrir;
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && $('#mis-cartas').open) $('#mis-cartas').open = false;
 });
 
 // ---------- Menu del sitio ----------
