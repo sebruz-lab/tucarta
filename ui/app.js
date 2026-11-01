@@ -287,6 +287,35 @@ function pintarEsquinas(sistema) {
     ].join('');
 }
 
+// Los datos de las esquinas no pisan la rueda: si hace falta (en el
+// celular), la rueda baja lo justo y los primeros renglones quedan arriba;
+// el resto va por el triangulito del costado. La rueda no se achica.
+function acomodarEsquinas() {
+    const fig = $('.figura-rueda');
+    const svg = $('#rueda svg');
+    if (!svg || fig.hidden) return;
+    fig.style.paddingTop = '0px';
+    const r = svg.getBoundingClientRect();
+    if (!r.width) return;
+    const cx = r.left + r.width / 2;
+    const cy0 = r.top + r.height / 2;
+    const radio = r.width * 300 / 664; // borde de la rueda con sus marcas
+    const renglones = [...document.querySelectorAll('#esquina-izq > *, #esquina-der > *')]
+        .map((el) => el.getBoundingClientRect()).filter((b) => b.width);
+    const pisa = (p) => renglones.some((b) => {
+        const cy = cy0 + p;
+        const x = Math.min(Math.max(cx, b.left), b.right);
+        const y = Math.min(Math.max(cy, b.top), b.bottom);
+        return Math.hypot(x - cx, y - cy) < radio;
+    });
+    let p = 0;
+    while (p < 240 && pisa(p)) p += 2;
+    fig.style.paddingTop = p + 'px';
+}
+const acomodarLuego = () => requestAnimationFrame(acomodarEsquinas);
+window.addEventListener('resize', acomodarLuego);
+document.fonts?.ready.then(acomodarLuego);
+
 $('.figura-rueda').addEventListener('click', (e) => {
     if (!e.target.closest('[data-accion="editar-huso"]')) return;
     $('#huso').open = true;
@@ -326,6 +355,7 @@ function pintarRueda() {
         nombres: NOMBRE_PUNTO, seleccion: estado.seleccion,
         clara: tema === 'claro', transitos, revolucion
     });
+    acomodarLuego();
     const s = estado.seleccion;
     $('#detalle-punto').innerHTML = !s
         ? (transitos ? 'Tocá un planeta natal o en tránsito para ver sus aspectos.'

@@ -372,28 +372,6 @@ details > summary {
 .esquina .leyenda { font-size: 0.85em; letter-spacing: 0.5px; }
 .esquina .titulo-esquina { color: var(--amarillo); white-space: nowrap; }
 .esquina .aviso-esquina { color: var(--amarillo); text-decoration: none; letter-spacing: 0.5px; }
-/* En el celular no hay lugar en las esquinas sin achicar la rueda: los
-   datos de nacimiento van arriba y los del huso debajo, en renglones. */
-@media (max-width: 639px) {
-    .figura-rueda { display: flex; flex-direction: column; }
-    .esquina {
-        position: static;
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: center;
-        align-items: baseline;
-        gap: 2px 10px;
-        max-width: none;
-        padding: 0 16px;
-        font-size: 0.8rem;
-        text-align: center;
-    }
-    .esquina-izq { order: 0; margin-bottom: 6px; }
-    #rueda { order: 1; }
-    .esquina-der { order: 2; margin-top: 4px; }
-    .detalle-punto { order: 3; }
-    .esquina .principal { white-space: normal; }
-}
 /* El panel del huso se abre desde la esquina de la rueda. */
 .huso:not([open]) { display: none; }
 .huso { margin-top: 12px; }
@@ -407,7 +385,7 @@ details > summary {
     overflow: visible;
 }
 .rueda .fondo-rueda { fill: none; stroke: none; }
-.tema-claro .rueda .fondo-rueda { fill: #ffffff; }
+.tema-claro .rueda .fondo-rueda { fill: #f7f7f6; }
 .rueda .borde { fill: none; stroke: var(--linea-fuerte); stroke-width: 1.8; }
 .rueda .fino { fill: none; stroke: var(--linea-fuerte); stroke-width: 1.4; }
 .rueda .marca { stroke: var(--linea-fuerte); stroke-width: 1.3; }
@@ -480,10 +458,11 @@ details > summary {
 
 /* ---------- Fondo claro (lo elige la persona) ---------- */
 .tema-claro {
-    /* Pagina gris, recuadros en un gris mas claro y la rueda sobre blanco. */
-    --bg: #d3d4d9;
-    --superficie: #e6e7eb;
-    --superficie-2: #eeeff2;
+    /* Pagina en un gris clarito, recuadros apenas mas claros y la rueda
+       sobre un blanco apagado (sin el blanco brillante). */
+    --bg: #e8e9ec;
+    --superficie: #f0f1f3;
+    --superficie-2: #f4f5f6;
     --texto: #15151a;
     --texto-suave: #5c5f6b;
     --linea: rgba(20, 20, 30, 0.12);
@@ -706,11 +685,12 @@ details > summary {
 
 .barra-carta {
     display: flex;
+    justify-content: center;
     flex-wrap: wrap;
     gap: 10px;
     justify-content: center;
 }
-.barra-carta .boton { flex: 1 1 150px; }
+.barra-carta .boton { flex: 0 0 auto; padding: 6px 14px; min-height: 0; font-size: 0.8rem; }
 .barra-carta .boton:disabled { opacity: 0.6; cursor: default; }
 .aviso-carta { text-align: center; }
 /* Rueda que se arma para la imagen: en la pagina pero fuera de la vista. */
