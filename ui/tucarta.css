@@ -457,19 +457,19 @@ details > summary {
 .detalle-punto strong { color: var(--amarillo); font-weight: 400; }
 
 /* Color de cada planeta, en la rueda y en las tablas. */
-[data-punto="sol"] { --p: var(--p-sol); }
-[data-punto="luna"] { --p: var(--p-luna); }
-[data-punto="mercurio"] { --p: var(--p-mercurio); }
-[data-punto="venus"] { --p: var(--p-venus); }
-[data-punto="marte"] { --p: var(--p-marte); }
-[data-punto="jupiter"] { --p: var(--p-jupiter); }
-[data-punto="saturno"] { --p: var(--p-saturno); }
-[data-punto="urano"] { --p: var(--p-urano); }
-[data-punto="neptuno"] { --p: var(--p-neptuno); }
-[data-punto="pluton"] { --p: var(--p-pluton); }
-[data-punto="quiron"] { --p: var(--p-quiron); }
-[data-punto="nodo"] { --p: var(--p-nodo); }
-[data-punto="lilith"] { --p: var(--p-lilith); }
+[data-punto="sol"], [data-punto="r-sol"] { --p: var(--p-sol); }
+[data-punto="luna"], [data-punto="r-luna"] { --p: var(--p-luna); }
+[data-punto="mercurio"], [data-punto="r-mercurio"] { --p: var(--p-mercurio); }
+[data-punto="venus"], [data-punto="r-venus"] { --p: var(--p-venus); }
+[data-punto="marte"], [data-punto="r-marte"] { --p: var(--p-marte); }
+[data-punto="jupiter"], [data-punto="r-jupiter"] { --p: var(--p-jupiter); }
+[data-punto="saturno"], [data-punto="r-saturno"] { --p: var(--p-saturno); }
+[data-punto="urano"], [data-punto="r-urano"] { --p: var(--p-urano); }
+[data-punto="neptuno"], [data-punto="r-neptuno"] { --p: var(--p-neptuno); }
+[data-punto="pluton"], [data-punto="r-pluton"] { --p: var(--p-pluton); }
+[data-punto="quiron"], [data-punto="r-quiron"] { --p: var(--p-quiron); }
+[data-punto="nodo"], [data-punto="r-nodo"] { --p: var(--p-nodo); }
+[data-punto="lilith"], [data-punto="r-lilith"] { --p: var(--p-lilith); }
 /* Planetas en transito ("t-saturno"...): todos del mismo color. */
 [data-punto^="t-"] { --p: var(--transito); }
 .rueda .punto[data-punto], .tabla tr[data-punto] th .icono { color: var(--p, var(--texto)); }

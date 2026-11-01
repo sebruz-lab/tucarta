@@ -130,10 +130,18 @@ export function repartir(lons, minimo) {
 const ESCALA_DOBLE = 0.84;
 const R_DOBLE = { exterior: 294, glifos: 271 };
 
+// Revolucion solar (como Solar Fire): la natal adentro, mas chica, y la
+// revolucion afuera con su propio zodiaco, sus casas y sus planetas con
+// grados. El centro queda sin lineas de aspectos.
+const ESCALA_RS = 0.7;
+const R_RS = { exterior: 294, signos: 262, planetas: 243, grados: 221, casas: 213 };
+
 // clara: rueda para el fondo blanco; si no, para el fondo oscuro. En las
 // dos los signos van en el color de su elemento.
 // transitos: el modelo de engine/transits.js, para la rueda doble.
-export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = false, transitos = null } = {}) {
+// revolucion: la carta de la revolucion solar (calcularCarta), para la
+// rueda doble completa.
+export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = false, transitos = null, revolucion = null } = {}) {
     const asc = carta.angulos.find((a) => a.id === 'asc').lon;
     const mc = carta.angulos.find((a) => a.id === 'mc').lon;
     const polar = crearPolar(asc);
@@ -166,7 +174,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
     carta.cusps.forEach((c, i) => {
         const angular = i % 3 === 0;
         const clase = i === 0 ? 'eje eje-ac' : angular ? 'eje' : 'cuspide';
-        const largo = angular ? R.exterior + 6 : R.signos;
+        const largo = angular ? (revolucion ? R.exterior : R.exterior + 6) : R.signos;
         out.push(linea(c.lon, largo, R.aspectos, clase));
         const sig = carta.cusps[(i + 1) % 12].lon;
         const medio = c.lon + (((sig - c.lon) % 360) + 360) % 360 / 2;
@@ -175,8 +183,12 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
     });
     // Rotulos de los angulos, por fuera del anillo.
     const rotulos = [];
-    const radioRotulos = (transitos ? R_DOBLE.exterior : R.exterior) + 16;
-    for (const [lon, txt] of [[asc, 'AC'], [mc, 'MC'], [asc + 180, 'DC'], [mc + 180, 'FC']]) {
+    const radioRotulos = (transitos || revolucion ? R_DOBLE.exterior : R.exterior) + 16;
+    // Con revolucion, los rotulos son de sus angulos (la natal va adentro).
+    const angRotulos = revolucion
+        ? ['asc', 'mc'].map((id) => revolucion.angulos.find((a) => a.id === id).lon)
+        : [asc, mc];
+    for (const [lon, txt] of [[angRotulos[0], 'AC'], [angRotulos[1], 'MC'], [angRotulos[0] + 180, 'DC'], [angRotulos[1] + 180, 'FC']]) {
         const [x, y] = polar(lon, radioRotulos);
         rotulos.push(`<text class="rotulo-eje${txt === 'AC' ? ' rotulo-ac' : ''}" x="${f(x)}" y="${f(y)}">${txt}</text>`);
     }
@@ -185,9 +197,10 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
     // de los natales van los del transito a la natal (prefijo "t-" en el
     // planeta en transito).
     const lonDe = Object.fromEntries([...carta.puntos, ...carta.angulos].map((p) => [p.id, p.lon]));
-    const lineas = transitos
-        ? transitos.aspectos.map((a) => ({ ...a, lonA: transitos.puntos.find((p) => p.id === a.a).lon, a: 't-' + a.a }))
-        : carta.aspectos.map((a) => ({ ...a, lonA: lonDe[a.a] }));
+    const lineas = revolucion ? []
+        : transitos
+            ? transitos.aspectos.map((a) => ({ ...a, lonA: transitos.puntos.find((p) => p.id === a.a).lon, a: 't-' + a.a }))
+            : carta.aspectos.map((a) => ({ ...a, lonA: lonDe[a.a] }));
     for (const a of lineas) {
         if (a.aspecto === 'conjuncion') continue;
         const [x1, y1] = polar(a.lonA, R.aspectos);
@@ -240,5 +253,55 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         });
         cuerpo = doble.join('') + rotulos.join('');
     }
-    return `<svg class="rueda${clara ? ' rueda-clara' : ''}${transitos ? ' rueda-doble' : ''}" viewBox="-332 -332 664 664" role="img" aria-label="Rueda de la carta">${cuerpo}</svg>`;
+    if (revolucion) cuerpo = anilloRevolucion(revolucion, out, { polar, linea, seleccion, nombres }) + rotulos.join('');
+    return `<svg class="rueda${clara ? ' rueda-clara' : ''}${transitos || revolucion ? ' rueda-doble' : ''}" viewBox="-332 -332 664 664" role="img" aria-label="Rueda de la carta">${cuerpo}</svg>`;
+}
+
+// Anillo de afuera de la revolucion solar; `natal` es el dibujo de la
+// natal, que va adentro achicado.
+function anilloRevolucion(rs, natal, { polar, linea, seleccion, nombres }) {
+    const R2 = R_RS;
+    const borde = R.exterior * ESCALA_RS;
+    const out = [`<g transform="scale(${ESCALA_RS})">${natal.join('')}</g>`];
+    out.push(`<circle class="borde" r="${R2.exterior}"/>`, `<circle class="borde" r="${R2.signos}"/>`);
+
+    // Zodiaco propio de la revolucion.
+    SIGNOS.forEach((s, i) => {
+        out.push(linea(i * 30, R2.signos, R2.exterior, 'borde'));
+        const [x, y] = polar(i * 30 + 15, (R2.exterior + R2.signos) / 2);
+        out.push(glifo(G_SIGNOS[s], x, y, 23, `data-signo="${s}"`, `elem-${ELEMENTOS[i % 4]}`, 1.45));
+    });
+    for (let g = 0; g < 360; g++) {
+        if (g % 30 === 0) continue;
+        const largo = g % 10 === 0 ? 7 : g % 5 === 0 ? 5 : 2.5;
+        out.push(linea(g, R2.signos, R2.signos + largo, 'marca'));
+    }
+
+    // Casas de la revolucion: cuspides en su anillo y numeros chicos.
+    rs.cusps.forEach((c, i) => {
+        const angular = i % 3 === 0;
+        const clase = i === 0 ? 'eje eje-ac' : angular ? 'eje' : 'cuspide';
+        out.push(linea(c.lon, borde, angular ? R2.exterior + 6 : R2.signos, clase));
+        const sig = rs.cusps[(i + 1) % 12].lon;
+        const medio = c.lon + (((sig - c.lon) % 360) + 360) % 360 / 2;
+        const [x, y] = polar(medio, R2.casas);
+        out.push(`<text class="num-casa" font-size="12" x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
+    });
+
+    // Planetas de la revolucion, cada uno en su casa, con el grado.
+    const pos = ubicarEnCasas(rs.puntos, rs.cusps.map((c) => c.lon), { minimo: 7, margen: 3.5, apretado: 4.5 });
+    rs.puntos.forEach((p, i) => {
+        const id = 'r-' + p.id;
+        const sel = seleccion === id ? ' sel' : '';
+        out.push(`<g class="punto revolucion${sel}" data-punto="${id}" tabindex="0" role="button" aria-label="${nombres[p.id] || p.id} de la revolución">`);
+        out.push(linea(p.lon, R2.signos, R2.signos - 7, 'marca-punto'));
+        const u = pos[i];
+        const [x, y] = polar(u.lon, R2.planetas - u.nivel * 9);
+        out.push(`<circle class="toque" cx="${f(x)}" cy="${f(y)}" r="15"/>`);
+        out.push(glifo(G_PUNTOS[p.id], x, y, u.paso < 6 ? 19 : 23));
+        const [gx, gy] = polar(u.lon, R2.grados - u.nivel * 11);
+        out.push(`<text class="grado-punto" font-size="11.5" x="${f(gx)}" y="${f(gy)}">${p.grado}°${p.retro ? '<tspan class="retro">r</tspan>' : ''}</text>`);
+        out.push('</g>');
+    });
+    return out.join('');
 }

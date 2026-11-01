@@ -5,6 +5,7 @@ import { cargarSwe } from '../engine/ephe.js';
 import { calcularCarta } from '../engine/chart.js';
 import { calcularTransitos } from '../engine/transits.js';
 import { calendarioTransitos } from '../engine/calendar.js';
+import { calcularRevolucion } from '../engine/solarReturn.js';
 
 const swe = cargarSwe(() =>
     fetch(import.meta.env.BASE_URL + 'ephe/seas_18.se1').then((r) => {
@@ -15,7 +16,7 @@ const swe = cargarSwe(() =>
 self.onmessage = async ({ data }) => {
     const { id, pedido } = data;
     try {
-        const calculos = { transitos: calcularTransitos, calendario: calendarioTransitos };
+        const calculos = { transitos: calcularTransitos, calendario: calendarioTransitos, revolucion: calcularRevolucion };
         const carta = (calculos[pedido.tipo] || calcularCarta)(await swe, pedido);
         self.postMessage({ id, carta });
     } catch (e) {

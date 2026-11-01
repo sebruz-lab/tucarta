@@ -34,13 +34,13 @@ export function conectarBuscador(input, lista, alElegir) {
                 ? '<li class="sin-resultados" role="presentation">No encontramos ese lugar. Probá con otra forma de escribirlo o cargá las coordenadas a mano.</li>'
                 : '';
         } else {
-            lista.innerHTML = resultados.map((l, i) => `<li id="lugar-${i}" role="option" data-i="${i}" aria-selected="${i === activo}">
+            lista.innerHTML = resultados.map((l, i) => `<li id="${lista.id}-${i}" role="option" data-i="${i}" aria-selected="${i === activo}">
                 <span class="lugar-nombre">${escapar(l.nombre)}</span>
                 <span class="lugar-region">${escapar([l.provincia, l.paisNombre].filter(Boolean).join(', '))}</span></li>`).join('');
         }
         lista.hidden = !lista.innerHTML;
         input.setAttribute('aria-expanded', String(!lista.hidden));
-        if (activo >= 0) input.setAttribute('aria-activedescendant', 'lugar-' + activo);
+        if (activo >= 0) input.setAttribute('aria-activedescendant', `${lista.id}-${activo}`);
     };
 
     const elegir = (i) => {

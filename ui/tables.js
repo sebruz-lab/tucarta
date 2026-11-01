@@ -2,7 +2,7 @@
 
 import { SIGNOS as G_SIGNOS, PUNTOS as G_PUNTOS, ASPECTOS as G_ASPECTOS, iconoSvg } from './glyphs.js';
 import { NOMBRE_SIGNO, NOMBRE_PUNTO, NOMBRE_ASPECTO, gradoMin, orbeTexto } from './textos.js';
-import { SIGNOS } from '../engine/chart.js';
+import { SIGNOS, casaDe } from '../engine/chart.js';
 
 const ELEMENTOS = ['fuego', 'tierra', 'aire', 'agua'];
 const iconoSigno = (s) => iconoSvg(G_SIGNOS[s], 16, NOMBRE_SIGNO[s], 'elem-' + ELEMENTOS[SIGNOS.indexOf(s) % 4], 1.35);
@@ -66,6 +66,45 @@ export function detallePunto(carta, id) {
     });
     return `<strong>${NOMBRE_PUNTO[id]}</strong> en ${gradoMin(p)} de ${NOMBRE_SIGNO[p.signo]}, casa ${p.casa}` +
         `${p.retro ? ', retrógrado' : ''}.` +
+        (asp.length ? `<br><span class="nota">${asp.join(' · ')}</span>` : '');
+}
+
+// ---------- Revolucion solar ----------
+
+// Planetas de la revolucion: signo, grado, casa de la revolucion y casa
+// natal en la que caen.
+export function tablaPosicionesRevolucion(rs, natal) {
+    const cusps = natal.cusps.map((c) => c.lon);
+    return `<table class="tabla">
+        <thead><tr><th>Revolución</th><th>Signo</th><th class="num">Posición</th><th class="num">Casa RS</th><th class="num">Casa natal</th><th><span class="visualmente-oculto">Retrógrado</span></th></tr></thead>
+        <tbody>${rs.puntos.map((p) => `<tr data-punto="r-${p.id}">
+            <th scope="row">${iconoSvg(G_PUNTOS[p.id], 18, NOMBRE_PUNTO[p.id])}<span>${NOMBRE_PUNTO[p.id]}</span></th>
+            <td>${iconoSigno(p.signo)}<span>${NOMBRE_SIGNO[p.signo]}</span></td>
+            <td class="num">${gradoMin(p)}</td>
+            <td class="num">${p.casa}</td>
+            <td class="num">${casaDe(p.lon, cusps)}</td>
+            <td class="retro">${p.retro ? '<abbr title="Retrógrado">R</abbr>' : ''}</td>
+        </tr>`).join('')}${rs.angulos.map((p) => `<tr>
+            <th scope="row"><span>${NOMBRE_PUNTO[p.id]}</span></th>
+            <td>${iconoSigno(p.signo)}<span>${NOMBRE_SIGNO[p.signo]}</span></td>
+            <td class="num">${gradoMin(p)}</td>
+            <td class="num"></td>
+            <td class="num">${casaDe(p.lon, cusps)}</td>
+            <td></td>
+        </tr>`).join('')}</tbody>
+    </table>`;
+}
+
+export function detalleRevolucion(rs, natal, idR) {
+    const id = idR.slice(2);
+    const p = rs.puntos.find((x) => x.id === id);
+    if (!p) return '';
+    const asp = rs.aspectos.filter((a) => a.a === id || a.b === id).map((a) => {
+        const otro = a.a === id ? a.b : a.a;
+        return `${NOMBRE_ASPECTO[a.aspecto].toLowerCase()} a ${NOMBRE_PUNTO[otro]} (${orbeTexto(a.orbe)})`;
+    });
+    return `<strong>${NOMBRE_PUNTO[id]} de la revolución</strong> en ${gradoMin(p)} de ${NOMBRE_SIGNO[p.signo]}, ` +
+        `casa ${p.casa} de la revolución y casa ${casaDe(p.lon, natal.cusps.map((c) => c.lon))} natal${p.retro ? ', retrógrado' : ''}.` +
         (asp.length ? `<br><span class="nota">${asp.join(' · ')}</span>` : '');
 }
 

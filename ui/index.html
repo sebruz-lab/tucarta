@@ -87,6 +87,7 @@
                 <option value="natal">Carta Natal</option>
                 <option value="transitos">Carta Natal + tránsitos</option>
                 <option value="calendario">Carta Natal + calendario de tránsitos</option>
+                <option value="revolucion">Carta Natal + Revolución Solar</option>
             </select>
         </label>
         <label class="campo"><span>Nombre <span class="opcional">(opcional)</span></span>
@@ -137,6 +138,13 @@
             </fieldset>
         </div>
 
+        <div id="campos-revolucion" class="campo lugar" hidden>
+            <label for="lugar-rs">¿Dónde pasás tu cumpleaños?</label>
+            <input id="lugar-rs" type="text" name="lugarRS" autocomplete="off" placeholder="Si lo dejás vacío, el lugar de nacimiento"
+                role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias-rs">
+            <ul id="sugerencias-rs" class="sugerencias" role="listbox" hidden></ul>
+        </div>
+
         <p class="error" id="error-form" role="alert" hidden></p>
         <button type="submit" class="boton boton-principal">Calcular mi carta</button>
         <p class="nota privacidad">La carta se calcula en tu navegador: tus datos no salen de tu dispositivo, salvo las cartas que guardes en tu cuenta.</p>
@@ -156,6 +164,7 @@
                 <option value="natal">Carta Natal</option>
                 <option value="transitos">Carta Natal + tránsitos</option>
                 <option value="calendario">Carta Natal + calendario de tránsitos</option>
+                <option value="revolucion">Carta Natal + Revolución Solar</option>
             </select>
         </label>
 
@@ -183,6 +192,14 @@
             <p class="nota" id="nota-transito"></p>
         </form>
 
+        <div id="controles-rs" class="controles-transito" hidden>
+            <div class="pasos-transito">
+                <button type="button" data-rs="-1">‹ año anterior</button>
+                <button type="button" data-rs="1">año siguiente ›</button>
+            </div>
+            <p class="nota" id="nota-rs"></p>
+        </div>
+
         <figure class="figura-rueda">
             <!-- Como en Solar Fire: los datos en las esquinas de la rueda. -->
             <div id="esquina-izq" class="esquina esquina-izq"></div>
@@ -207,9 +224,9 @@
             <h2 id="titulo-calendario">Calendario de tránsitos</h2>
             <p class="nota">Júpiter, Saturno, Urano, Neptuno, Plutón, Quirón y el Nodo sobre tu carta. Tocá un tránsito para verlo en la rueda.</p>
             <div class="cal-periodo">
-                <button type="button" data-cal="-1" aria-label="12 meses antes">‹ 12 meses</button>
+                <button type="button" data-cal="-6" aria-label="6 meses antes">‹ 6 meses</button>
                 <span id="cal-periodo"></span>
-                <button type="button" data-cal="1" aria-label="12 meses después">12 meses ›</button>
+                <button type="button" data-cal="6" aria-label="6 meses después">6 meses ›</button>
             </div>
             <div id="cal-lista"></div>
         </section>

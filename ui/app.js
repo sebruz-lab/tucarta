@@ -5,8 +5,10 @@ import { localAUtc } from '../time/tz.js';
 import { dibujarRueda } from './wheel.js';
 import {
     tablaPosiciones, tablaAspectos, tablaCasas, detallePunto,
-    tablaPosicionesTransito, tablaAspectosTransito, detalleTransito, detalleNatalConTransitos
+    tablaPosicionesTransito, tablaAspectosTransito, detalleTransito, detalleNatalConTransitos,
+    tablaPosicionesRevolucion, detalleRevolucion
 } from './tables.js';
+import { husoEn } from '../time/tz.js';
 import { panelHuso } from './huso.js';
 import { panelAjustes, ajustesDesde, leerAjustes, guardarAjustes, orbesModificados } from './settings.js';
 import { conectarBuscador, opcionesZonas, parsearCoordenada, descripcionLugar } from './form.js';
@@ -35,6 +37,7 @@ const estado = {
     corrigiendoHuso: false,
     modo: 'natal',      // 'natal' | 'transitos' | 'calendario'
     calendario: null,   // { desde: 'AAAA-MM-DD', lista }
+    revolucion: null,   // { anio (null: el proximo cumpleanios), lugar (null: el de nacimiento), resultado }
     transito: null,     // { fecha: 'AAAA-MM-DD', hora: 'HH:MM' } en la hora del dispositivo
     transitos: null     // resultado de engine/transits.js
 };
@@ -61,6 +64,8 @@ const calcularEnWorker = (pedido) => new Promise((resolve, reject) => {
 const form = $('#datos');
 let lugarElegido = null;
 conectarBuscador($('#lugar'), $('#sugerencias'), (l) => { lugarElegido = l; });
+let lugarRS = null;
+conectarBuscador($('#lugar-rs'), $('#sugerencias-rs'), (l) => { lugarRS = l; });
 form.elements.zona.innerHTML = opcionesZonas('America/Argentina/Buenos_Aires');
 
 // Hora en formato 24 h con dos listas: el <input type="time"> sigue el
@@ -127,7 +132,8 @@ function leerFormulario() {
 // revolucion solar). Con transitos se pide tambien la fecha, hoy por defecto.
 function tipoElegido() {
     const tipo = form.elements.tipo.value;
-    $('#campos-transito').hidden = tipo === 'natal';
+    $('#campos-transito').hidden = tipo === 'natal' || tipo === 'revolucion';
+    $('#campos-revolucion').hidden = tipo !== 'revolucion';
     $('#etiqueta-fechaT').textContent = tipo === 'calendario' ? 'Desde' : 'Fecha del tránsito';
     $('#hora-transito').hidden = tipo === 'calendario';
     try { localStorage.setItem('tucarta:tipo', tipo); } catch {}
@@ -149,6 +155,7 @@ function modoDelFormulario() {
     estado.modo = tipoElegido();
     if (estado.modo === 'transitos') estado.transito = transitoDelFormulario();
     if (estado.modo === 'calendario') estado.calendario = { desde: transitoDelFormulario().fecha };
+    if (estado.modo === 'revolucion') estado.revolucion = { anio: null, lugar: lugarRS };
 }
 
 form.addEventListener('submit', async (e) => {
@@ -186,6 +193,7 @@ async function calcular({ nueva = false } = {}) {
     }
     if (estado.modo === 'transitos') await calcularTransitos();
     if (estado.modo === 'calendario') await calcularCalendario();
+    if (estado.modo === 'revolucion') await calcularRevolucionSolar();
     $('#cargando').hidden = true;
     guardarDatos();
     pintar();
@@ -226,9 +234,12 @@ function pintar() {
 
     pintarRueda();
     const conTransitos = estado.modo === 'transitos' && estado.transitos;
-    $('#tabla-posiciones').innerHTML = conTransitos ? tablaPosicionesTransito(estado.transitos) : tablaPosiciones(carta);
-    $('#tabla-aspectos').innerHTML = conTransitos ? tablaAspectosTransito(estado.transitos) : tablaAspectos(carta);
-    $('#tabla-casas').innerHTML = tablaCasas(carta);
+    const rs = estado.modo === 'revolucion' && estado.revolucion?.resultado?.carta;
+    $('#tabla-posiciones').innerHTML = rs ? tablaPosicionesRevolucion(rs, carta)
+        : conTransitos ? tablaPosicionesTransito(estado.transitos) : tablaPosiciones(carta);
+    $('#tabla-aspectos').innerHTML = rs ? tablaAspectos(rs)
+        : conTransitos ? tablaAspectosTransito(estado.transitos) : tablaAspectos(carta);
+    $('#tabla-casas').innerHTML = tablaCasas(rs || carta);
     $('#form-ajustes').innerHTML = panelAjustes(estado.ajustes);
     pintarInterpretaciones();
 }
@@ -287,15 +298,22 @@ function pintarAdvertencia() {
     caja.innerHTML = motivo ? `<strong>ADVERTENCIA:</strong> ${motivo}` : '';
 }
 
+// La carta de la revolucion, si es lo que se esta mirando.
+const cartaRevolucion = () => (estado.modo === 'revolucion' ? estado.revolucion?.resultado?.carta : null) || null;
+
 function pintarRueda() {
     const transitos = estado.modo === 'transitos' ? estado.transitos : null;
+    const revolucion = cartaRevolucion();
     $('#rueda').innerHTML = dibujarRueda(estado.carta, {
         nombres: NOMBRE_PUNTO, seleccion: estado.seleccion,
-        clara: tema === 'claro', transitos
+        clara: tema === 'claro', transitos, revolucion
     });
     const s = estado.seleccion;
     $('#detalle-punto').innerHTML = !s
-        ? (transitos ? 'Tocá un planeta natal o en tránsito para ver sus aspectos.' : 'Tocá un planeta para ver dónde está y con quién se relaciona.')
+        ? (transitos ? 'Tocá un planeta natal o en tránsito para ver sus aspectos.'
+            : revolucion ? 'Tocá un planeta de la revolución (afuera) o natal (adentro).'
+                : 'Tocá un planeta para ver dónde está y con quién se relaciona.')
+        : s.startsWith('r-') ? detalleRevolucion(revolucion, estado.carta, s)
         : s.startsWith('t-') ? detalleTransito(transitos, s)
             : transitos ? detalleNatalConTransitos(estado.carta, transitos, s)
                 : detallePunto(estado.carta, s);
@@ -341,6 +359,7 @@ function pintarControlesTransito() {
     $('#selector-modo').value = estado.modo;
     formTransito.hidden = !enTransitos;
     pintarCalendario();
+    pintarControlesRevolucion();
     if (!enTransitos || !estado.transito) return;
     const f = formTransito.elements;
     if (document.activeElement !== f.fecha) f.fecha.value = estado.transito.fecha.split('-').reverse().join('/');
@@ -368,6 +387,11 @@ $('#selector-modo').addEventListener('change', async (e) => {
         await calcularTransitos();
         evento('transitos_vistos', {});
     }
+    if (modo === 'revolucion') {
+        estado.revolucion ||= { anio: null, lugar: lugarRS };
+        await calcularRevolucionSolar();
+        evento('revolucion_vista', {});
+    }
     if (modo === 'calendario') {
         $('#cargando').hidden = false;
         await calcularCalendario();
@@ -377,13 +401,54 @@ $('#selector-modo').addEventListener('change', async (e) => {
     pintar();
 });
 
+// ---------- Revolucion solar ----------
+
+async function calcularRevolucionSolar() {
+    estado.revolucion ||= { anio: null, lugar: null };
+    const l = estado.revolucion.lugar || estado.datos.lugar;
+    try {
+        estado.revolucion.resultado = await calcularEnWorker({
+            tipo: 'revolucion', natal: estado.carta, anio: estado.revolucion.anio,
+            ahora: jdDeFecha(new Date()), lat: l.lat, lon: l.lon, ajustes: estado.ajustes
+        });
+        estado.revolucion.anio = estado.revolucion.resultado.anio;
+    } catch (err) {
+        console.error(err);
+        estado.revolucion.resultado = null;
+    }
+}
+
+function pintarControlesRevolucion() {
+    const r = estado.modo === 'revolucion' && estado.revolucion?.resultado;
+    $('#controles-rs').hidden = !r;
+    if (!r) return;
+    const l = estado.revolucion.lugar || estado.datos.lugar;
+    // Momento de la revolucion en la hora del lugar del cumpleanios.
+    const utcSeg = Math.round((r.jd - 2440587.5) * 86400);
+    const { total } = husoEn(l.zona, utcSeg);
+    const d = new Date((utcSeg + total) * 1000);
+    const hora = `${dosCifras(d.getUTCHours())}:${dosCifras(d.getUTCMinutes())}`;
+    $('#nota-rs').textContent = `Revolución solar ${r.anio}: ${d.getUTCDate()}/${d.getUTCMonth() + 1}/${d.getUTCFullYear()} ` +
+        `a las ${hora} h (${utcTexto(total)}) en ${l.manual ? 'las coordenadas cargadas' : descripcionLugar(l)}.`;
+}
+
+$('#controles-rs').addEventListener('click', async (e) => {
+    const paso = e.target.closest('[data-rs]')?.dataset.rs;
+    if (!paso) return;
+    estado.revolucion.anio += Number(paso);
+    estado.seleccion = null;
+    await calcularRevolucionSolar();
+    pintar();
+});
+
 // ---------- Calendario de transitos ----------
 
-// Periodo de 12 meses desde la fecha elegida (00:00 del dispositivo).
+// Periodo de 6 meses desde la fecha elegida (00:00 del dispositivo).
+const MESES_CALENDARIO = 6;
 function periodoCalendario() {
     estado.calendario ||= { desde: momentoLocal(new Date()).fecha };
     const [a, m, d] = estado.calendario.desde.split('-').map(Number);
-    return { desde: jdDeFecha(new Date(a, m - 1, d)), hasta: jdDeFecha(new Date(a + 1, m - 1, d)) };
+    return { desde: jdDeFecha(new Date(a, m - 1, d)), hasta: jdDeFecha(new Date(a, m - 1 + MESES_CALENDARIO, d)) };
 }
 
 async function calcularCalendario() {
@@ -401,6 +466,8 @@ async function calcularCalendario() {
 function pintarCalendario() {
     const visible = estado.modo === 'calendario' && estado.calendario?.lista;
     $('#calendario').hidden = !visible;
+    // En el calendario va directo la lista: la rueda aparece al tocar un transito.
+    for (const sel of ['.figura-rueda', '.barra-carta', '#huso']) $(sel).hidden = estado.modo === 'calendario';
     if (!visible) return;
     const { desde, hasta } = periodoCalendario();
     $('#cal-periodo').textContent = `Del ${fechaCorta(desde)} al ${fechaCorta(hasta)}`;
@@ -412,7 +479,7 @@ $('#calendario').addEventListener('click', async (e) => {
     const item = e.target.closest('[data-cal-item]')?.dataset.calItem;
     if (paso) {
         const [a, m, d] = estado.calendario.desde.split('-').map(Number);
-        estado.calendario = { desde: momentoLocal(new Date(a + Number(paso), m - 1, d)).fecha };
+        estado.calendario = { desde: momentoLocal(new Date(a, m - 1 + Number(paso), d)).fecha };
         $('#cargando').hidden = false;
         await calcularCalendario();
         $('#cargando').hidden = true;
@@ -685,20 +752,24 @@ async function descargarImagen() {
     // Rueda limpia, sin el planeta tocado, en un contenedor fuera de la vista.
     const caja = $('#para-imagen');
     const transitos = estado.modo === 'transitos' ? estado.transitos : null;
-    caja.innerHTML = dibujarRueda(estado.carta, { nombres: NOMBRE_PUNTO, clara: tema === 'claro', transitos });
+    const revolucion = cartaRevolucion();
+    caja.innerHTML = dibujarRueda(estado.carta, { nombres: NOMBRE_PUNTO, clara: tema === 'claro', transitos, revolucion });
     const cs = getComputedStyle(document.body);
     const color = (v) => cs.getPropertyValue(v).trim();
     const d = estado.datos;
     try {
         const fechaT = transitos ? estado.transito.fecha.split('-').reverse().join('/') : '';
         const blob = await imagenCarta(caja.querySelector('svg'), {
-            titulo: transitos ? `Tránsitos del ${fechaT}` : $('#titulo-carta').textContent,
-            datos: transitos
-                ? `${$('#titulo-carta').textContent} · ${$('#resumen-datos').textContent}`
-                : $('#resumen-datos').textContent,
+            titulo: transitos ? `Tránsitos del ${fechaT}`
+                : revolucion ? `Revolución solar ${estado.revolucion.anio}` : $('#titulo-carta').textContent,
+            datos: revolucion ? $('#nota-rs').textContent.replace(/^Revolución solar \d+: /, '')
+                : transitos ? `${$('#titulo-carta').textContent} · ${$('#resumen-datos').textContent}`
+                    : $('#resumen-datos').textContent,
             colores: { fondo: color('--bg'), texto: color('--texto'), suave: color('--texto-suave') }
         });
-        const archivo = transitos
+        const archivo = revolucion
+            ? `revolucion-${slug(d.nombre || 'natal') || 'natal'}-${estado.revolucion.anio}.png`
+            : transitos
             ? `transitos-${slug(d.nombre || 'natal') || 'natal'}-${estado.transito.fecha}.png`
             : `carta-${slug(d.nombre || 'natal') || 'natal'}-${d.fecha}.png`;
         const como = await entregarImagen(blob, archivo, $('#titulo-carta').textContent);
@@ -781,7 +852,7 @@ form.elements.mmT.innerHTML = opcionesNum(60).replace('<option value="">--</opti
     [form.elements.hhT.value, form.elements.mmT.value] = ahora.hora.split(':');
     try {
         const tipo = localStorage.getItem('tucarta:tipo');
-        if (tipo === 'transitos' || tipo === 'calendario') form.elements.tipo.value = tipo;
+        if (['transitos', 'calendario', 'revolucion'].includes(tipo)) form.elements.tipo.value = tipo;
     } catch {}
     tipoElegido();
 }
