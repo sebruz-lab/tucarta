@@ -140,6 +140,9 @@ const R_DOBLE = { exterior: 294, glifos: 271 };
 // revolucion afuera con su propio zodiaco, sus casas y sus planetas con
 // grados. El centro queda sin lineas de aspectos.
 const ESCALA_RS = 0.7;
+// Letra de los numeros de la natal, tal como se ve en pantalla (en
+// unidades de la rueda): la de la natal de adentro de la revolucion.
+const LETRA_NATAL = { grado: 11.9, casa: 10.1, retro: 6.7 };
 const R_RS = { exterior: 294, signos: 270, planetas: 251, grados: 231, linea: 221, casas: 213 };
 
 // clara: rueda para el fondo blanco; si no, para el fondo oscuro. En las
@@ -153,6 +156,10 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
     // Con revolucion, manda su Ascendente (a la izquierda) y la natal gira.
     const polar = crearPolar(revolucion ? revolucion.angulos.find((a) => a.id === 'asc').lon : asc);
     const R = revolucion ? R_NATAL_EN_RS : R_BASE;
+    // La natal se ve con la misma letra en todas las vistas, aunque vaya
+    // achicada dentro de los transitos o de la revolucion.
+    const escala = revolucion ? ESCALA_RS : transitos ? ESCALA_DOBLE : 1;
+    const letra = (px) => ` style="font-size:${(px / escala).toFixed(2)}px"`;
     const tamMax = revolucion ? 40 : 34;
     const linea = (lon, r1, r2, clase) => {
         const [x1, y1] = polar(lon, r1);
@@ -188,7 +195,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         const sig = carta.cusps[(i + 1) % 12].lon;
         const medio = c.lon + (((sig - c.lon) % 360) + 360) % 360 / 2;
         const [x, y] = polar(medio, R.numeros);
-        out.push(`<text class="num-casa" x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
+        out.push(`<text class="num-casa"${letra(LETRA_NATAL.casa)} x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
     });
     // Rotulos de los angulos, por fuera del anillo.
     const rotulos = [];
@@ -238,8 +245,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         const [gx, gy] = polar(u.lon, R.grados - u.nivel * ESCALON.grado);
         // Dentro de la revolucion la natal va achicada: sus grados se
         // agrandan para leerse igual. (Con style: el CSS le gana al atributo.)
-        const fuente = revolucion ? ' style="font-size:17px"' : '';
-        out.push(`<text class="grado-punto"${fuente} x="${f(gx)}" y="${f(gy)}">${p.grado}°${p.retro ? '<tspan class="retro">r</tspan>' : ''}</text>`);
+        out.push(`<text class="grado-punto"${letra(LETRA_NATAL.grado)} x="${f(gx)}" y="${f(gy)}">${p.grado}°${p.retro ? `<tspan class="retro"${letra(LETRA_NATAL.retro)}>r</tspan>` : ''}</text>`);
         out.push('</g>');
     });
 
