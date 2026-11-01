@@ -343,9 +343,29 @@ function mostrarFormulario() {
 let almacen = almacenLocal;
 let guardadas = [];
 
+// Con la sesion iniciada: solo el titulo y el desplegable "Tus cartas"
+// (cerrado). Sin sesion: la pregunta y el texto de bienvenida, y "Mis
+// cartas" como titulo fijo si hay cartas en el dispositivo.
+let modoSesion = null;
+
 async function pintarMisCartas() {
     try { guardadas = await almacen.listar(); } catch (e) { console.error(e); guardadas = []; }
-    $('#mis-cartas').hidden = !$('#resultado').hidden || (!guardadas.length && !sesionIniciada());
+    const sesion = sesionIniciada();
+    $('#pregunta-intro').hidden = sesion;
+    $('#texto-intro').hidden = sesion;
+    const seccion = $('#mis-cartas');
+    const titulo = $('#titulo-mis-cartas');
+    if (sesion !== modoSesion) {
+        modoSesion = sesion;
+        titulo.textContent = sesion ? 'Tus cartas' : 'Mis cartas';
+        titulo.classList.toggle('fijo', !sesion);
+        seccion.open = !sesion;
+    }
+    seccion.hidden = !$('#resultado').hidden || (!guardadas.length && !sesion);
+    if (!guardadas.length) {
+        $('#lista-cartas').innerHTML = '<li class="sin-cartas">Todavía no guardaste ninguna carta.</li>';
+        return;
+    }
     $('#lista-cartas').innerHTML = guardadas.map((c) => {
         const nombre = c.nombre || 'Sin nombre';
         const lugar = c.lugar.manual ? 'Coordenadas a mano' : c.lugar.nombre;
@@ -358,6 +378,11 @@ async function pintarMisCartas() {
         </li>`;
     }).join('');
 }
+
+// Sin sesion "Mis cartas" es un titulo: no se pliega.
+$('#titulo-mis-cartas').addEventListener('click', (e) => {
+    if (!sesionIniciada()) e.preventDefault();
+});
 
 $('#lista-cartas').addEventListener('click', async (e) => {
     const abrir = e.target.closest('[data-abrir]')?.dataset.abrir;
@@ -520,5 +545,6 @@ conectarCuenta({
 });
 document.addEventListener('tucarta:mis-cartas', () => {
     mostrarFormulario();
+    $('#mis-cartas').open = true;
     $('#mis-cartas').scrollIntoView({ block: 'start' });
 });

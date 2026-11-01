@@ -152,6 +152,7 @@ main {
     margin: 0 0 12px;
 }
 .intro p:last-child { color: var(--texto-suave); max-width: 34em; }
+.bajada-intro { font-size: 1.2rem; color: var(--texto-suave); margin: -4px 0 14px; }
 
 .nota { color: var(--texto-suave); font-size: 0.88rem; }
 
@@ -568,7 +569,20 @@ details > summary {
 /* ---------- Mis cartas ---------- */
 
 .mis-cartas { margin: 0 0 28px; }
-.mis-cartas h2 { font-size: 1.1rem; font-weight: 400; margin: 0 0 10px; }
+.mis-cartas > summary {
+    font-size: 1.1rem;
+    font-weight: 400;
+    color: var(--texto);
+    padding: 12px 0;
+    border-top: 1px solid var(--linea);
+    border-bottom: 1px solid var(--linea);
+    cursor: pointer;
+}
+.mis-cartas[open] > summary { border-bottom: none; }
+/* Sin sesion es un titulo fijo, no un desplegable. */
+.mis-cartas > summary.fijo { list-style: none; cursor: default; border-top: none; padding: 0 0 10px; }
+.mis-cartas > summary.fijo::-webkit-details-marker { display: none; }
+.lista-cartas .sin-cartas { color: var(--texto-suave); font-size: 0.9rem; padding: 12px 0; }
 .lista-cartas { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--linea); }
 .lista-cartas li { display: flex; align-items: center; border-bottom: 1px solid var(--linea); }
 .carta-guardada {

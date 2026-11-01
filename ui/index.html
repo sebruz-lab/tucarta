@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tu carta natal | Seba Bru</title>
+<title>Calculadora de Cartas Astrales | Seba Bru</title>
 <meta name="description" content="Calculá tu carta natal gratis: rueda, posiciones, aspectos y textos sobre tu Sol, tu Luna y tu Ascendente.">
 
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://sebabru.com/tucarta">
-<meta property="og:title" content="Tu carta natal | Seba Bru Astrología">
+<meta property="og:title" content="Calculadora de Cartas Astrales | Seba Bru Astrología">
 <meta property="og:description" content="Calculá tu carta natal gratis: rueda, posiciones, aspectos y textos sobre tu Sol, tu Luna y tu Ascendente.">
 <meta property="og:image" content="https://sebabru.com/img/tucarta.webp">
 <meta property="og:site_name" content="Seba Bru Astrología">
@@ -70,15 +70,16 @@
 <main>
     <section class="intro">
         <p class="sobretitulo">Carta natal</p>
-        <h1>¿Cómo estaba el cielo cuando naciste?</h1>
-        <p>Completá tus datos y mirá tu carta: la rueda, dónde estaba cada planeta y qué dicen tu Sol, tu Luna y tu Ascendente.</p>
+        <h1>Calculadora de Cartas Astrales</h1>
+        <p id="pregunta-intro" class="bajada-intro">¿Cómo estaba el cielo cuando naciste?</p>
+        <p id="texto-intro">Completá tus datos y mirá tu carta: la rueda, dónde estaba cada planeta y qué dicen tu Sol, tu Luna y tu Ascendente.</p>
     </section>
 
-    <section id="mis-cartas" class="mis-cartas" aria-labelledby="titulo-mis-cartas" hidden>
-        <h2 id="titulo-mis-cartas">Mis cartas</h2>
+    <details id="mis-cartas" class="mis-cartas" open hidden>
+        <summary id="titulo-mis-cartas" class="fijo">Mis cartas</summary>
         <ul id="lista-cartas" class="lista-cartas"></ul>
         <div class="nota" id="nota-mis-cartas">Guardadas en este dispositivo.</div>
-    </section>
+    </details>
 
     <form id="datos" class="datos" novalidate>
         <label class="campo"><span>Nombre <span class="opcional">(opcional)</span></span>
