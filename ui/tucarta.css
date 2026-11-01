@@ -829,7 +829,24 @@ details > summary {
 .imp-lista .casilla { padding: 8px 2px; align-items: flex-start; }
 .imp-lista .casilla > span { display: flex; flex-direction: column; gap: 2px; }
 .imp-lista .nota { margin: 0; font-size: 0.8rem; }
-.buscar-cartas { margin: 10px 0 4px; }
+.imp-lista li { display: flex; align-items: center; gap: 10px; }
+.imp-lista li .casilla { flex: 1; min-width: 0; }
+.imp-lista select { flex: none; width: auto; font-size: 0.8rem; padding: 4px 6px; min-height: 0; }
+.filtros-cartas { display: flex; gap: 8px; margin: 10px 0 4px; }
+.filtros-cartas > [hidden] { display: none; }
+.filtros-cartas .buscar-cartas { flex: 1; min-width: 0; }
+.filtros-cartas .filtro-cartas { flex: none; width: auto; }
+.tipo-carta {
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+    border: 1px solid var(--linea);
+    border-radius: 999px;
+    padding: 1px 7px;
+    margin-left: 6px;
+    vertical-align: 2px;
+}
 .lista-cartas { max-height: 60vh; overflow-y: auto; }
 
 /* ---------- Ajustes ---------- */

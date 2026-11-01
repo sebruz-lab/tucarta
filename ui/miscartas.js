@@ -3,10 +3,14 @@
 // async. Aca esta el del dispositivo (localStorage); el de la cuenta vive
 // en cuenta.js y respeta la misma forma.
 //
-// Carta guardada: { id, nombre, fecha, hora, lugar, correccion, eleccion, guardada }.
+// Carta guardada: { id, nombre, fecha, hora, lugar, correccion, eleccion, tipo, guardada }.
+// Las guardadas antes de que existiera el tipo cuentan como natales.
 
 const CLAVE = 'tucarta:cartas';
-const CAMPOS = ['nombre', 'fecha', 'hora', 'lugar', 'correccion', 'eleccion'];
+const CAMPOS = ['nombre', 'fecha', 'hora', 'lugar', 'correccion', 'eleccion', 'tipo'];
+
+// Que es cada carta guardada.
+export const TIPOS = { natal: 'Natal', revolucion: 'Revolución solar', progresion: 'Progresada', evento: 'Evento' };
 
 // Del lugar solo se guarda lo necesario para recalcular y mostrarlo.
 const CAMPOS_LUGAR = ['nombre', 'provincia', 'pais', 'paisNombre', 'lat', 'lon', 'zona', 'manual'];
@@ -16,6 +20,7 @@ export function datosDeCarta(d) {
     const res = Object.fromEntries(CAMPOS.map((k) => [k, d[k] ?? null]));
     res.nombre = res.nombre || '';
     res.eleccion = res.eleccion || 0;
+    res.tipo = TIPOS[res.tipo] ? res.tipo : 'natal';
     res.lugar = Object.fromEntries(CAMPOS_LUGAR.filter((k) => d.lugar?.[k] != null).map((k) => [k, d.lugar[k]]));
     return res;
 }

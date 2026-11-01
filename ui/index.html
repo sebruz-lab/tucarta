@@ -77,13 +77,22 @@
 
     <details id="mis-cartas" class="mis-cartas" open hidden>
         <summary id="titulo-mis-cartas" class="fijo">Mis cartas</summary>
-        <input type="search" id="buscar-cartas" class="buscar-cartas" placeholder="Buscar por nombre" aria-label="Buscar en tus cartas" hidden>
+        <div class="filtros-cartas">
+            <input type="search" id="buscar-cartas" class="buscar-cartas" placeholder="Buscar por nombre" aria-label="Buscar en tus cartas" hidden>
+            <select id="filtro-cartas" class="filtro-cartas" aria-label="Qué cartas mostrar" hidden>
+                <option value="">Todas</option>
+                <option value="natal">Natales</option>
+                <option value="revolucion">Revoluciones solares</option>
+                <option value="progresion">Progresadas</option>
+                <option value="evento">Eventos</option>
+            </select>
+        </div>
         <ul id="lista-cartas" class="lista-cartas"></ul>
         <div class="nota" id="nota-mis-cartas">Guardadas en este dispositivo.</div>
     </details>
 
     <div class="importar-cartas">
-        <button type="button" class="boton-texto" data-importar>Tenés tus cartas en algun programa astrológico? Importalas</button>
+        <button type="button" class="boton-texto" data-importar>¿Tenés tus cartas en algún programa astrológico? Importalas</button>
         <input type="file" id="archivo-cartas" accept=".txt,.dat,.csv,text/plain" multiple hidden>
         <p class="nota" id="nota-importar" role="status" hidden></p>
     </div>

@@ -23,6 +23,7 @@ import { imagenCarta, entregarImagen } from './descarga.js';
 import { listaCalendario, jdDeFecha, fechaDeJd, fechaCorta, fechaParaVer } from './calendario.js';
 import { conectarCuenta, sesionIniciada, conCuenta, abrirEntrar } from './panelCuenta.js';
 import { leerArchivoCartas, textoDeArchivo } from './importar.js';
+import { TIPOS } from './miscartas.js';
 
 const $ = (sel) => document.querySelector(sel);
 const CLAVE_DATOS = 'tucarta:ultima';
@@ -834,16 +835,22 @@ async function pintarMisCartas() {
         seccion.open = !sesion;
     }
     seccion.hidden = !$('#resultado').hidden || (!guardadas.length && !sesion);
-    // Con muchas cartas, un buscador por nombre.
+    // Con muchas cartas, un buscador por nombre; si hay de varios tipos, un
+    // filtro por tipo.
     $('#buscar-cartas').hidden = guardadas.length <= 8;
+    const tipoDe = (c) => (TIPOS[c.tipo] ? c.tipo : 'natal');
+    $('#filtro-cartas').hidden = guardadas.every((c) => tipoDe(c) === 'natal');
+    if ($('#filtro-cartas').hidden) $('#filtro-cartas').value = '';
     if (!guardadas.length) {
         $('#lista-cartas').innerHTML = '<li class="sin-cartas">Todavía no guardaste ninguna carta.</li>';
         return;
     }
     const busqueda = normalizarTexto($('#buscar-cartas').value);
-    const visibles = busqueda ? guardadas.filter((c) => normalizarTexto(c.nombre || '').includes(busqueda)) : guardadas;
+    const filtro = $('#filtro-cartas').value;
+    const visibles = guardadas.filter((c) => (!busqueda || normalizarTexto(c.nombre || '').includes(busqueda)) &&
+        (!filtro || tipoDe(c) === filtro));
     if (!visibles.length) {
-        $('#lista-cartas').innerHTML = '<li class="sin-cartas">Ninguna carta con ese nombre.</li>';
+        $('#lista-cartas').innerHTML = `<li class="sin-cartas">${busqueda ? 'Ninguna carta con ese nombre.' : 'Ninguna carta de ese tipo.'}</li>`;
         return;
     }
     $('#lista-cartas').innerHTML = visibles.map((c) => {
@@ -851,7 +858,7 @@ async function pintarMisCartas() {
         const lugar = c.lugar.manual ? 'Coordenadas a mano' : c.lugar.nombre;
         return `<li>
             <button type="button" class="carta-guardada" data-abrir="${escapar(c.id)}">
-                <span class="nombre">${escapar(nombre)}</span>
+                <span class="nombre">${escapar(nombre)}${tipoDe(c) !== 'natal' ? ` <span class="tipo-carta">${TIPOS[tipoDe(c)]}</span>` : ''}</span>
                 <span class="nota">${c.fecha.split('-').reverse().join('/')} · ${escapar(c.hora)} h · ${escapar(lugar)}</span>
             </button>
             <button type="button" class="quitar" data-quitar="${escapar(c.id)}" aria-label="Borrar la carta de ${escapar(nombre)}">×</button>
@@ -866,6 +873,7 @@ $('#titulo-mis-cartas').addEventListener('click', (e) => {
 
 const normalizarTexto = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 $('#buscar-cartas').addEventListener('input', () => pintarMisCartas());
+$('#filtro-cartas').addEventListener('change', () => pintarMisCartas());
 
 // ---------- Importar cartas (de Solar Fire; se lee en el navegador) ----------
 
@@ -900,18 +908,29 @@ $('#archivo-cartas').addEventListener('change', async (e) => {
 
 function pintarImportar(formatos, salteadas) {
     const hay = paraImportar.length > 0;
+    const cuantas = (t) => paraImportar.filter((c) => c.tipo === t).length;
+    const otras = [
+        [cuantas('revolucion'), 'revolución solar', 'revoluciones solares'],
+        [cuantas('evento'), 'evento', 'eventos']
+    ].filter(([n]) => n).map(([n, uno, varios]) => `${n} ${n === 1 ? uno : varios}`);
     $('#imp-resumen').textContent = hay
         ? `Encontramos ${paraImportar.length} cartas (${formatos.join(', ')}).` +
           (salteadas ? ` ${salteadas} renglones no se pudieron leer.` : '') +
-          ' Cada una usa el huso y las coordenadas del archivo, así da igual que en el programa de origen.'
-        : 'No encontramos cartas en ese archivo. Por ahora se pueden importar las exportaciones de texto de Solar Fire.';
+          ' Cada una usa el huso y las coordenadas del archivo, así da igual que en el programa de origen.' +
+          ' El archivo no dice de qué tipo es cada carta: ' +
+          (otras.length ? `reconocimos ${otras.join(' y ')}, y el resto quedó como natal.` : 'quedaron todas como natales.') +
+          ' Podés cambiarlo en cada una.'
+        : 'No encontramos cartas en ese archivo. Por ahora se pueden importar las exportaciones de Solar Fire (.txt o .dat).';
     $('#imp-todas-caja').hidden = !hay;
     $('#imp-todas').checked = true;
     $('#imp-lista').innerHTML = paraImportar.map((c, i) => `<li><label class="casilla">
         <input type="checkbox" data-i="${i}" checked>
         <span><span class="nombre">${escapar(c.nombre || 'Sin nombre')}</span>
         <span class="nota">${c.fecha.split('-').reverse().join('/')} · ${escapar(c.hora)} h · ${escapar(c.lugar.nombre)}</span></span>
-    </label></li>`).join('');
+    </label>
+    <select data-tipo="${i}" aria-label="Tipo de carta de ${escapar(c.nombre || 'Sin nombre')}">
+        ${Object.entries(TIPOS).map(([k, v]) => `<option value="${k}"${k === c.tipo ? ' selected' : ''}>${v}</option>`).join('')}
+    </select></li>`).join('');
     $('#imp-destino').textContent = hay ? 'Se guardan en tu cuenta: las vas a ver desde cualquier dispositivo.' : '';
     $('[data-imp="importar"]').hidden = !hay;
     contarImportar();
@@ -928,6 +947,7 @@ $('#ventana-importar').addEventListener('change', (e) => {
     if (e.target.id === 'imp-todas') {
         $('#imp-lista').querySelectorAll('input').forEach((c) => { c.checked = e.target.checked; });
     }
+    if (e.target.dataset.tipo != null) paraImportar[Number(e.target.dataset.tipo)].tipo = e.target.value;
     contarImportar();
 });
 
@@ -964,7 +984,7 @@ $('#lista-cartas').addEventListener('click', async (e) => {
         if (!c) return;
         estado.datos = {
             nombre: c.nombre || '', fecha: c.fecha, hora: c.hora, lugar: c.lugar,
-            correccion: c.correccion || null, eleccion: c.eleccion || 0
+            correccion: c.correccion || null, eleccion: c.eleccion || 0, tipo: c.tipo
         };
         estado.seleccion = null;
         estado.corrigiendoHuso = false;
