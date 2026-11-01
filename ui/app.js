@@ -23,7 +23,7 @@ import { imagenCarta, entregarImagen } from './descarga.js';
 import { listaCalendario, jdDeFecha, fechaDeJd, fechaCorta, fechaParaVer } from './calendario.js';
 import { conectarCuenta, sesionIniciada, conCuenta, abrirEntrar } from './panelCuenta.js';
 import { leerArchivoCartas, textoDeArchivo } from './importar.js';
-import { TIPOS } from './miscartas.js';
+import { TIPOS, buscarEnLista } from './miscartas.js';
 
 const $ = (sel) => document.querySelector(sel);
 const CLAVE_DATOS = 'tucarta:ultima';
@@ -845,6 +845,7 @@ function mostrarFormulario() {
 // Al iniciar sesion se cambia por el almacen de la cuenta.
 let almacen = almacenLocal;
 let guardadas = [];
+let visibles = []; // las de la lista, con el filtro por tipo
 
 // Con la sesion iniciada: el titulo, "Mis cartas" y "Calculá una nueva
 // carta". Sin sesion: la pregunta y el texto de bienvenida, y "Mis cartas"
@@ -872,12 +873,10 @@ async function pintarMisCartas() {
         $('#lista-cartas').innerHTML = '<li class="sin-cartas">Todavía no guardaste ninguna carta.</li>';
         return;
     }
-    const busqueda = normalizarTexto($('#buscar-cartas').value);
     const filtro = $('#filtro-cartas').value;
-    const visibles = guardadas.filter((c) => (!busqueda || normalizarTexto(c.nombre || '').includes(busqueda)) &&
-        (!filtro || tipoDe(c) === filtro));
+    visibles = guardadas.filter((c) => !filtro || tipoDe(c) === filtro);
     if (!visibles.length) {
-        $('#lista-cartas').innerHTML = `<li class="sin-cartas">${busqueda ? 'Ninguna carta con ese nombre.' : 'Ninguna carta de ese tipo.'}</li>`;
+        $('#lista-cartas').innerHTML = '<li class="sin-cartas">Ninguna carta de ese tipo.</li>';
         return;
     }
     $('#lista-cartas').innerHTML = visibles.map((c) => {
@@ -891,6 +890,27 @@ async function pintarMisCartas() {
             <button type="button" class="quitar" data-quitar="${escapar(c.id)}" aria-label="Borrar la carta de ${escapar(nombre)}">×</button>
         </li>`;
     }).join('');
+    irABusqueda();
+}
+
+// El buscador no filtra: la lista salta adonde esta lo que se escribe
+// (como en una agenda) y resalta las que coinciden; con errores de tipeo,
+// va a lo mas parecido. Con Enter queda parada en la primera, y otro
+// Enter la abre.
+function irABusqueda(enfocar = false) {
+    const lista = $('#lista-cartas');
+    const items = [...lista.querySelectorAll(':scope > li')];
+    const r = buscarEnLista(visibles.map((c) => c.nombre), $('#buscar-cartas').value);
+    const marcadas = new Set(r.coinciden);
+    items.forEach((li, i) => li.classList.toggle('coincide', marcadas.has(i)));
+    const pista = $('#pista-busqueda');
+    pista.textContent = r.como === 'parecido' ? 'No hay ninguna con ese nombre: te mostramos las más parecidas.'
+        : r.como === 'orden' ? 'Ninguna carta con ese nombre.' : '';
+    pista.hidden = !pista.textContent;
+    const li = items[r.indice];
+    if (r.como === 'vacio') lista.scrollTop = 0;
+    else if (li) lista.scrollTop = li.offsetTop; // la lista es relative: offsetTop es dentro de ella
+    if (enfocar && li && marcadas.size) li.querySelector('.carta-guardada').focus({ preventScroll: true });
 }
 
 // "Mis cartas" es un casillero que se despliega encima del formulario: el
@@ -924,8 +944,12 @@ document.querySelector('.comunidad').addEventListener('click', (e) => {
     if (red) evento('comunidad', { red });
 });
 
-const normalizarTexto = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-$('#buscar-cartas').addEventListener('input', () => pintarMisCartas());
+$('#buscar-cartas').addEventListener('input', () => irABusqueda());
+$('#buscar-cartas').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    irABusqueda(true);
+});
 $('#filtro-cartas').addEventListener('change', () => pintarMisCartas());
 
 // ---------- Importar cartas (de Solar Fire; se lee en el navegador) ----------

@@ -108,7 +108,7 @@
         <summary id="titulo-mis-cartas">Mis cartas</summary>
         <div class="panel-cartas">
         <div class="filtros-cartas">
-            <input type="search" id="buscar-cartas" class="buscar-cartas" placeholder="Buscar por nombre" aria-label="Buscar en tus cartas" hidden>
+            <input type="search" id="buscar-cartas" class="buscar-cartas" placeholder="Buscar por nombre" aria-label="Buscar en tus cartas" enterkeyhint="go" hidden>
             <select id="filtro-cartas" class="filtro-cartas" aria-label="Qué cartas mostrar" hidden>
                 <option value="">Todas</option>
                 <option value="natal">Natales</option>
@@ -117,6 +117,7 @@
                 <option value="evento">Eventos</option>
             </select>
         </div>
+        <p id="pista-busqueda" class="nota pista-busqueda" role="status" hidden></p>
         <ul id="lista-cartas" class="lista-cartas"></ul>
         <div class="nota" id="nota-mis-cartas">Guardadas en este dispositivo.</div>
         </div>

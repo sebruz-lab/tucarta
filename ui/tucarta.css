@@ -936,7 +936,10 @@ body.sin-scroll { overflow: hidden; }
     margin-left: 6px;
     vertical-align: 2px;
 }
-.lista-cartas { max-height: 60vh; overflow-y: auto; }
+.lista-cartas { max-height: 60vh; overflow-y: auto; position: relative; }
+.lista-cartas li.coincide { background: var(--superficie); }
+.lista-cartas li.coincide .carta-guardada { padding-left: 8px; }
+.pista-busqueda { margin: 4px 0 8px; font-size: 0.82rem; }
 
 /* ---------- Ajustes ---------- */
 

@@ -79,3 +79,53 @@ export const almacenLocal = {
         try { localStorage.removeItem(CLAVE); } catch {}
     }
 };
+
+// ---------- Buscar en la lista ----------
+
+const normalizar = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+// Cambios minimos para pasar de a a b (letras de mas, de menos, cambiadas o
+// dadas vuelta).
+function distancia(a, b) {
+    const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+    for (let j = 1; j <= b.length; j++) d[0][j] = j;
+    for (let i = 1; i <= a.length; i++) {
+        for (let j = 1; j <= b.length; j++) {
+            const c = a[i - 1] === b[j - 1] ? 0 : 1;
+            d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + c);
+            if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+        }
+    }
+    return d[a.length][b.length];
+}
+
+// Adonde ir en una lista ordenada de nombres mientras se escribe `texto`:
+//   - 'inicio': nombres que empiezan asi ("seb" -> Seba...).
+//   - 'palabra': alguna palabra empieza asi (un apellido: "bru").
+//   - 'parecido': con errores de tipeo ("sbea" -> Seba), lo mas parecido.
+//   - 'orden': nada se parece; el lugar que le toca en el orden alfabetico.
+// Devuelve { indice, coinciden (indices a resaltar), como }.
+export function buscarEnLista(nombres, texto) {
+    const q = normalizar(texto);
+    if (!q) return { indice: -1, coinciden: [], como: 'vacio' };
+    const ns = nombres.map((n) => normalizar(n || 'Sin nombre'));
+    const resultado = (coinciden, como) => ({ indice: coinciden[0], coinciden, como });
+
+    const inicio = ns.flatMap((n, i) => (n.startsWith(q) ? [i] : []));
+    if (inicio.length) return resultado(inicio, 'inicio');
+    const palabra = ns.flatMap((n, i) => (n.split(' ').some((w) => w.startsWith(q)) ? [i] : []));
+    if (palabra.length) return resultado(palabra, 'palabra');
+
+    // Errores de tipeo: se compara con el principio de cada palabra (y del
+    // nombre entero), del largo de lo escrito, con una letra de mas o de menos.
+    const tolera = q.length <= 2 ? 0 : q.length <= 5 ? 1 : 2;
+    if (tolera) {
+        const dist = ns.map((n) => Math.min(...[n, ...n.split(' ')].flatMap((w) =>
+            [-1, 0, 1].map((k) => distancia(q, w.slice(0, q.length + k))))));
+        const mejor = Math.min(...dist);
+        if (mejor <= tolera) return resultado(dist.flatMap((d, i) => (d === mejor ? [i] : [])), 'parecido');
+    }
+
+    const k = ns.findIndex((n) => n.localeCompare(q, 'es') > 0);
+    return { indice: k < 0 ? ns.length - 1 : k, coinciden: [], como: 'orden' };
+}
