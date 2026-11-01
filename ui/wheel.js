@@ -10,7 +10,7 @@ import { SIGNOS as G_SIGNOS, PUNTOS as G_PUNTOS, glifo } from './glyphs.js';
 import { SIGNOS } from '../engine/chart.js';
 
 // De afuera hacia adentro: signos, numeros de casa, planetas y aspectos.
-const R = {
+const R_BASE = {
     exterior: 294,   // borde del anillo de signos
     signos: 254,     // borde interior del anillo de signos
     casas: 228,      // borde interior del anillo de numeros de casa
@@ -18,6 +18,9 @@ const R = {
     grados: 168,     // grado de cada planeta
     aspectos: 138    // circulo interior donde llegan los aspectos
 };
+// La natal dentro de la revolucion: sin aspectos, el centro se achica y
+// los planetas ganan lugar (antes de escalar).
+const R_NATAL_EN_RS = { exterior: 294, signos: 254, casas: 228, planetas: 186, grados: 146, aspectos: 64 };
 
 // Clase de linea de cada aspecto (los colores estan en tucarta.css).
 const CLASE_ASPECTO = {
@@ -86,7 +89,7 @@ export function ubicarEnCasas(puntos, cusps, { minimo = 10, margen = 4.5, apreta
 // anillo de planetas.
 // En una casa cargada el escalonado da aire extra: el glifo puede ser mas
 // grande que lo que entra en linea recta.
-const tamGlifo = (u) => Math.max(24, Math.min(34, u.paso * (R.planetas * Math.PI / 180) * (u.nivel === undefined ? 0.92 : 1.15)));
+const tamGlifo = (u, radio, max = 34) => Math.max(24, Math.min(max, u.paso * (radio * Math.PI / 180) * (u.nivel === undefined ? 0.92 : 1.15)));
 const ESCALON = { glifo: 12, grado: 16 }; // cuanto se mete hacia adentro el nivel 1
 
 // Reparte posiciones sobre el circulo para que queden al menos a `minimo`
@@ -133,8 +136,8 @@ const R_DOBLE = { exterior: 294, glifos: 271 };
 // Revolucion solar (como Solar Fire): la natal adentro, mas chica, y la
 // revolucion afuera con su propio zodiaco, sus casas y sus planetas con
 // grados. El centro queda sin lineas de aspectos.
-const ESCALA_RS = 0.7;
-const R_RS = { exterior: 294, signos: 262, planetas: 243, grados: 221, casas: 213 };
+const ESCALA_RS = 0.74;
+const R_RS = { exterior: 294, signos: 270, planetas: 253, grados: 235, casas: 222 };
 
 // clara: rueda para el fondo blanco; si no, para el fondo oscuro. En las
 // dos los signos van en el color de su elemento.
@@ -144,7 +147,10 @@ const R_RS = { exterior: 294, signos: 262, planetas: 243, grados: 221, casas: 21
 export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = false, transitos = null, revolucion = null } = {}) {
     const asc = carta.angulos.find((a) => a.id === 'asc').lon;
     const mc = carta.angulos.find((a) => a.id === 'mc').lon;
-    const polar = crearPolar(asc);
+    // Con revolucion, manda su Ascendente (a la izquierda) y la natal gira.
+    const polar = crearPolar(revolucion ? revolucion.angulos.find((a) => a.id === 'asc').lon : asc);
+    const R = revolucion ? R_NATAL_EN_RS : R_BASE;
+    const tamMax = revolucion ? 40 : 34;
     const linea = (lon, r1, r2, clase) => {
         const [x1, y1] = polar(lon, r1);
         const [x2, y2] = polar(lon, r2);
@@ -222,12 +228,13 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         out.push(linea(p.lon, R.signos, R.signos + 10, 'marca-punto'));
         out.push(linea(p.lon, R.aspectos, R.aspectos + 5, 'marca-punto'));
         const u = pos[i];
-        const t = u.paso < 10 ? tamGlifo(u) : 34;
+        const t = u.paso < 10 ? tamGlifo(u, R.planetas, tamMax) : tamMax;
         const [x, y] = polar(u.lon, R.planetas - u.nivel * ESCALON.glifo);
         out.push(`<circle class="toque" cx="${f(x)}" cy="${f(y)}" r="22"/>`);
         out.push(glifo(G_PUNTOS[p.id], x, y, t));
         const [gx, gy] = polar(u.lon, R.grados - u.nivel * ESCALON.grado);
-        const fuente = u.paso < 10 ? ` font-size="${Math.max(10.5, Math.min(15, u.paso * 1.95)).toFixed(1)}"` : '';
+        const fuenteMax = revolucion ? 18 : 15;
+        const fuente = u.paso < 10 || revolucion ? ` font-size="${Math.max(10.5, Math.min(fuenteMax, u.paso * 1.95)).toFixed(1)}"` : '';
         out.push(`<text class="grado-punto"${fuente} x="${f(gx)}" y="${f(gy)}">${p.grado}°${p.retro ? '<tspan class="retro">r</tspan>' : ''}</text>`);
         out.push('</g>');
     });
@@ -261,7 +268,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
 // natal, que va adentro achicado.
 function anilloRevolucion(rs, natal, { polar, linea, seleccion, nombres }) {
     const R2 = R_RS;
-    const borde = R.exterior * ESCALA_RS;
+    const borde = R_BASE.exterior * ESCALA_RS;
     const out = [`<g transform="scale(${ESCALA_RS})">${natal.join('')}</g>`];
     out.push(`<circle class="borde" r="${R2.exterior}"/>`, `<circle class="borde" r="${R2.signos}"/>`);
 
@@ -269,7 +276,7 @@ function anilloRevolucion(rs, natal, { polar, linea, seleccion, nombres }) {
     SIGNOS.forEach((s, i) => {
         out.push(linea(i * 30, R2.signos, R2.exterior, 'borde'));
         const [x, y] = polar(i * 30 + 15, (R2.exterior + R2.signos) / 2);
-        out.push(glifo(G_SIGNOS[s], x, y, 23, `data-signo="${s}"`, `elem-${ELEMENTOS[i % 4]}`, 1.45));
+        out.push(glifo(G_SIGNOS[s], x, y, 20, `data-signo="${s}"`, `elem-${ELEMENTOS[i % 4]}`, 1.45));
     });
     for (let g = 0; g < 360; g++) {
         if (g % 30 === 0) continue;
@@ -285,7 +292,7 @@ function anilloRevolucion(rs, natal, { polar, linea, seleccion, nombres }) {
         const sig = rs.cusps[(i + 1) % 12].lon;
         const medio = c.lon + (((sig - c.lon) % 360) + 360) % 360 / 2;
         const [x, y] = polar(medio, R2.casas);
-        out.push(`<text class="num-casa" font-size="12" x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
+        out.push(`<text class="num-casa" font-size="11" x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
     });
 
     // Planetas de la revolucion, cada uno en su casa, con el grado.
@@ -296,11 +303,11 @@ function anilloRevolucion(rs, natal, { polar, linea, seleccion, nombres }) {
         out.push(`<g class="punto revolucion${sel}" data-punto="${id}" tabindex="0" role="button" aria-label="${nombres[p.id] || p.id} de la revolución">`);
         out.push(linea(p.lon, R2.signos, R2.signos - 7, 'marca-punto'));
         const u = pos[i];
-        const [x, y] = polar(u.lon, R2.planetas - u.nivel * 9);
+        const [x, y] = polar(u.lon, R2.planetas - u.nivel * 8);
         out.push(`<circle class="toque" cx="${f(x)}" cy="${f(y)}" r="15"/>`);
-        out.push(glifo(G_PUNTOS[p.id], x, y, u.paso < 6 ? 19 : 23));
-        const [gx, gy] = polar(u.lon, R2.grados - u.nivel * 11);
-        out.push(`<text class="grado-punto" font-size="11.5" x="${f(gx)}" y="${f(gy)}">${p.grado}°${p.retro ? '<tspan class="retro">r</tspan>' : ''}</text>`);
+        out.push(glifo(G_PUNTOS[p.id], x, y, u.paso < 6 ? 21 : 26));
+        const [gx, gy] = polar(u.lon, R2.grados - u.nivel * 8);
+        out.push(`<text class="grado-punto" font-size="13" x="${f(gx)}" y="${f(gy)}">${p.grado}°${p.retro ? '<tspan class="retro">r</tspan>' : ''}</text>`);
         out.push('</g>');
     });
     return out.join('');
