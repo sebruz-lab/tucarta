@@ -413,11 +413,11 @@ details > summary {
 .elem-tierra { color: var(--tierra); }
 .elem-aire { color: var(--aire); }
 .elem-agua { color: var(--agua); }
-.rueda .asp-armonico { stroke: var(--asp-armonico); stroke-width: 2.2; }
-.rueda .asp-tenso { stroke: var(--asp-tenso); stroke-width: 2.2; }
-.rueda .asp-semisextil { stroke: var(--asp-semisextil); stroke-width: 2; }
-.rueda .asp-quincuncio { stroke: var(--asp-quincuncio); stroke-width: 2; }
-.rueda .asp-menor { stroke-dasharray: 14 5; stroke-width: 2.8; }
+.rueda .asp-armonico { stroke: var(--asp-armonico); stroke-width: 1.87; }
+.rueda .asp-tenso { stroke: var(--asp-tenso); stroke-width: 1.87; }
+.rueda .asp-semisextil { stroke: var(--asp-semisextil); stroke-width: 1.7; }
+.rueda .asp-quincuncio { stroke: var(--asp-quincuncio); stroke-width: 1.7; }
+.rueda .asp-menor { stroke-dasharray: 14 5; stroke-width: 2.38; }
 .rueda .glifo-aspecto.c-armonico { color: var(--asp-armonico); }
 .rueda .glifo-aspecto.c-tenso { color: var(--asp-tenso); }
 .rueda .glifo-aspecto.c-semisextil { color: var(--asp-semisextil); }

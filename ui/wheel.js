@@ -150,6 +150,9 @@ const R_RS = { exterior: 294, signos: 272, linea: 207, casas: 200 };
 const COLUMNA_NATAL = { glifo: 20, grado: 43, signo: 60, minuto: 76, tG: 24, fG: 11.9, tS: 11, fM: 10.5, retro: 6.7 };
 const COLUMNA_EXTERNA = { glifo: 13, grado: 31, signo: 44, minuto: 57, tG: 20, fG: 10.5, tS: 9.5, fM: 9.5, retro: 6.5 };
 
+// Distancia minima entre una columna y la cuspide de su casa.
+const medioMinimo = (minimo) => minimo / 2 + 0.3;
+
 const difAng = (a, b) => {
     const d = (((a - b) % 360) + 360) % 360;
     return d > 180 ? d - 360 : d;
@@ -166,7 +169,11 @@ function columnas(puntos, cusps, { polar, linea, rTope, marca, escala = 1, m, pr
     const minimo = Math.max(
         grados(m.tG / escala, rG), grados(texto(m.fG, 3), rGr),
         grados(m.tS / escala, rS), grados(texto(m.fM, 3.6), rM)) + 0.8;
-    const pos = repartir(puntos.map((p) => p.lon), minimo);
+    // Cada planeta adentro de su casa (corrido un poco hacia adentro si
+    // esta pegado a una cuspide); solo si los de una casa no entran, el
+    // grupo desborda la cuspide y esa cuspide se quiebra.
+    const enCasas = ubicarEnCasas(puntos, cusps, { minimo, margen: medioMinimo(minimo), apretado: minimo });
+    const pos = repartir(enCasas.map((u, i) => (u ? u.lon : puntos[i].lon)), minimo);
 
     // Cada cuspide pasa entre la ultima columna de su casa y la primera de
     // la siguiente: recta si su grado cae en ese hueco; si no, se corre lo
