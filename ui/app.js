@@ -284,6 +284,8 @@ function pintarEsquinas(sistema) {
     const nombre = renglon(d.nombre, 'nombre-esquina');
     $('.cambiar-carta').hidden = !guardadas.length;
     const poner = (izq, der) => {
+        // En las vistas con otra carta el huso va junto a cada hora.
+        $('#huso-impresion').textContent = '';
         $('#esquina-izq').innerHTML = [nombre, ...izq].join('');
         $('#esquina-der').innerHTML = der.join('');
     };
@@ -315,11 +317,12 @@ function pintarEsquinas(sistema) {
         else poner(pr, natal('Natal'));
         return;
     }
+    $('#huso-impresion').textContent = [utcTexto(o.total), d.correccion ? 'corregido a mano' : verano].filter(Boolean).join(' · ');
     $('#esquina-izq').innerHTML = [
         nombre, renglon(`${dia}/${m}/${a}`, 'principal'), renglon(`${d.hora} h`, 'principal'), ...renglonesLugar(l).map((t) => renglon(t))
     ].join('');
     $('#esquina-der').innerHTML = [
-        renglon([utcTexto(o.total), d.correccion ? 'corregido a mano' : verano].filter(Boolean).join(' · '), 'principal'),
+        renglon([utcTexto(o.total), d.correccion ? 'corregido a mano' : verano].filter(Boolean).join(' · '), 'principal renglon-huso'),
         renglon(`${coordTexto(l.lat, 'N', 'S')} ${coordTexto(l.lon, 'E', 'O')}`),
         renglon(sistema),
         botonHuso

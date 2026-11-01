@@ -1198,15 +1198,19 @@ body.sin-scroll { overflow: hidden; }
     .esquina { font-size: 0.82rem; }
 }
 
+.pie-impresion { display: none; }
+
 /* ---------- Imprimir ---------- */
 /* A4 vertical: lo que limita es el ancho, asi que la rueda ocupa todo el
    ancho y los datos (con el nombre) van arriba, en las esquinas, como en
    el celular. Fondo claro siempre. */
 @media print {
-    @page { size: A4 portrait; margin: 10mm; }
+    /* Sin margen de pagina: asi el navegador no agrega fecha, titulo ni
+       direccion en los bordes. Los margenes los pone la figura. */
+    @page { size: A4 portrait; margin: 0; }
     html, body { background: #fff !important; }
     body > :not(main), main > :not(#resultado), #resultado > :not(.figura-rueda),
-    .esquina button:not(.enlace-huso),
+    .esquina button:not(.enlace-huso), .esquina .renglon-huso,
     .figura-rueda .entrar-completa, .figura-rueda .panel-completa, .figura-rueda .salir-completa, #detalle-punto {
         display: none !important;
     }
@@ -1215,17 +1219,29 @@ body.sin-scroll { overflow: hidden; }
         position: relative !important;
         inset: auto;
         margin: 0 !important;
-        padding: 40mm 0 0 !important;
-        height: auto;
+        padding: 50mm 12mm 0 !important;
+        height: 297mm;
+        box-sizing: border-box;
         overflow: hidden;
         display: block;
         background: #fff;
     }
     .figura-rueda #rueda { width: 186mm; margin: 0 auto; }
     .figura-rueda .rueda { max-width: none; }
-    .figura-rueda .esquina { top: 0 !important; font-size: 10pt; max-width: 90mm; }
-    .figura-rueda .esquina-izq { left: 0; }
-    .figura-rueda .esquina-der { right: 0; }
+    .figura-rueda .esquina { top: 12mm !important; font-size: 10pt; max-width: 90mm; }
+    .figura-rueda .esquina-izq { left: 12mm; }
+    .figura-rueda .esquina-der { right: 12mm; }
+    .pie-impresion {
+        display: flex;
+        justify-content: space-between;
+        gap: 10mm;
+        position: absolute;
+        left: 12mm;
+        right: 12mm;
+        bottom: 12mm;
+        font-size: 9pt;
+        color: #5c5f6b;
+    }
     .esquina button { text-decoration: none; }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
