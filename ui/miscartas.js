@@ -57,6 +57,19 @@ export const almacenLocal = {
     async borrar(id) {
         escribir(leer().filter((c) => c.id !== id));
     },
+    // Muchas de una vez (importacion): una sola lectura y una sola escritura.
+    // Devuelve cuantas se guardaron.
+    async guardarVarias(lista) {
+        const actuales = leer();
+        const ahora = new Date().toISOString();
+        for (const d of lista) {
+            const k = actuales.findIndex((c) => mismaCarta(c, d));
+            const carta = { ...datosDeCarta(d), id: k >= 0 ? actuales[k].id : nuevoId(), guardada: ahora };
+            if (k >= 0) actuales[k] = carta; else actuales.push(carta);
+        }
+        escribir(actuales);
+        return lista.length;
+    },
     async borrarTodas() {
         try { localStorage.removeItem(CLAVE); } catch {}
     }

@@ -77,9 +77,27 @@
 
     <details id="mis-cartas" class="mis-cartas" open hidden>
         <summary id="titulo-mis-cartas" class="fijo">Mis cartas</summary>
+        <input type="search" id="buscar-cartas" class="buscar-cartas" placeholder="Buscar por nombre" aria-label="Buscar en tus cartas" hidden>
         <ul id="lista-cartas" class="lista-cartas"></ul>
         <div class="nota" id="nota-mis-cartas">Guardadas en este dispositivo.</div>
     </details>
+
+    <div class="importar-cartas">
+        <button type="button" class="boton-texto" data-importar>¿Tenés tus cartas en Solar Fire? Importalas</button>
+        <input type="file" id="archivo-cartas" accept=".txt,.dat,.csv,text/plain" multiple hidden>
+        <p class="nota" id="nota-importar" role="status" hidden></p>
+    </div>
+
+    <dialog id="ventana-importar" class="ventana-cuenta ventana-importar" aria-labelledby="titulo-importar">
+        <button type="button" class="cerrar" data-imp="cerrar" aria-label="Cerrar">×</button>
+        <h2 id="titulo-importar">Importar cartas</h2>
+        <p class="nota" id="imp-resumen"></p>
+        <label class="casilla" id="imp-todas-caja"><input type="checkbox" id="imp-todas" checked> Seleccionar todas</label>
+        <ul id="imp-lista" class="imp-lista"></ul>
+        <p class="nota" id="imp-destino"></p>
+        <button type="button" class="boton boton-principal" data-imp="importar">Importar</button>
+        <button type="button" class="boton-texto" data-imp="cerrar">Cancelar</button>
+    </dialog>
 
     <form id="datos" class="datos" novalidate>
         <label class="campo"><span>¿Qué querés calcular?</span>

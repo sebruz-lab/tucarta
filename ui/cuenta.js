@@ -69,6 +69,29 @@ export function datosDeCuenta(usuario) {
         },
         async borrarTodas() {
             for (const c of await almacen.listar()) await fs.borrar(`${raiz}/cartas/${c.id}`);
+        },
+        // Muchas de una vez (importacion): se lista una sola vez y se
+        // escriben de a varias en paralelo. alAvanzar(hechas, total).
+        async guardarVarias(lista, alAvanzar = () => {}) {
+            const existentes = await almacen.listar();
+            const ahora = new Date().toISOString();
+            const tareas = [];
+            for (const d of lista) {
+                const previa = existentes.find((c) => mismaCarta(c, d));
+                const id = previa?.id || (crypto.randomUUID?.() || String(Date.now()) + Math.random().toString(16).slice(2));
+                const carta = { ...datosDeCarta(d), guardada: ahora };
+                if (!previa) existentes.push({ ...carta, id });
+                tareas.push(() => fs.escribir(`${raiz}/cartas/${id}`, carta));
+            }
+            let hechas = 0;
+            const trabajar = async () => {
+                while (tareas.length) {
+                    await tareas.shift()();
+                    alAvanzar(++hechas, lista.length);
+                }
+            };
+            await Promise.all(Array.from({ length: 6 }, trabajar));
+            return hechas;
         }
     };
 

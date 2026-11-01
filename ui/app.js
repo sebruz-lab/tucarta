@@ -21,7 +21,8 @@ import { SISTEMAS_CASAS } from '../engine/config.js';
 import { almacenLocal, igualQue } from './miscartas.js';
 import { imagenCarta, entregarImagen } from './descarga.js';
 import { listaCalendario, jdDeFecha, fechaDeJd, fechaCorta, fechaParaVer } from './calendario.js';
-import { conectarCuenta, sesionIniciada } from './panelCuenta.js';
+import { conectarCuenta, sesionIniciada, conCuenta } from './panelCuenta.js';
+import { leerArchivoCartas, textoDeArchivo } from './importar.js';
 
 const $ = (sel) => document.querySelector(sel);
 const CLAVE_DATOS = 'tucarta:ultima';
@@ -833,11 +834,19 @@ async function pintarMisCartas() {
         seccion.open = !sesion;
     }
     seccion.hidden = !$('#resultado').hidden || (!guardadas.length && !sesion);
+    // Con muchas cartas, un buscador por nombre.
+    $('#buscar-cartas').hidden = guardadas.length <= 8;
     if (!guardadas.length) {
         $('#lista-cartas').innerHTML = '<li class="sin-cartas">Todavía no guardaste ninguna carta.</li>';
         return;
     }
-    $('#lista-cartas').innerHTML = guardadas.map((c) => {
+    const busqueda = normalizarTexto($('#buscar-cartas').value);
+    const visibles = busqueda ? guardadas.filter((c) => normalizarTexto(c.nombre || '').includes(busqueda)) : guardadas;
+    if (!visibles.length) {
+        $('#lista-cartas').innerHTML = '<li class="sin-cartas">Ninguna carta con ese nombre.</li>';
+        return;
+    }
+    $('#lista-cartas').innerHTML = visibles.map((c) => {
         const nombre = c.nombre || 'Sin nombre';
         const lugar = c.lugar.manual ? 'Coordenadas a mano' : c.lugar.nombre;
         return `<li>
@@ -853,6 +862,89 @@ async function pintarMisCartas() {
 // Sin sesion "Mis cartas" es un titulo: no se pliega.
 $('#titulo-mis-cartas').addEventListener('click', (e) => {
     if (!sesionIniciada()) e.preventDefault();
+});
+
+const normalizarTexto = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+$('#buscar-cartas').addEventListener('input', () => pintarMisCartas());
+
+// ---------- Importar cartas (de Solar Fire; se lee en el navegador) ----------
+
+let paraImportar = [];
+$('[data-importar]').addEventListener('click', () => $('#archivo-cartas').click());
+$('#archivo-cartas').addEventListener('change', async (e) => {
+    const archivos = [...e.target.files];
+    e.target.value = '';
+    if (!archivos.length) return;
+    const formatos = new Set();
+    let salteadas = 0;
+    paraImportar = [];
+    for (const a of archivos) {
+        const r = leerArchivoCartas(textoDeArchivo(await a.arrayBuffer()));
+        if (r.formato) formatos.add(r.formato);
+        paraImportar.push(...r.cartas);
+        salteadas += r.salteadas;
+    }
+    pintarImportar([...formatos], salteadas);
+    $('#ventana-importar').showModal();
+});
+
+function pintarImportar(formatos, salteadas) {
+    const hay = paraImportar.length > 0;
+    $('#imp-resumen').textContent = hay
+        ? `Encontramos ${paraImportar.length} cartas (${formatos.join(', ')}).` +
+          (salteadas ? ` ${salteadas} renglones no se pudieron leer.` : '') +
+          ' Cada una usa el huso y las coordenadas del archivo, así da igual que en el programa de origen.'
+        : 'No encontramos cartas en ese archivo. Por ahora se pueden importar las exportaciones de texto de Solar Fire.';
+    $('#imp-todas-caja').hidden = !hay;
+    $('#imp-todas').checked = true;
+    $('#imp-lista').innerHTML = paraImportar.map((c, i) => `<li><label class="casilla">
+        <input type="checkbox" data-i="${i}" checked>
+        <span><span class="nombre">${escapar(c.nombre || 'Sin nombre')}</span>
+        <span class="nota">${c.fecha.split('-').reverse().join('/')} · ${escapar(c.hora)} h · ${escapar(c.lugar.nombre)}</span></span>
+    </label></li>`).join('');
+    $('#imp-destino').textContent = hay
+        ? (conCuenta() ? 'Se guardan en tu cuenta: las vas a ver desde cualquier dispositivo.' : 'Se guardan en este dispositivo.')
+        : '';
+    $('[data-imp="importar"]').hidden = !hay;
+    contarImportar();
+}
+
+function contarImportar() {
+    const n = $('#imp-lista').querySelectorAll('input:checked').length;
+    const b = $('[data-imp="importar"]');
+    b.textContent = n === 1 ? 'Importar 1 carta' : `Importar ${n} cartas`;
+    b.disabled = n === 0;
+}
+
+$('#ventana-importar').addEventListener('change', (e) => {
+    if (e.target.id === 'imp-todas') {
+        $('#imp-lista').querySelectorAll('input').forEach((c) => { c.checked = e.target.checked; });
+    }
+    contarImportar();
+});
+
+$('#ventana-importar').addEventListener('click', async (e) => {
+    const accion = e.target.closest('[data-imp]')?.dataset.imp;
+    if (accion === 'cerrar') {
+        $('#ventana-importar').close();
+    } else if (accion === 'importar') {
+        const elegidas = [...$('#imp-lista').querySelectorAll('input:checked')].map((c) => paraImportar[Number(c.dataset.i)]);
+        const b = e.target.closest('button');
+        b.disabled = true;
+        try {
+            const n = await almacen.guardarVarias(elegidas, (hechas, total) => { b.textContent = `Guardando ${hechas} de ${total}…`; });
+            evento('cartas_importadas', { cantidad: n });
+            $('#ventana-importar').close();
+            $('#nota-importar').textContent = n === 1 ? 'Listo: importaste 1 carta.' : `Listo: importaste ${n} cartas.`;
+            $('#nota-importar').hidden = false;
+            await pintarMisCartas();
+            $('#mis-cartas').open = true;
+        } catch (err) {
+            console.error(err);
+            $('#imp-destino').textContent = 'No pudimos guardarlas todas. Probá de nuevo en un rato: las que ya estaban no se duplican.';
+            b.disabled = false;
+        }
+    }
 });
 
 $('#lista-cartas').addEventListener('click', async (e) => {

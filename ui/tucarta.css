@@ -810,6 +810,28 @@ details > summary {
 .tu-cuenta .casilla { margin: 10px 0 4px; }
 .tu-cuenta .boton-texto { display: block; }
 
+/* ---------- Importar cartas ---------- */
+
+.importar-cartas { margin: -8px 0 20px; }
+.importar-cartas .nota { margin: 4px 0 0; }
+.ventana-importar { width: min(560px, calc(100vw - 32px)); }
+.imp-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 46vh;
+    overflow-y: auto;
+    border-top: 1px solid var(--linea);
+    border-bottom: 1px solid var(--linea);
+}
+.imp-lista li { border-bottom: 1px solid var(--linea); }
+.imp-lista li:last-child { border-bottom: none; }
+.imp-lista .casilla { padding: 8px 2px; align-items: flex-start; }
+.imp-lista .casilla > span { display: flex; flex-direction: column; gap: 2px; }
+.imp-lista .nota { margin: 0; font-size: 0.8rem; }
+.buscar-cartas { margin: 10px 0 4px; }
+.lista-cartas { max-height: 60vh; overflow-y: auto; }
+
 /* ---------- Ajustes ---------- */
 
 .ajustes {
