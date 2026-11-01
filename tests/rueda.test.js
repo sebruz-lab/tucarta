@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ubicarEnCasas } from '../ui/wheel.js';
+import { ubicarEnCasas, repartir } from '../ui/wheel.js';
 import { casaDe } from '../engine/chart.js';
 
 const cusps = [62, 93, 128, 163, 195, 220, 242, 273, 308, 343, 15, 40];
@@ -31,5 +31,24 @@ describe('ubicarEnCasas', () => {
     it('un planeta solo no se mueve si no está pegado a la cúspide', () => {
         const u = ubicarEnCasas(conCasa([290]), cusps);
         expect(u[0].lon).toBeCloseTo(290);
+    });
+});
+
+describe('repartir (anillo de tránsitos)', () => {
+    const sep = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
+
+    it('no mueve lo que ya está separado', () => {
+        expect(repartir([10, 100, 200], 6)).toEqual([10, 100, 200]);
+    });
+
+    it('separa un grupo apretado alrededor de su centro, también cruzando 0°', () => {
+        for (const lons of [[50, 51, 52, 200], [358, 359, 1, 2, 120]]) {
+            const pos = repartir(lons, 6);
+            for (let i = 0; i < pos.length; i++) {
+                for (let j = i + 1; j < pos.length; j++) expect(sep(pos[i], pos[j])).toBeGreaterThanOrEqual(6 - 1e-9);
+            }
+        }
+        const p = repartir([50, 51, 52, 200], 6);
+        expect((p[0] + p[1] + p[2]) / 3).toBeCloseTo(51, 6);
     });
 });

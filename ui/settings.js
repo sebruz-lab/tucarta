@@ -1,7 +1,7 @@
 // Panel de ajustes: sistema de casas, orbes por punto y aspectos a los
 // angulos. Se guarda en el dispositivo (localStorage).
 
-import { SISTEMAS_CASAS, AJUSTES_POR_DEFECTO, ORBES_POR_DEFECTO, ORBES_MENORES, MENORES_POR_DEFECTO } from '../engine/config.js';
+import { SISTEMAS_CASAS, AJUSTES_POR_DEFECTO, ORBES_POR_DEFECTO, ORBES_MENORES, MENORES_POR_DEFECTO, ORBES_TRANSITO } from '../engine/config.js';
 import { NOMBRE_PUNTO, NOMBRE_ASPECTO } from './textos.js';
 
 const CLAVE = 'tucarta:ajustes';
@@ -13,7 +13,8 @@ export function leerAjustes() {
             ...AJUSTES_POR_DEFECTO, ...g,
             orbes: { ...ORBES_POR_DEFECTO, ...g.orbes },
             menores: { ...MENORES_POR_DEFECTO, ...g.menores },
-            orbesMenores: { ...ORBES_MENORES, ...g.orbesMenores }
+            orbesMenores: { ...ORBES_MENORES, ...g.orbesMenores },
+            orbesTransito: { ...ORBES_TRANSITO, ...g.orbesTransito }
         };
     } catch {}
     return structuredClone(AJUSTES_POR_DEFECTO);
@@ -26,7 +27,13 @@ export function guardarAjustes(a) {
 export const orbesModificados = (a) =>
     Object.entries(ORBES_POR_DEFECTO).some(([k, v]) => a.orbes[k] !== v) ||
     Object.entries(ORBES_MENORES).some(([k, v]) => a.orbesMenores[k] !== v) ||
-    Object.entries(MENORES_POR_DEFECTO).some(([k, v]) => a.menores[k] !== v);
+    Object.entries(MENORES_POR_DEFECTO).some(([k, v]) => a.menores[k] !== v) ||
+    Object.entries(ORBES_TRANSITO).some(([k, v]) => a.orbesTransito[k] !== v);
+
+const NOMBRE_ORBE_TRANSITO = {
+    conjuncion: 'Conjunción', oposicion: 'Oposición', trigono: 'Trígono',
+    cuadratura: 'Cuadratura', sextil: 'Sextil', menor: 'Aspectos menores'
+};
 
 export function panelAjustes(a) {
     const campo = (nombre, valor, etiqueta) =>
@@ -59,6 +66,15 @@ export function panelAjustes(a) {
                 ${orbes}
             </div>
         </fieldset>
+        <fieldset class="orbes"><legend>Orbes de los tránsitos</legend>
+            <p class="nota">En los tránsitos el orbe depende del aspecto.</p>
+            <div class="grilla-orbes">${Object.keys(ORBES_TRANSITO).map((id) => `
+                <div class="orbe">
+                    <span>${NOMBRE_ORBE_TRANSITO[id]}</span>
+                    ${campo('orbe-tr-' + id, a.orbesTransito[id], `Orbe de tránsito: ${NOMBRE_ORBE_TRANSITO[id]}`)}
+                </div>`).join('')}
+            </div>
+        </fieldset>
         <button type="button" class="boton-texto" data-accion="ajustes-defecto">Volver a los valores por defecto</button>`;
 }
 
@@ -74,11 +90,16 @@ export function ajustesDesde(form, previos) {
         const m = leer('orbe-menor-' + id);
         if (valido(m)) orbesMenores[id] = m;
     }
+    const orbesTransito = { ...previos.orbesTransito };
+    for (const id of Object.keys(ORBES_TRANSITO)) {
+        const v = leer('orbe-tr-' + id);
+        if (valido(v)) orbesTransito[id] = v;
+    }
     const menores = {};
     for (const id of Object.keys(MENORES_POR_DEFECTO)) menores[id] = form.elements['menor-' + id].checked;
     return {
         casas: form.elements.casas.value,
         aspectosAngulos: form.elements['aspectos-angulos'].checked,
-        orbes, menores, orbesMenores
+        orbes, menores, orbesMenores, orbesTransito
     };
 }

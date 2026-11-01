@@ -89,9 +89,51 @@ export function ubicarEnCasas(puntos, cusps, { minimo = 10, margen = 4.5, apreta
 const tamGlifo = (u) => Math.max(24, Math.min(34, u.paso * (R.planetas * Math.PI / 180) * (u.nivel === undefined ? 0.92 : 1.15)));
 const ESCALON = { glifo: 12, grado: 16 }; // cuanto se mete hacia adentro el nivel 1
 
+// Reparte posiciones sobre el circulo para que queden al menos a `minimo`
+// grados entre si, moviendolas lo menos posible. Devuelve las posiciones
+// en el mismo orden que `lons`.
+export function repartir(lons, minimo) {
+    const n = lons.length;
+    if (n < 2) return lons.slice();
+    const orden = lons.map((lon, i) => ({ i, lon: ((lon % 360) + 360) % 360 })).sort((a, b) => a.lon - b.lon);
+    // Se corta el circulo en el hueco mas grande, para trabajar en linea.
+    let corte = 0;
+    let hueco = -1;
+    orden.forEach((x, k) => {
+        const sig = k + 1 < n ? orden[k + 1].lon : orden[0].lon + 360;
+        if (sig - x.lon > hueco) { hueco = sig - x.lon; corte = (k + 1) % n; }
+    });
+    const linea = [...orden.slice(corte), ...orden.slice(0, corte).map((x) => ({ ...x, lon: x.lon + 360 }))];
+    // Grupos: se juntan mientras se pisen; cada grupo se centra en su promedio.
+    let grupos = linea.map((x) => ({ items: [x], centro: x.lon }));
+    const inicio = (g) => g.centro - (g.items.length - 1) * minimo / 2;
+    const fin = (g) => g.centro + (g.items.length - 1) * minimo / 2;
+    let cambio = true;
+    while (cambio) {
+        cambio = false;
+        for (let k = 0; k + 1 < grupos.length; k++) {
+            if (inicio(grupos[k + 1]) - fin(grupos[k]) < minimo) {
+                const items = [...grupos[k].items, ...grupos[k + 1].items];
+                grupos.splice(k, 2, { items, centro: items.reduce((s, x) => s + x.lon, 0) / items.length });
+                cambio = true;
+                break;
+            }
+        }
+    }
+    const res = [];
+    for (const g of grupos) g.items.forEach((x, k) => { res[x.i] = inicio(g) + k * minimo; });
+    return res;
+}
+
+// Rueda doble: la natal se achica y los planetas en transito van en un
+// anillo por fuera del zodiaco, todos del mismo color y sin grados.
+const ESCALA_DOBLE = 0.84;
+const R_DOBLE = { exterior: 294, glifos: 271 };
+
 // clara: rueda para el fondo blanco; si no, para el fondo oscuro. En las
 // dos los signos van en el color de su elemento.
-export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = false } = {}) {
+// transitos: el modelo de engine/transits.js, para la rueda doble.
+export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = false, transitos = null } = {}) {
     const asc = carta.angulos.find((a) => a.id === 'asc').lon;
     const mc = carta.angulos.find((a) => a.id === 'mc').lon;
     const polar = crearPolar(asc);
@@ -132,16 +174,23 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         out.push(`<text class="num-casa" x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
     });
     // Rotulos de los angulos, por fuera del anillo.
+    const rotulos = [];
+    const radioRotulos = (transitos ? R_DOBLE.exterior : R.exterior) + 16;
     for (const [lon, txt] of [[asc, 'AC'], [mc, 'MC'], [asc + 180, 'DC'], [mc + 180, 'FC']]) {
-        const [x, y] = polar(lon, R.exterior + 16);
-        out.push(`<text class="rotulo-eje${txt === 'AC' ? ' rotulo-ac' : ''}" x="${f(x)}" y="${f(y)}">${txt}</text>`);
+        const [x, y] = polar(lon, radioRotulos);
+        rotulos.push(`<text class="rotulo-eje${txt === 'AC' ? ' rotulo-ac' : ''}" x="${f(x)}" y="${f(y)}">${txt}</text>`);
     }
 
-    // Aspectos: lineas entre puntos, por dentro.
+    // Aspectos: lineas entre puntos, por dentro. Con transitos, en lugar
+    // de los natales van los del transito a la natal (prefijo "t-" en el
+    // planeta en transito).
     const lonDe = Object.fromEntries([...carta.puntos, ...carta.angulos].map((p) => [p.id, p.lon]));
-    for (const a of carta.aspectos) {
+    const lineas = transitos
+        ? transitos.aspectos.map((a) => ({ ...a, lonA: transitos.puntos.find((p) => p.id === a.a).lon, a: 't-' + a.a }))
+        : carta.aspectos.map((a) => ({ ...a, lonA: lonDe[a.a] }));
+    for (const a of lineas) {
         if (a.aspecto === 'conjuncion') continue;
-        const [x1, y1] = polar(lonDe[a.a], R.aspectos);
+        const [x1, y1] = polar(a.lonA, R.aspectos);
         const [x2, y2] = polar(lonDe[a.b], R.aspectos);
         const clase = CLASE_ASPECTO[a.aspecto];
         const activo = seleccion && (a.a === seleccion || a.b === seleccion);
@@ -170,5 +219,27 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         out.push('</g>');
     });
 
-    return `<svg class="rueda${clara ? ' rueda-clara' : ''}" viewBox="-332 -332 664 664" role="img" aria-label="Rueda de la carta">${out.join('')}</svg>`;
+    let cuerpo = out.join('') + rotulos.join('');
+    if (transitos) {
+        const doble = [`<g transform="scale(${ESCALA_DOBLE})">${out.join('')}</g>`];
+        const borde = R.exterior * ESCALA_DOBLE;
+        doble.push(`<circle class="borde" r="${R_DOBLE.exterior}"/>`);
+        // Los ejes cruzan tambien el anillo de transitos.
+        carta.cusps.forEach((c, i) => {
+            if (i % 3 === 0) doble.push(linea(c.lon, borde, R_DOBLE.exterior + 6, i === 0 ? 'eje eje-ac' : 'eje'));
+        });
+        const pos = repartir(transitos.puntos.map((p) => p.lon), 6.5);
+        transitos.puntos.forEach((p, i) => {
+            const id = 't-' + p.id;
+            const sel = seleccion === id ? ' sel' : '';
+            doble.push(`<g class="punto transito${sel}" data-punto="${id}" tabindex="0" role="button" aria-label="${nombres[p.id] || p.id} en tránsito">`);
+            doble.push(linea(p.lon, borde, borde + 9, 'marca-punto'));
+            const [x, y] = polar(pos[i], R_DOBLE.glifos);
+            doble.push(`<circle class="toque" cx="${f(x)}" cy="${f(y)}" r="18"/>`);
+            doble.push(glifo(G_PUNTOS[p.id], x, y, 26));
+            doble.push('</g>');
+        });
+        cuerpo = doble.join('') + rotulos.join('');
+    }
+    return `<svg class="rueda${clara ? ' rueda-clara' : ''}${transitos ? ' rueda-doble' : ''}" viewBox="-360 -360 720 720" role="img" aria-label="Rueda de la carta">${cuerpo}</svg>`;
 }

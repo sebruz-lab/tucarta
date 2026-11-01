@@ -3,7 +3,10 @@
 
 import { localAUtc } from '../time/tz.js';
 import { dibujarRueda } from './wheel.js';
-import { tablaPosiciones, tablaAspectos, tablaCasas, detallePunto } from './tables.js';
+import {
+    tablaPosiciones, tablaAspectos, tablaCasas, detallePunto,
+    tablaPosicionesTransito, tablaAspectosTransito, detalleTransito, detalleNatalConTransitos
+} from './tables.js';
 import { panelHuso } from './huso.js';
 import { panelAjustes, ajustesDesde, leerAjustes, guardarAjustes, orbesModificados } from './settings.js';
 import { conectarBuscador, opcionesZonas, parsearCoordenada, descripcionLugar } from './form.js';
@@ -11,7 +14,7 @@ import { bloquesInterpretacion, idsInterpretacion } from './interp.js';
 import { textosInterpretacion, configRemota } from './firestore.js';
 import { CONFIG_POR_DEFECTO } from './config.js';
 import { evento } from './analytics.js';
-import { NOMBRE_PUNTO, escapar } from './textos.js';
+import { NOMBRE_PUNTO, escapar, utcTexto, duracionTexto, coordTexto } from './textos.js';
 import { SISTEMAS_CASAS } from '../engine/config.js';
 import { almacenLocal, igualQue } from './miscartas.js';
 import { imagenCarta, entregarImagen } from './descarga.js';
@@ -27,8 +30,11 @@ const estado = {
     ajustes: leerAjustes(),
     tz: null,           // resultado de localAUtc
     carta: null,
-    seleccion: null,    // punto tocado en la rueda
-    corrigiendoHuso: false
+    seleccion: null,    // punto tocado en la rueda ("t-..." si esta en transito)
+    corrigiendoHuso: false,
+    modo: 'natal',      // 'natal' | 'transitos'
+    transito: null,     // { fecha: 'AAAA-MM-DD', hora: 'HH:MM' } en la hora del dispositivo
+    transitos: null     // resultado de engine/transits.js
 };
 
 // ---------- Worker de calculo ----------
@@ -65,10 +71,11 @@ form.elements.mm.innerHTML = opcionesNum(60);
 
 // Fecha siempre en DD/MM/AAAA (el <input type="date"> sigue el formato del
 // navegador, que puede ser MM/DD). Las barras se agregan solas.
-form.elements.fecha.addEventListener('input', (e) => {
+function barrasFecha(e) {
     const n = e.target.value.replace(/\D/g, '').slice(0, 8);
     e.target.value = [n.slice(0, 2), n.slice(2, 4), n.slice(4)].filter(Boolean).join('/');
-});
+}
+form.elements.fecha.addEventListener('input', barrasFecha);
 
 // Año de dos cifras: hasta 40 es 20xx, desde 41 es 19xx ("28" -> 2028,
 // "61" -> 1961). Al salir del campo se completa a la vista.
@@ -143,6 +150,7 @@ async function calcular({ nueva = false } = {}) {
         console.error(err);
         return;
     }
+    if (estado.modo === 'transitos') await calcularTransitos();
     $('#cargando').hidden = true;
     guardarDatos();
     pintar();
@@ -175,19 +183,53 @@ function pintar() {
         `${escapar(d.lugar.manual ? `${d.lugar.lat.toFixed(4)}, ${d.lugar.lon.toFixed(4)}` : descripcionLugar(d.lugar))}` +
         ` · Casas ${sistema}`;
 
+    pintarControlesTransito();
     $('#huso-contenido').innerHTML = panelHuso(estado.tz, d.eleccion, estado.corrigiendoHuso);
     pintarAdvertencia();
+    pintarEsquinas(sistema);
 
     pintarRueda();
-    $('#tabla-posiciones').innerHTML = tablaPosiciones(carta);
-    $('#tabla-aspectos').innerHTML = tablaAspectos(carta);
+    const conTransitos = estado.modo === 'transitos' && estado.transitos;
+    $('#tabla-posiciones').innerHTML = conTransitos ? tablaPosicionesTransito(estado.transitos) : tablaPosiciones(carta);
+    $('#tabla-aspectos').innerHTML = conTransitos ? tablaAspectosTransito(estado.transitos) : tablaAspectos(carta);
     $('#tabla-casas').innerHTML = tablaCasas(carta);
     $('#form-ajustes').innerHTML = panelAjustes(estado.ajustes);
     pintarInterpretaciones();
 }
 
-// El panel del huso va cerrado; si el resultado puede no ser fiel, se
-// avisa afuera, a la vista.
+// Datos en las esquinas de la rueda, como en Solar Fire: nacimiento a la
+// izquierda; huso, coordenadas y casas a la derecha, con el acceso al
+// panel del huso (y el aviso, si hay que revisarlo).
+function pintarEsquinas(sistema) {
+    const d = estado.datos;
+    const o = estado.tz.opciones[d.eleccion] || estado.tz.opciones[0];
+    const [a, m, dia] = d.fecha.split('-');
+    const l = d.lugar;
+    // Renglones cortos: mas abajo la rueda deja menos lugar en la esquina.
+    const lugar = l.manual ? ['Coordenadas', 'a mano'] : [l.nombre, l.provincia, l.paisNombre].filter(Boolean);
+    const renglon = (t, clase = '') => t ? `<span class="${clase}">${escapar(t)}</span>` : '';
+    $('#esquina-izq').innerHTML = [
+        renglon(`${dia}/${m}/${a}`, 'principal'), renglon(`${d.hora} h`, 'principal'), ...lugar.map((t) => renglon(t))
+    ].join('');
+    const verano = o.verano === null ? '' : o.verano ? `verano +${duracionTexto(o.verano)}` : 'sin horario de verano';
+    $('#esquina-der').innerHTML = [
+        renglon([utcTexto(o.total), d.correccion ? 'corregido a mano' : verano].filter(Boolean).join(' · '), 'principal'),
+        renglon(`${coordTexto(l.lat, 'N', 'S')} ${coordTexto(l.lon, 'E', 'O')}`),
+        renglon(sistema),
+        estado.motivoHuso
+            ? '<span class="aviso-esquina">ADVERTENCIA</span><button type="button" data-accion="editar-huso">Revisar huso</button>'
+            : '<button type="button" data-accion="editar-huso">Editar huso horario</button>'
+    ].join('');
+}
+
+$('.figura-rueda').addEventListener('click', (e) => {
+    if (!e.target.closest('[data-accion="editar-huso"]')) return;
+    $('#huso').open = true;
+    $('#huso').scrollIntoView({ block: 'start', behavior: 'smooth' });
+});
+
+// Si el resultado puede no ser fiel: aviso corto en la esquina de la
+// rueda y el motivo completo dentro del panel del huso.
 function pintarAdvertencia() {
     const tz = estado.tz;
     const o = tz.opciones[estado.datos.eleccion] || tz.opciones[0];
@@ -201,29 +243,111 @@ function pintarAdvertencia() {
     } else if (o.verano === null) {
         motivo = 'para este país no tenemos el detalle histórico del huso horario y del horario de verano. Revisá que el huso sea el correcto.';
     }
+    estado.motivoHuso = motivo;
+    // El panel ya explica por su cuenta lo de antes de 1970 y las horas
+    // ambiguas; el recuadro queda para el caso sin datos de horario de verano.
     const caja = $('#advertencia-huso');
-    caja.hidden = !motivo;
-    caja.innerHTML = motivo
-        ? `<strong>ADVERTENCIA:</strong> ${motivo}<button type="button" class="boton-texto" data-accion="ver-huso">Ver el huso usado</button>`
-        : '';
+    caja.hidden = !motivo || tz.tentativo || tz.estado === 'ambigua' || tz.estado === 'inexistente';
+    caja.innerHTML = motivo ? `<strong>ADVERTENCIA:</strong> ${motivo}` : '';
 }
-
-$('#advertencia-huso').addEventListener('click', (e) => {
-    if (e.target.closest('[data-accion="ver-huso"]')) {
-        $('#huso').open = true;
-        $('#huso').scrollIntoView({ block: 'start', behavior: 'smooth' });
-    }
-});
 
 function pintarRueda() {
+    const transitos = estado.modo === 'transitos' ? estado.transitos : null;
     $('#rueda').innerHTML = dibujarRueda(estado.carta, {
         nombres: NOMBRE_PUNTO, seleccion: estado.seleccion,
-        clara: tema === 'claro'
+        clara: tema === 'claro', transitos
     });
-    $('#detalle-punto').innerHTML = estado.seleccion
-        ? detallePunto(estado.carta, estado.seleccion)
-        : 'Tocá un planeta para ver dónde está y con quién se relaciona.';
+    const s = estado.seleccion;
+    $('#detalle-punto').innerHTML = !s
+        ? (transitos ? 'Tocá un planeta natal o en tránsito para ver sus aspectos.' : 'Tocá un planeta para ver dónde está y con quién se relaciona.')
+        : s.startsWith('t-') ? detalleTransito(transitos, s)
+            : transitos ? detalleNatalConTransitos(estado.carta, transitos, s)
+                : detallePunto(estado.carta, s);
 }
+
+// ---------- Transitos ----------
+
+const formTransito = $('#form-transito');
+formTransito.elements.hh.innerHTML = opcionesNum(24).replace('<option value="">--</option>', '');
+formTransito.elements.mm.innerHTML = opcionesNum(60).replace('<option value="">--</option>', '');
+formTransito.elements.fecha.addEventListener('input', barrasFecha);
+
+// Momento del transito en la hora del dispositivo.
+function momentoLocal(d) {
+    return {
+        fecha: `${d.getFullYear()}-${dosCifras(d.getMonth() + 1)}-${dosCifras(d.getDate())}`,
+        hora: `${dosCifras(d.getHours())}:${dosCifras(d.getMinutes())}`
+    };
+}
+function fechaDeTransito({ fecha, hora }) {
+    const [a, m, d] = fecha.split('-').map(Number);
+    const [h, mi] = hora.split(':').map(Number);
+    return new Date(a, m - 1, d, h, mi);
+}
+
+async function calcularTransitos() {
+    estado.transito ||= momentoLocal(new Date());
+    const t = fechaDeTransito(estado.transito);
+    const utc = {
+        anio: t.getUTCFullYear(), mes: t.getUTCMonth() + 1, dia: t.getUTCDate(),
+        hora: t.getUTCHours(), minuto: t.getUTCMinutes()
+    };
+    try {
+        estado.transitos = await calcularEnWorker({ tipo: 'transitos', utc, natal: estado.carta, ajustes: estado.ajustes });
+    } catch (err) {
+        console.error(err);
+        estado.transitos = null;
+    }
+}
+
+function pintarControlesTransito() {
+    const enTransitos = estado.modo === 'transitos';
+    document.querySelectorAll('[data-modo]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.modo === estado.modo)));
+    formTransito.hidden = !enTransitos;
+    if (!enTransitos || !estado.transito) return;
+    const f = formTransito.elements;
+    if (document.activeElement !== f.fecha) f.fecha.value = estado.transito.fecha.split('-').reverse().join('/');
+    [f.hh.value, f.mm.value] = estado.transito.hora.split(':');
+    const offset = -fechaDeTransito(estado.transito).getTimezoneOffset() * 60;
+    $('#nota-transito').textContent = `Fecha y hora de tu dispositivo (${utcTexto(offset)}).`;
+}
+
+async function cambiarTransito(nuevo) {
+    estado.transito = nuevo;
+    await calcularTransitos();
+    pintar();
+}
+
+document.querySelector('.modo-carta').addEventListener('click', async (e) => {
+    const modo = e.target.closest('[data-modo]')?.dataset.modo;
+    if (!modo || modo === estado.modo) return;
+    estado.modo = modo;
+    estado.seleccion = null;
+    if (modo === 'transitos') {
+        await calcularTransitos();
+        evento('transitos_vistos', {});
+    }
+    pintar();
+});
+
+formTransito.addEventListener('click', (e) => {
+    const paso = e.target.closest('[data-paso]')?.dataset.paso;
+    if (!paso) return;
+    const t = fechaDeTransito(estado.transito);
+    if (paso === 'hoy') return cambiarTransito(momentoLocal(new Date()));
+    if (paso === '-dia' || paso === '+dia') t.setDate(t.getDate() + (paso === '+dia' ? 1 : -1));
+    if (paso === '-mes' || paso === '+mes') t.setMonth(t.getMonth() + (paso === '+mes' ? 1 : -1));
+    cambiarTransito(momentoLocal(t));
+});
+
+formTransito.addEventListener('change', (e) => {
+    const f = formTransito.elements;
+    if (e.target === f.fecha) f.fecha.value = anioCompleto(f.fecha.value.trim());
+    const fecha = fechaIso(f.fecha.value.trim());
+    if (!fecha) return; // fecha a medio escribir: se espera
+    cambiarTransito({ fecha, hora: `${f.hh.value}:${f.mm.value}` });
+});
+formTransito.addEventListener('submit', (e) => e.preventDefault());
 
 async function pintarInterpretaciones() {
     const carta = estado.carta;
@@ -252,9 +376,9 @@ $('#rueda').addEventListener('keydown', (e) => {
 });
 
 // Pestañas de las tablas.
-document.querySelectorAll('[role="tab"]').forEach((tab) => {
+document.querySelectorAll('.pestanas [role="tab"]').forEach((tab) => {
     tab.addEventListener('click', () => {
-        document.querySelectorAll('[role="tab"]').forEach((t) => {
+        document.querySelectorAll('.pestanas [role="tab"]').forEach((t) => {
             const activa = t === tab;
             t.setAttribute('aria-selected', String(activa));
             $('#' + t.getAttribute('aria-controls')).hidden = !activa;
@@ -454,17 +578,23 @@ const slug = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCa
 async function descargarImagen() {
     // Rueda limpia, sin el planeta tocado, en un contenedor fuera de la vista.
     const caja = $('#para-imagen');
-    caja.innerHTML = dibujarRueda(estado.carta, { nombres: NOMBRE_PUNTO, clara: tema === 'claro' });
+    const transitos = estado.modo === 'transitos' ? estado.transitos : null;
+    caja.innerHTML = dibujarRueda(estado.carta, { nombres: NOMBRE_PUNTO, clara: tema === 'claro', transitos });
     const cs = getComputedStyle(document.body);
     const color = (v) => cs.getPropertyValue(v).trim();
     const d = estado.datos;
     try {
+        const fechaT = transitos ? estado.transito.fecha.split('-').reverse().join('/') : '';
         const blob = await imagenCarta(caja.querySelector('svg'), {
-            titulo: $('#titulo-carta').textContent,
-            datos: $('#resumen-datos').textContent,
+            titulo: transitos ? `Tránsitos del ${fechaT}` : $('#titulo-carta').textContent,
+            datos: transitos
+                ? `${$('#titulo-carta').textContent} · ${$('#resumen-datos').textContent}`
+                : $('#resumen-datos').textContent,
             colores: { fondo: color('--bg'), texto: color('--texto'), suave: color('--texto-suave') }
         });
-        const archivo = `carta-${slug(d.nombre || 'natal') || 'natal'}-${d.fecha}.png`;
+        const archivo = transitos
+            ? `transitos-${slug(d.nombre || 'natal') || 'natal'}-${estado.transito.fecha}.png`
+            : `carta-${slug(d.nombre || 'natal') || 'natal'}-${d.fecha}.png`;
         const como = await entregarImagen(blob, archivo, $('#titulo-carta').textContent);
         if (como !== 'cancelada') evento('imagen_descargada', { fondo: tema, como });
     } finally {

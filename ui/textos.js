@@ -27,6 +27,15 @@ export function orbeTexto(orbe) {
     return `${g}°${String(m).padStart(2, '0')}'`;
 }
 
+// -34.65, 'N', 'S' -> "34°39'S"
+export function coordTexto(v, positivo, negativo) {
+    const a = Math.abs(v);
+    let g = Math.floor(a);
+    let m = Math.round((a - g) * 60);
+    if (m === 60) { g += 1; m = 0; }
+    return `${g}°${String(m).padStart(2, '0')}'${v < 0 ? negativo : positivo}`;
+}
+
 // -10800 -> "UTC−3"; 19800 -> "UTC+5:30"
 export function utcTexto(seg) {
     const signo = seg < 0 ? '−' : '+';

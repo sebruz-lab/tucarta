@@ -126,20 +126,51 @@
     <section id="resultado" class="resultado" hidden>
         <header class="resultado-cabecera">
             <h2 id="titulo-carta">Tu carta</h2>
-            <p id="resumen-datos" class="nota"></p>
+            <p id="resumen-datos" class="nota visualmente-oculto"></p>
         </header>
 
-        <div id="advertencia-huso" class="advertencia" role="alert" hidden></div>
+        <div class="modo-carta" role="tablist" aria-label="Qué querés ver">
+            <button type="button" role="tab" data-modo="natal" aria-selected="true">Carta natal</button>
+            <button type="button" role="tab" data-modo="transitos" aria-selected="false">Tránsitos</button>
+        </div>
 
-        <details class="huso" id="huso">
-            <summary>Huso horario usado</summary>
-            <div id="huso-contenido"></div>
-        </details>
+        <form id="form-transito" class="controles-transito" novalidate hidden>
+            <div class="fila">
+                <label class="campo"><span>Fecha del tránsito <span class="opcional">(DD/MM/AAAA)</span></span>
+                    <input type="text" name="fecha" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10">
+                </label>
+                <fieldset class="campo hora24">
+                    <legend>Hora (24 h)</legend>
+                    <div class="hora24-selects">
+                        <select name="hh" aria-label="Hora"></select>
+                        <span aria-hidden="true">:</span>
+                        <select name="mm" aria-label="Minutos"></select>
+                    </div>
+                </fieldset>
+            </div>
+            <div class="pasos-transito">
+                <button type="button" data-paso="-mes" aria-label="Un mes antes">‹‹ mes</button>
+                <button type="button" data-paso="-dia" aria-label="Un día antes">‹ día</button>
+                <button type="button" data-paso="hoy">Hoy</button>
+                <button type="button" data-paso="+dia" aria-label="Un día después">día ›</button>
+                <button type="button" data-paso="+mes" aria-label="Un mes después">mes ››</button>
+            </div>
+            <p class="nota" id="nota-transito"></p>
+        </form>
 
         <figure class="figura-rueda">
+            <!-- Como en Solar Fire: los datos en las esquinas de la rueda. -->
+            <div id="esquina-izq" class="esquina esquina-izq"></div>
+            <div id="esquina-der" class="esquina esquina-der"></div>
             <div id="rueda"></div>
             <figcaption id="detalle-punto" class="detalle-punto" aria-live="polite">Tocá un planeta para ver dónde está y con quién se relaciona.</figcaption>
         </figure>
+
+        <details class="huso" id="huso">
+            <summary>Huso horario usado</summary>
+            <div id="advertencia-huso" class="advertencia" role="alert" hidden></div>
+            <div id="huso-contenido"></div>
+        </details>
 
         <div class="barra-carta">
             <button type="button" class="boton" data-accion="descargar">Descargar imagen</button>

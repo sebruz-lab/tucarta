@@ -13,7 +13,7 @@ const SEFLG_SPEED = 256;
 // Planetas y Luna con Moshier (no necesita archivos, precision de
 // segundos de arco). Quiron solo existe en seas_18.se1.
 const SWE_CHIRON = 15;
-const flagsDe = (swe) => (swe === SWE_CHIRON ? SEFLG_SWIEPH : SEFLG_MOSEPH) | SEFLG_SPEED;
+export const flagsDe = (swe) => (swe === SWE_CHIRON ? SEFLG_SWIEPH : SEFLG_MOSEPH) | SEFLG_SPEED;
 
 export const SIGNOS = ['aries', 'tauro', 'geminis', 'cancer', 'leo', 'virgo',
     'libra', 'escorpio', 'sagitario', 'capricornio', 'acuario', 'piscis'];
@@ -39,10 +39,13 @@ export function casaDe(lon, cusps) {
     return 1;
 }
 
-// utc: { anio, mes, dia, hora, minuto, segundo? }
+// utc: { anio, mes, dia, hora, minuto, segundo? } -> dia juliano.
+export function diaJuliano(swe, utc) {
+    return swe.julday(utc.anio, utc.mes, utc.dia, utc.hora + utc.minuto / 60 + (utc.segundo || 0) / 3600);
+}
+
 export function calcularCarta(swe, { utc, lat, lon, ajustes = AJUSTES_POR_DEFECTO }) {
-    const horaDecimal = utc.hora + utc.minuto / 60 + (utc.segundo || 0) / 3600;
-    const jd = swe.julday(utc.anio, utc.mes, utc.dia, horaDecimal);
+    const jd = diaJuliano(swe, utc);
 
     const casas = swe.houses(jd, lat, lon, ajustes.casas);
 

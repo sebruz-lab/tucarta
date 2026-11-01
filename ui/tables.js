@@ -68,3 +68,62 @@ export function detallePunto(carta, id) {
         `${p.retro ? ', retrógrado' : ''}.` +
         (asp.length ? `<br><span class="nota">${asp.join(' · ')}</span>` : '');
 }
+
+// ---------- Transitos ----------
+
+const iconoTransito = (id) => `<span class="en-transito">${iconoSvg(G_PUNTOS[id], 16, NOMBRE_PUNTO[id] + ' en tránsito')}</span>`;
+const iconoNatal = (id) => (G_PUNTOS[id] ? iconoSvg(G_PUNTOS[id], 16, NOMBRE_PUNTO[id]) : '');
+const apTexto = (a) => a.aplicativo == null ? '' : a.aplicativo ? '<abbr title="Aplicativo">a</abbr>' : '<abbr title="Separativo">s</abbr>';
+
+// Planetas en transito: signo, grado y casa natal por la que pasan.
+export function tablaPosicionesTransito(transitos) {
+    return `<table class="tabla">
+        <thead><tr><th>En tránsito</th><th>Signo</th><th class="num">Posición</th><th class="num">Casa natal</th><th><span class="visualmente-oculto">Retrógrado</span></th></tr></thead>
+        <tbody>${transitos.puntos.map((p) => `<tr data-punto="t-${p.id}">
+            <th scope="row">${iconoTransito(p.id)}<span>${NOMBRE_PUNTO[p.id]}</span></th>
+            <td>${iconoSigno(p.signo)}<span>${NOMBRE_SIGNO[p.signo]}</span></td>
+            <td class="num">${gradoMin(p)}</td>
+            <td class="num">${p.casa}</td>
+            <td class="retro">${p.retro ? '<abbr title="Retrógrado">R</abbr>' : ''}</td>
+        </tr>`).join('')}</tbody>
+    </table>`;
+}
+
+// Aspectos de los planetas en transito a la carta natal.
+export function tablaAspectosTransito(transitos) {
+    if (!transitos.aspectos.length) return '<p class="nota">No hay tránsitos con los orbes elegidos.</p>';
+    return `<table class="tabla">
+        <thead><tr><th>En tránsito → natal</th><th class="num">Orbe</th><th><span class="visualmente-oculto">Aplicativo o separativo</span></th></tr></thead>
+        <tbody>${transitos.aspectos.map((a) => `<tr>
+            <th scope="row" class="aspecto">
+                ${iconoTransito(a.a)}<span>${NOMBRE_PUNTO[a.a]}</span>
+                <span class="tipo-aspecto ${a.aspecto}">${iconoSvg(G_ASPECTOS[a.aspecto], 16, NOMBRE_ASPECTO[a.aspecto])}</span>
+                ${iconoNatal(a.b)}<span>${NOMBRE_PUNTO[a.b]}</span>
+            </th>
+            <td class="num">${orbeTexto(a.orbe)}</td>
+            <td class="ap">${apTexto(a)}</td>
+        </tr>`).join('')}</tbody>
+    </table>`;
+}
+
+// Detalle al tocar un planeta en transito ("t-saturno").
+export function detalleTransito(transitos, idT) {
+    const id = idT.slice(2);
+    const p = transitos.puntos.find((x) => x.id === id);
+    if (!p) return '';
+    const asp = transitos.aspectos.filter((a) => a.a === id).map((a) =>
+        `${NOMBRE_ASPECTO[a.aspecto].toLowerCase()} a ${NOMBRE_PUNTO[a.b]} natal (${orbeTexto(a.orbe)})`);
+    return `<strong>${NOMBRE_PUNTO[id]} en tránsito</strong> en ${gradoMin(p)} de ${NOMBRE_SIGNO[p.signo]}, por tu casa ${p.casa}` +
+        `${p.retro ? ', retrógrado' : ''}.` +
+        (asp.length ? `<br><span class="nota">${asp.join(' · ')}</span>` : '');
+}
+
+// Detalle de un planeta natal con los transitos que recibe.
+export function detalleNatalConTransitos(carta, transitos, id) {
+    const p = [...carta.puntos, ...carta.angulos].find((x) => x.id === id);
+    if (!p) return '';
+    const asp = transitos.aspectos.filter((a) => a.b === id).map((a) =>
+        `${NOMBRE_PUNTO[a.a]} en tránsito, ${NOMBRE_ASPECTO[a.aspecto].toLowerCase()} (${orbeTexto(a.orbe)})`);
+    return `<strong>${NOMBRE_PUNTO[id]}</strong> natal en ${gradoMin(p)} de ${NOMBRE_SIGNO[p.signo]}.` +
+        `<br><span class="nota">${asp.length ? 'Recibe: ' + asp.join(' · ') : 'No recibe tránsitos con los orbes elegidos.'}</span>`;
+}

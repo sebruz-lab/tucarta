@@ -29,9 +29,11 @@ function aplicativo(a, b, angulo) {
 // mismaCarta: true cuando A y B son la misma lista (natal x natal), para
 // no repetir pares ni comparar un punto consigo mismo.
 // menores: { semisextil: true, ... } aspectos menores activos.
+// orbesPorAspecto (transitos): { conjuncion: 3, ..., menor: 1 }; si viene,
+// el orbe depende del aspecto y no de los puntos.
 export function calcularAspectos(puntosA, puntosB, {
     orbes = ORBES_POR_DEFECTO, mismaCarta = false,
-    menores = MENORES_POR_DEFECTO, orbesMenores = ORBES_MENORES
+    menores = MENORES_POR_DEFECTO, orbesMenores = ORBES_MENORES, orbesPorAspecto = null
 } = {}) {
     const activos = ASPECTOS.filter((x) => !x.menor || menores[x.id]);
     const res = [];
@@ -44,7 +46,9 @@ export function calcularAspectos(puntosA, puntosB, {
             // Si con orbes amplios entra en dos aspectos, gana el mas exacto.
             let mejor = null;
             for (const asp of activos) {
-                const orbe = asp.menor ? orbeMenor : orbeMayor;
+                const orbe = orbesPorAspecto
+                    ? (asp.menor ? orbesPorAspecto.menor : orbesPorAspecto[asp.id]) ?? 0
+                    : asp.menor ? orbeMenor : orbeMayor;
                 const desvio = Math.abs(d - asp.angulo);
                 if (desvio <= orbe && (!mejor || desvio < mejor.orbe)) {
                     mejor = { a: a.id, b: b.id, aspecto: asp.id, menor: Boolean(asp.menor), orbe: desvio, orbeMax: orbe };

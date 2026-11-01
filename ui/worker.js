@@ -3,6 +3,7 @@
 
 import { cargarSwe } from '../engine/ephe.js';
 import { calcularCarta } from '../engine/chart.js';
+import { calcularTransitos } from '../engine/transits.js';
 
 const swe = cargarSwe(() =>
     fetch(import.meta.env.BASE_URL + 'ephe/seas_18.se1').then((r) => {
@@ -13,7 +14,9 @@ const swe = cargarSwe(() =>
 self.onmessage = async ({ data }) => {
     const { id, pedido } = data;
     try {
-        const carta = calcularCarta(await swe, pedido);
+        const carta = pedido.tipo === 'transitos'
+            ? calcularTransitos(await swe, pedido)
+            : calcularCarta(await swe, pedido);
         self.postMessage({ id, carta });
     } catch (e) {
         self.postMessage({ id, error: e.message });

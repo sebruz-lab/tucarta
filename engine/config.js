@@ -71,10 +71,19 @@ export const ORBES_MENORES = {
     asc: 3, mc: 3
 };
 
+// Transitos: planetas que transitan (de la Luna a Pluton) y orbe por
+// aspecto, no por punto. Los menores activos son los mismos de la natal.
+export const PUNTOS_TRANSITO = ['sol', 'luna', 'mercurio', 'venus', 'marte',
+    'jupiter', 'saturno', 'urano', 'neptuno', 'pluton'];
+export const ORBES_TRANSITO = {
+    conjuncion: 3, oposicion: 3, trigono: 2, cuadratura: 2, sextil: 2, menor: 1
+};
+
 export const AJUSTES_POR_DEFECTO = {
     casas: 'P',
     orbes: ORBES_POR_DEFECTO,
     aspectosAngulos: false,
     menores: MENORES_POR_DEFECTO,
-    orbesMenores: ORBES_MENORES
+    orbesMenores: ORBES_MENORES,
+    orbesTransito: ORBES_TRANSITO
 };

@@ -46,6 +46,8 @@
     --asp-semisextil: var(--agua);
     --asp-quincuncio: var(--tierra);
     --ac: #8a1c02;
+    /* Planetas en transito: un solo color, que no usa ningun otro glifo. */
+    --transito: #9fc490;
 
     /* Planetas sobre fondo oscuro (paleta de Seba). */
     --p-sol: #fcf3d0;
@@ -340,7 +342,37 @@ details > summary {
 
 /* ---------- Rueda ---------- */
 
-.figura-rueda { margin: 0 -10px; }
+.figura-rueda { margin: 0 -10px; position: relative; }
+/* Datos en las esquinas de la rueda (como Solar Fire). */
+.esquina {
+    position: absolute;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 36%;
+    font-size: 0.7rem;
+    line-height: 1.35;
+    color: var(--texto-suave);
+}
+.esquina-izq { left: 4px; align-items: flex-start; text-align: left; }
+.esquina-der { right: 4px; align-items: flex-end; text-align: right; }
+.esquina .principal { color: var(--texto); white-space: nowrap; }
+.esquina button {
+    font: inherit;
+    background: none;
+    border: none;
+    padding: 2px 0 0;
+    color: var(--texto-suave);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    text-align: inherit;
+}
+.esquina .aviso-esquina { color: var(--amarillo); text-decoration: none; letter-spacing: 0.5px; }
+/* El panel del huso se abre desde la esquina de la rueda. */
+.huso:not([open]) { display: none; }
+.huso { margin-top: 12px; }
 @media (min-width: 640px) { .figura-rueda { margin: 0; } }
 .rueda {
     display: block;
@@ -384,6 +416,7 @@ details > summary {
 .rueda .punto .toque { fill: transparent; }
 .rueda .punto.sel .toque { fill: rgba(247, 210, 57, 0.12); }
 .rueda .marca-punto { stroke: currentColor; stroke-width: 2; }
+.rueda .punto.transito.sel .toque { fill: rgba(159, 196, 144, 0.18); }
 .rueda .grado-punto {
     fill: currentColor;
     font-size: 15px;
@@ -415,6 +448,8 @@ details > summary {
 [data-punto="quiron"] { --p: var(--p-quiron); }
 [data-punto="nodo"] { --p: var(--p-nodo); }
 [data-punto="lilith"] { --p: var(--p-lilith); }
+/* Planetas en transito ("t-saturno"...): todos del mismo color. */
+[data-punto^="t-"] { --p: var(--transito); }
 .rueda .punto[data-punto], .tabla tr[data-punto] th .icono { color: var(--p, var(--texto)); }
 
 /* ---------- Fondo claro (lo elige la persona) ---------- */
@@ -446,6 +481,7 @@ details > summary {
     --p-quiron: #6e4a94;
     --p-nodo: #1a1a1a;
     --p-lilith: #1a1a1a;
+    --transito: #4b7a3e;
 }
 .tema-claro input, .tema-claro select { color-scheme: light; }
 .tema-claro .sobretitulo { color: var(--fuego); }
@@ -551,6 +587,46 @@ details > summary {
 .tipo-aspecto.semisextil .icono { color: var(--asp-semisextil); }
 .tipo-aspecto.quincuncio .icono { color: var(--asp-quincuncio); }
 .tipo-aspecto .icono { margin: 0 2px; }
+
+/* ---------- Natal / transitos ---------- */
+
+.modo-carta {
+    display: flex;
+    border: 1px solid var(--linea-fuerte);
+    border-radius: 50px;
+    padding: 3px;
+    gap: 2px;
+    margin: 8px 0 16px;
+}
+.modo-carta button {
+    flex: 1;
+    font: inherit;
+    font-size: 0.95rem;
+    background: none;
+    border: none;
+    color: var(--texto-suave);
+    padding: 9px 12px;
+    border-radius: 50px;
+    cursor: pointer;
+}
+.modo-carta button[aria-selected="true"] { background: var(--texto); color: var(--bg); }
+.controles-transito { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
+.pasos-transito { display: flex; gap: 6px; }
+.pasos-transito button {
+    flex: 1;
+    font: inherit;
+    font-size: 0.82rem;
+    background: var(--superficie);
+    border: 1px solid var(--linea);
+    color: var(--texto);
+    padding: 8px 2px;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.pasos-transito [data-paso="hoy"] { border-color: var(--linea-fuerte); }
+.controles-transito .nota { margin: 0; }
+.tabla .en-transito .icono { color: var(--transito); }
 
 /* ---------- Descargar y guardar ---------- */
 
