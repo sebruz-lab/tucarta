@@ -370,6 +370,28 @@ details > summary {
     text-align: inherit;
 }
 .esquina .aviso-esquina { color: var(--amarillo); text-decoration: none; letter-spacing: 0.5px; }
+/* En el celular no hay lugar en las esquinas sin achicar la rueda: los
+   datos de nacimiento van arriba y los del huso debajo, en renglones. */
+@media (max-width: 639px) {
+    .figura-rueda { display: flex; flex-direction: column; }
+    .esquina {
+        position: static;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: baseline;
+        gap: 2px 10px;
+        max-width: none;
+        padding: 0 16px;
+        font-size: 0.8rem;
+        text-align: center;
+    }
+    .esquina-izq { order: 0; margin-bottom: 6px; }
+    #rueda { order: 1; }
+    .esquina-der { order: 2; margin-top: 4px; }
+    .detalle-punto { order: 3; }
+    .esquina .principal { white-space: normal; }
+}
 /* El panel del huso se abre desde la esquina de la rueda. */
 .huso:not([open]) { display: none; }
 .huso { margin-top: 12px; }

@@ -241,5 +241,5 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         });
         cuerpo = doble.join('') + rotulos.join('');
     }
-    return `<svg class="rueda${clara ? ' rueda-clara' : ''}${transitos ? ' rueda-doble' : ''}" viewBox="-360 -360 720 720" role="img" aria-label="Rueda de la carta">${cuerpo}</svg>`;
+    return `<svg class="rueda${clara ? ' rueda-clara' : ''}${transitos ? ' rueda-doble' : ''}" viewBox="-332 -332 664 664" role="img" aria-label="Rueda de la carta">${cuerpo}</svg>`;
 }
