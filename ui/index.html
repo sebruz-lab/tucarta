@@ -23,7 +23,8 @@
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-GDLRMR5D57');
+    // La hoja que imprime el servidor (#hoja=...) no cuenta como visita.
+    if (!location.hash.startsWith('#hoja=')) gtag('config', 'G-GDLRMR5D57');
 </script>
 </head>
 <body>

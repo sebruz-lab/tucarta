@@ -1418,3 +1418,36 @@ conectarCuenta({
         if (estado.carta) pintarBotonGuardar();
     }
 });
+
+// ---------- Hoja para el servidor ----------
+// /cartas/#hoja=<datos en base64url>: calcula esa carta natal y la deja
+// lista para imprimir; avisa con window.hojaLista (o window.hojaError). La
+// usa la funcion que manda la carta por mail a cada inscripto: abre esta
+// pagina en un Chrome del servidor y la imprime a PDF, con el mismo diseño
+// de la impresion. No manda eventos.
+async function abrirHoja() {
+    const m = /^#hoja=([A-Za-z0-9_-]+)$/.exec(location.hash);
+    if (!m) return;
+    window.gtag = () => {};
+    try {
+        const b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
+        const d = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))));
+        const l = d.lugar || {};
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(d.fecha) || !/^\d{2}:\d{2}$/.test(d.hora) ||
+            !Number.isFinite(l.lat) || !Number.isFinite(l.lon) || typeof l.zona !== 'string') throw new Error('datos incompletos');
+        estado.datos = {
+            nombre: String(d.nombre || '').slice(0, 60), fecha: d.fecha, hora: d.hora,
+            lugar: { nombre: l.nombre, provincia: l.provincia, pais: l.pais, paisNombre: l.paisNombre, lat: l.lat, lon: l.lon, zona: l.zona },
+            correccion: null, eleccion: 0
+        };
+        form.elements.tipo.value = 'natal';
+        modoDelFormulario();
+        await calcular({ nueva: true });
+        if (!estado.carta) throw new Error('no se pudo calcular');
+        await document.fonts.ready;
+        window.hojaLista = true;
+    } catch (err) {
+        window.hojaError = String(err?.message || err);
+    }
+}
+abrirHoja();
