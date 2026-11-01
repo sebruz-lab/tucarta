@@ -14,8 +14,11 @@ export const descripcionLugar = (l) =>
     [l.nombre, l.provincia, l.paisNombre].filter(Boolean).join(', ');
 
 // Conecta el campo de lugar con su lista de sugerencias. `alElegir(lugar)`
-// recibe el lugar elegido (o null si se borro el texto).
-export function conectarBuscador(input, lista, alElegir) {
+// recibe el lugar elegido (o null si se borro el texto). sinResultados: el
+// texto cuando no aparece nada (otras paginas no tienen carga manual).
+export function conectarBuscador(input, lista, alElegir, {
+    sinResultados = 'No encontramos ese lugar. Probá con otra forma de escribirlo o cargá las coordenadas a mano.'
+} = {}) {
     let resultados = [];
     let activo = -1;
     let pedido = 0;
@@ -31,7 +34,7 @@ export function conectarBuscador(input, lista, alElegir) {
     const pintar = () => {
         if (!resultados.length) {
             lista.innerHTML = input.value.trim().length >= 3
-                ? '<li class="sin-resultados" role="presentation">No encontramos ese lugar. Probá con otra forma de escribirlo o cargá las coordenadas a mano.</li>'
+                ? `<li class="sin-resultados" role="presentation">${escapar(sinResultados)}</li>`
                 : '';
         } else {
             lista.innerHTML = resultados.map((l, i) => `<li id="${lista.id}-${i}" role="option" data-i="${i}" aria-selected="${i === activo}">
