@@ -21,8 +21,9 @@ import { SISTEMAS_CASAS } from '../engine/config.js';
 import { almacenLocal, igualQue } from './miscartas.js';
 import { imagenCarta, entregarImagen } from './descarga.js';
 import { listaCalendario, jdDeFecha, fechaDeJd, fechaCorta, fechaParaVer } from './calendario.js';
-import { conectarCuenta, sesionIniciada, conCuenta, abrirEntrar } from './panelCuenta.js';
-import { leerArchivoCartas, textoDeArchivo } from './importar.js';
+import { conectarCuenta, sesionIniciada, conCuenta, abrirEntrar, esAdmin } from './panelCuenta.js';
+import { leerArchivoCartas, textoDeArchivo, completarLugares } from './importar.js';
+import { buscar as buscarLugar } from './form.js';
 import { TIPOS, buscarEnLista } from './miscartas.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -875,14 +876,23 @@ async function pintarMisCartas() {
     // filtro por tipo.
     $('#buscar-cartas').hidden = guardadas.length <= 8;
     const tipoDe = (c) => (TIPOS[c.tipo] ? c.tipo : 'natal');
-    $('#filtro-cartas').hidden = guardadas.every((c) => tipoDe(c) === 'natal');
-    if ($('#filtro-cartas').hidden) $('#filtro-cartas').value = '';
+    // Los grupos (por ejemplo, el curso de las inscripciones) tambien se
+    // pueden filtrar.
+    const grupos = [...new Set(guardadas.map((c) => c.grupo).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
+    const filtroSelect = $('#filtro-cartas');
+    const elegido = filtroSelect.value;
+    filtroSelect.querySelectorAll('[data-grupo]').forEach((o) => o.remove());
+    for (const g of grupos) filtroSelect.add(new Option(g, 'g:' + g));
+    filtroSelect.querySelectorAll('option[value^="g:"]').forEach((o) => { o.dataset.grupo = ''; });
+    filtroSelect.value = [...filtroSelect.options].some((o) => o.value === elegido) ? elegido : '';
+    filtroSelect.hidden = !grupos.length && guardadas.every((c) => tipoDe(c) === 'natal');
+    if (filtroSelect.hidden) filtroSelect.value = '';
     if (!guardadas.length) {
         $('#lista-cartas').innerHTML = '<li class="sin-cartas">Todavía no guardaste ninguna carta.</li>';
         return;
     }
     const filtro = $('#filtro-cartas').value;
-    visibles = guardadas.filter((c) => !filtro || tipoDe(c) === filtro);
+    visibles = guardadas.filter((c) => !filtro || (filtro.startsWith('g:') ? c.grupo === filtro.slice(2) : tipoDe(c) === filtro));
     if (!visibles.length) {
         $('#lista-cartas').innerHTML = '<li class="sin-cartas">Ninguna carta de ese tipo.</li>';
         return;
@@ -892,7 +902,7 @@ async function pintarMisCartas() {
         const lugar = c.lugar.manual ? 'Coordenadas a mano' : c.lugar.nombre;
         return `<li>
             <button type="button" class="carta-guardada" data-abrir="${escapar(c.id)}">
-                <span class="nombre">${escapar(nombre)}${tipoDe(c) !== 'natal' ? ` <span class="tipo-carta">${TIPOS[tipoDe(c)]}</span>` : ''}</span>
+                <span class="nombre">${escapar(nombre)}${tipoDe(c) !== 'natal' ? ` <span class="tipo-carta">${TIPOS[tipoDe(c)]}</span>` : ''}${c.grupo ? ` <span class="tipo-carta">${escapar(c.grupo)}</span>` : ''}</span>
                 <span class="nota">${c.fecha.split('-').reverse().join('/')} · ${escapar(c.hora)} h · ${escapar(lugar)}</span>
             </button>
             <button type="button" class="quitar" data-quitar="${escapar(c.id)}" aria-label="Borrar la carta de ${escapar(nombre)}">×</button>
@@ -980,19 +990,38 @@ $('#archivo-cartas').addEventListener('change', async (e) => {
     if (!archivos.length) return;
     const formatos = new Set();
     let salteadas = 0;
+    const problemas = [];
     paraImportar = [];
     for (const a of archivos) {
         const r = leerArchivoCartas(textoDeArchivo(await a.arrayBuffer()));
+        // Las planillas (inscripciones) son una herramienta interna.
+        if (r.formato === 'planilla' && !esAdmin()) continue;
         if (r.formato) formatos.add(r.formato);
         paraImportar.push(...r.cartas);
         salteadas += r.salteadas;
+        problemas.push(...r.problemas);
     }
-    pintarImportar([...formatos], salteadas);
-    $('#ventana-importar').showModal();
+    // De una planilla llega el lugar escrito: se busca como en el formulario.
+    let sinLugar = [];
+    if (paraImportar.some((c) => c.lugarPorBuscar)) {
+        pintarImportar([...formatos], salteadas, problemas, [], true);
+        $('#ventana-importar').showModal();
+        ({ cartas: paraImportar, sinLugar } = await completarLugares(paraImportar, buscarLugar));
+    }
+    pintarImportar([...formatos], salteadas, problemas, sinLugar);
+    if (!$('#ventana-importar').open) $('#ventana-importar').showModal();
 });
 
-function pintarImportar(formatos, salteadas) {
+function pintarImportar(formatos, salteadas, problemas = [], sinLugar = [], buscando = false) {
+    if (buscando) {
+        $('#imp-resumen').textContent = `Buscando los lugares de ${paraImportar.length} cartas…`;
+        $('#imp-lista').innerHTML = '';
+        $('#imp-todas-caja').hidden = true;
+        $('[data-imp="importar"]').hidden = true;
+        return;
+    }
     const hay = paraImportar.length > 0;
+    const nombres = (l) => l.slice(0, 8).map((p) => p.nombre || 'Sin nombre').join(', ') + (l.length > 8 ? '…' : '');
     const cuantas = (t) => paraImportar.filter((c) => c.tipo === t).length;
     const otras = [
         [cuantas('revolucion'), 'revolución solar', 'revoluciones solares'],
@@ -1000,8 +1029,11 @@ function pintarImportar(formatos, salteadas) {
     ].filter(([n]) => n).map(([n, uno, varios]) => `${n} ${n === 1 ? uno : varios}`);
     $('#imp-resumen').textContent = hay
         ? `Encontramos ${paraImportar.length} cartas (${formatos.join(', ')}).` +
-          (salteadas ? ` ${salteadas} renglones no se pudieron leer.` : '') +
-          ' Cada una usa el huso y las coordenadas del archivo, así da igual que en el programa de origen.' +
+          (problemas.length ? ` No se pudieron leer ${problemas.length} filas (les falta la fecha, la hora o el lugar): ${nombres(problemas)}.`
+              : salteadas ? ` ${salteadas} renglones no se pudieron leer.` : '') +
+          (sinLugar.length ? ` No encontramos el lugar de ${sinLugar.length}: ${nombres(sinLugar)}.` : '') +
+          (formatos.includes('planilla') ? ' Revisá el lugar de cada una: lo buscamos por el nombre.'
+              : ' Cada una usa el huso y las coordenadas del archivo, así da igual que en el programa de origen.') +
           ' El archivo no dice de qué tipo es cada carta: ' +
           (otras.length ? `reconocimos ${otras.join(' y ')}, y el resto quedó como natal.` : 'quedaron todas como natales.') +
           ' Podés cambiarlo en cada una.'
@@ -1011,7 +1043,7 @@ function pintarImportar(formatos, salteadas) {
     $('#imp-lista').innerHTML = paraImportar.map((c, i) => `<li><label class="casilla">
         <input type="checkbox" data-i="${i}" checked>
         <span><span class="nombre">${escapar(c.nombre || 'Sin nombre')}</span>
-        <span class="nota">${c.fecha.split('-').reverse().join('/')} · ${escapar(c.hora)} h · ${escapar(c.lugar.nombre)}</span></span>
+        <span class="nota">${c.fecha.split('-').reverse().join('/')} · ${escapar(c.hora)} h · ${escapar(c.lugar.provincia ? descripcionLugar(c.lugar) : c.lugar.nombre)}</span></span>
     </label>
     <select data-tipo="${i}" aria-label="Tipo de carta de ${escapar(c.nombre || 'Sin nombre')}">
         ${Object.entries(TIPOS).map(([k, v]) => `<option value="${k}"${k === c.tipo ? ' selected' : ''}>${v}</option>`).join('')}
@@ -1069,7 +1101,7 @@ $('#lista-cartas').addEventListener('click', async (e) => {
         if (!c) return;
         estado.datos = {
             nombre: c.nombre || '', fecha: c.fecha, hora: c.hora, lugar: c.lugar,
-            correccion: c.correccion || null, eleccion: c.eleccion || 0, tipo: c.tipo
+            correccion: c.correccion || null, eleccion: c.eleccion || 0, tipo: c.tipo, grupo: c.grupo
         };
         estado.seleccion = null;
         estado.corrigiendoHuso = false;

@@ -17,6 +17,10 @@ let quiereUsarla = false; // entro desde la ventana: seguir al aviso
 
 export const conCuenta = () => cuenta.estado === 'adentro';
 export const sesionIniciada = () => cuenta.estado === 'adentro' || cuenta.estado === 'sin-aceptar';
+// Las cuentas de Seba (las mismas que administran la escuela): ven las
+// herramientas internas, como importar la planilla de inscripciones.
+const ADMINS = ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+export const esAdmin = () => conCuenta() && ADMINS.includes((cuenta.email || '').toLowerCase());
 
 // alCambiarAlmacen(almacen): se llama cada vez que cambia donde se guardan
 // las cartas.

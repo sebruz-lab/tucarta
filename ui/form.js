@@ -4,7 +4,7 @@
 import { crearBuscador } from '../places/search.js';
 import { escapar } from './textos.js';
 
-const buscar = crearBuscador((clave) =>
+export const buscar = crearBuscador((clave) =>
     fetch(`${import.meta.env.BASE_URL}lugares/${clave}.json`).then((r) => {
         if (!r.ok) throw new Error(r.status);
         return r.json();

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { leerArchivoCartas, leerSolarFire, leerSolarFireDat, textoDeArchivo, clasificar } from '../ui/importar.js';
+import { leerArchivoCartas, leerSolarFire, leerSolarFireDat, textoDeArchivo, clasificar, leerPlanilla, completarLugares, fechaPlanilla, horaPlanilla } from '../ui/importar.js';
 
 // Renglones inventados con el formato de la exportacion de Solar Fire.
 const r = (nombre, resto) => nombre.padEnd(30).slice(0, 30) + resto;
@@ -133,5 +133,48 @@ describe('tipo de cada carta importada', () => {
     it('sin una natal de la misma persona, una hora con segundos no alcanza', () => {
         const [c] = clasificar([{ nombre: 'Solo', fecha: '2020-05-05', hora: '10:00', conSegundos: true }]);
         expect(c.tipo).toBe('natal');
+    });
+});
+
+// Planilla con las columnas de la de inscripciones (datos inventados).
+const PLANILLA = [
+    'Fecha de inscripción,Nombre,Teléfono,Fecha de nacimiento,Hora de nacimiento,Lugar de nacimiento,Email',
+    '"1/11/2026, 10:00:00",Ana Prueba,123,01/03/84,13:15,"Morón, Buenos Aires, Argentina",ana@x.com',
+    '"1/11/2026, 10:05:00",Beto Sin Hora,456,26/02/1988,,Córdoba,beto@x.com',
+    '"1/11/2026, 10:06:00",Carla Yanqui,789,3/25/2001,1:15 p. m.,Lugar Inexistente,carla@x.com'
+].join('\r\n');
+
+describe('importar una planilla', () => {
+    it('reconoce las columnas por el título (y no confunde la fecha de inscripción)', () => {
+        const { formato, cartas, problemas } = leerArchivoCartas(PLANILLA);
+        expect(formato).toBe('planilla');
+        expect(cartas).toHaveLength(2);
+        expect(cartas[0]).toMatchObject({ nombre: 'Ana Prueba', fecha: '1984-03-01', hora: '13:15', lugarPorBuscar: ['Morón, Buenos Aires, Argentina'], tipo: 'natal' });
+        expect(cartas[1]).toMatchObject({ nombre: 'Carla Yanqui', fecha: '2001-03-25', hora: '13:15' });
+        expect(problemas).toEqual([{ fila: 3, nombre: 'Beto Sin Hora', motivo: 'falta la hora' }]);
+    });
+
+    it('separada por punto y coma (Excel en castellano), con nombre y apellido aparte', () => {
+        const { cartas } = leerPlanilla('Nombre;Apellido;Fecha;Hora;Ciudad;País\r\nDina;Partida;1979-05-15;7:50;Montevideo;Uruguay');
+        expect(cartas[0]).toMatchObject({ nombre: 'Dina Partida', fecha: '1979-05-15', hora: '07:50', lugarPorBuscar: ['Montevideo', 'Uruguay'] });
+    });
+
+    it('fechas y horas en las formas de siempre', () => {
+        expect(fechaPlanilla('31/12/1999').fecha).toBe('1999-12-31');
+        expect(fechaPlanilla('31/02/1999')).toBe(null);
+        expect(horaPlanilla('12:30 a. m.')).toBe('00:30');
+        expect(horaPlanilla('13 hs')).toBe('13:00');
+        expect(horaPlanilla('25:00')).toBe(null);
+        expect(horaPlanilla('')).toBe(null);
+    });
+
+    it('busca cada lugar y avisa los que no encuentra', async () => {
+        const { cartas } = leerArchivoCartas(PLANILLA);
+        const buscar = async (t) => (t.startsWith('Morón') ? [{ nombre: 'Morón', provincia: 'Buenos Aires', pais: 'AR', paisNombre: 'Argentina', lat: -34.65, lon: -58.62, zona: 'America/Argentina/Buenos_Aires', poblacion: 1 }] : []);
+        const r = await completarLugares(cartas, buscar);
+        expect(r.cartas).toHaveLength(1);
+        expect(r.cartas[0].lugar).toEqual({ nombre: 'Morón', provincia: 'Buenos Aires', pais: 'AR', paisNombre: 'Argentina', lat: -34.65, lon: -58.62, zona: 'America/Argentina/Buenos_Aires' });
+        expect('lugarPorBuscar' in r.cartas[0]).toBe(false);
+        expect(r.sinLugar).toEqual([{ nombre: 'Carla Yanqui', lugar: 'Lugar Inexistente' }]);
     });
 });
