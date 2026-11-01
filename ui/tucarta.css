@@ -369,6 +369,8 @@ details > summary {
     cursor: pointer;
     text-align: inherit;
 }
+.esquina .leyenda { font-size: 0.85em; letter-spacing: 0.5px; }
+.esquina .titulo-esquina { color: var(--amarillo); white-space: nowrap; }
 .esquina .aviso-esquina { color: var(--amarillo); text-decoration: none; letter-spacing: 0.5px; }
 /* En el celular no hay lugar en las esquinas sin achicar la rueda: los
    datos de nacimiento van arriba y los del huso debajo, en renglones. */
@@ -411,7 +413,7 @@ details > summary {
 .rueda .eje { stroke: var(--texto); stroke-width: 2.6; }
 .rueda .num-casa {
     fill: var(--texto-suave);
-    font-size: 16px;
+    font-size: 14.4px;
     text-anchor: middle;
     dominant-baseline: central;
 }
@@ -441,11 +443,11 @@ details > summary {
 .rueda .punto.transito.sel .toque { fill: rgba(159, 196, 144, 0.18); }
 .rueda .grado-punto {
     fill: currentColor;
-    font-size: 15px;
+    font-size: 13.5px;
     text-anchor: middle;
     dominant-baseline: central;
 }
-.rueda .retro { fill: var(--rosa); font-size: 10.5px; }
+.rueda .retro { fill: var(--rosa); font-size: 9.5px; }
 
 .detalle-punto {
     text-align: center;

@@ -253,19 +253,37 @@ function pintarEsquinas(sistema) {
     const [a, m, dia] = d.fecha.split('-');
     const l = d.lugar;
     // Renglones cortos: mas abajo la rueda deja menos lugar en la esquina.
-    const lugar = l.manual ? ['Coordenadas', 'a mano'] : [l.nombre, l.provincia, l.paisNombre].filter(Boolean);
+    const renglonesLugar = (x) => x.manual ? ['Coordenadas', 'a mano'] : [x.nombre, x.provincia, x.paisNombre].filter(Boolean);
     const renglon = (t, clase = '') => t ? `<span class="${clase}">${escapar(t)}</span>` : '';
-    $('#esquina-izq').innerHTML = [
-        renglon(`${dia}/${m}/${a}`, 'principal'), renglon(`${d.hora} h`, 'principal'), ...lugar.map((t) => renglon(t))
-    ].join('');
+    const botonHuso = estado.motivoHuso
+        ? '<span class="aviso-esquina">ADVERTENCIA</span><button type="button" data-accion="editar-huso">Revisar huso</button>'
+        : '<button type="button" data-accion="editar-huso">Editar huso horario</button>';
     const verano = o.verano === null ? '' : o.verano ? `verano +${duracionTexto(o.verano)}` : 'sin horario de verano';
+    const rs = cartaRevolucion() && momentoRevolucionLocal();
+
+    if (rs) {
+        // Revolucion: a la izquierda la natal (adentro), a la derecha la
+        // revolucion (afuera), como en Solar Fire.
+        $('#esquina-izq').innerHTML = [
+            renglon('Carta de adentro', 'leyenda'), renglon('Carta Natal', 'titulo-esquina'),
+            renglon(`${dia}/${m}/${a}`, 'principal'), renglon(`${d.hora} h (${utcTexto(o.total)})`, 'principal'),
+            ...renglonesLugar(l).map((t) => renglon(t)), botonHuso
+        ].join('');
+        $('#esquina-der').innerHTML = [
+            renglon('Carta de afuera', 'leyenda'), renglon(`Revolución solar ${estado.revolucion.anio}`, 'titulo-esquina'),
+            renglon(rs.fecha, 'principal'), renglon(`${rs.hora} h (${utcTexto(rs.huso)})`, 'principal'),
+            ...renglonesLugar(rs.lugar).map((t) => renglon(t))
+        ].join('');
+        return;
+    }
+    $('#esquina-izq').innerHTML = [
+        renglon(`${dia}/${m}/${a}`, 'principal'), renglon(`${d.hora} h`, 'principal'), ...renglonesLugar(l).map((t) => renglon(t))
+    ].join('');
     $('#esquina-der').innerHTML = [
         renglon([utcTexto(o.total), d.correccion ? 'corregido a mano' : verano].filter(Boolean).join(' · '), 'principal'),
         renglon(`${coordTexto(l.lat, 'N', 'S')} ${coordTexto(l.lon, 'E', 'O')}`),
         renglon(sistema),
-        estado.motivoHuso
-            ? '<span class="aviso-esquina">ADVERTENCIA</span><button type="button" data-accion="editar-huso">Revisar huso</button>'
-            : '<button type="button" data-accion="editar-huso">Editar huso horario</button>'
+        botonHuso
     ].join('');
 }
 
@@ -418,18 +436,27 @@ async function calcularRevolucionSolar() {
     }
 }
 
+// Momento de la revolucion en la hora del lugar del cumpleanios.
+function momentoRevolucionLocal() {
+    const r = estado.revolucion.resultado;
+    const lugar = estado.revolucion.lugar || estado.datos.lugar;
+    const utcSeg = Math.round((r.jd - 2440587.5) * 86400);
+    const { total } = husoEn(lugar.zona, utcSeg);
+    const d = new Date((utcSeg + total) * 1000);
+    return {
+        fecha: `${d.getUTCDate()}/${d.getUTCMonth() + 1}/${d.getUTCFullYear()}`,
+        hora: `${dosCifras(d.getUTCHours())}:${dosCifras(d.getUTCMinutes())}`,
+        huso: total, lugar
+    };
+}
+
 function pintarControlesRevolucion() {
     const r = estado.modo === 'revolucion' && estado.revolucion?.resultado;
     $('#controles-rs').hidden = !r;
     if (!r) return;
-    const l = estado.revolucion.lugar || estado.datos.lugar;
-    // Momento de la revolucion en la hora del lugar del cumpleanios.
-    const utcSeg = Math.round((r.jd - 2440587.5) * 86400);
-    const { total } = husoEn(l.zona, utcSeg);
-    const d = new Date((utcSeg + total) * 1000);
-    const hora = `${dosCifras(d.getUTCHours())}:${dosCifras(d.getUTCMinutes())}`;
-    $('#nota-rs').textContent = `Revolución solar ${r.anio}: ${d.getUTCDate()}/${d.getUTCMonth() + 1}/${d.getUTCFullYear()} ` +
-        `a las ${hora} h (${utcTexto(total)}) en ${l.manual ? 'las coordenadas cargadas' : descripcionLugar(l)}.`;
+    const m = momentoRevolucionLocal();
+    $('#nota-rs').textContent = `Revolución solar ${r.anio}: ${m.fecha} a las ${m.hora} h (${utcTexto(m.huso)}) ` +
+        `en ${m.lugar.manual ? 'las coordenadas cargadas' : descripcionLugar(m.lugar)}.`;
 }
 
 $('#controles-rs').addEventListener('click', async (e) => {

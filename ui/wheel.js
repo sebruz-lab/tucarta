@@ -20,7 +20,7 @@ const R_BASE = {
 };
 // La natal dentro de la revolucion: sin aspectos, el centro se achica y
 // los planetas ganan lugar (antes de escalar).
-const R_NATAL_EN_RS = { exterior: 294, signos: 254, casas: 228, planetas: 186, grados: 146, aspectos: 64 };
+const R_NATAL_EN_RS = { exterior: 294, signos: 254, casas: 228, planetas: 180, grados: 138, aspectos: 40 };
 
 // Clase de linea de cada aspecto (los colores estan en tucarta.css).
 const CLASE_ASPECTO = {
@@ -136,8 +136,8 @@ const R_DOBLE = { exterior: 294, glifos: 271 };
 // Revolucion solar (como Solar Fire): la natal adentro, mas chica, y la
 // revolucion afuera con su propio zodiaco, sus casas y sus planetas con
 // grados. El centro queda sin lineas de aspectos.
-const ESCALA_RS = 0.74;
-const R_RS = { exterior: 294, signos: 270, planetas: 253, grados: 235, casas: 222 };
+const ESCALA_RS = 0.7;
+const R_RS = { exterior: 294, signos: 270, planetas: 250, grados: 228, casas: 213 };
 
 // clara: rueda para el fondo blanco; si no, para el fondo oscuro. En las
 // dos los signos van en el color de su elemento.
@@ -233,8 +233,9 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         out.push(`<circle class="toque" cx="${f(x)}" cy="${f(y)}" r="22"/>`);
         out.push(glifo(G_PUNTOS[p.id], x, y, t));
         const [gx, gy] = polar(u.lon, R.grados - u.nivel * ESCALON.grado);
-        const fuenteMax = revolucion ? 18 : 15;
-        const fuente = u.paso < 10 || revolucion ? ` font-size="${Math.max(10.5, Math.min(fuenteMax, u.paso * 1.95)).toFixed(1)}"` : '';
+        // Dentro de la revolucion la natal va achicada: sus grados se
+        // agrandan para leerse igual. (Con style: el CSS le gana al atributo.)
+        const fuente = revolucion ? ' style="font-size:17px"' : '';
         out.push(`<text class="grado-punto"${fuente} x="${f(gx)}" y="${f(gy)}">${p.grado}°${p.retro ? '<tspan class="retro">r</tspan>' : ''}</text>`);
         out.push('</g>');
     });
@@ -292,11 +293,11 @@ function anilloRevolucion(rs, natal, { polar, linea, seleccion, nombres }) {
         const sig = rs.cusps[(i + 1) % 12].lon;
         const medio = c.lon + (((sig - c.lon) % 360) + 360) % 360 / 2;
         const [x, y] = polar(medio, R2.casas);
-        out.push(`<text class="num-casa" font-size="11" x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
+        out.push(`<text class="num-casa" style="font-size:10.8px" x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
     });
 
     // Planetas de la revolucion, cada uno en su casa, con el grado.
-    const pos = ubicarEnCasas(rs.puntos, rs.cusps.map((c) => c.lon), { minimo: 7, margen: 3.5, apretado: 4.5 });
+    const pos = ubicarEnCasas(rs.puntos, rs.cusps.map((c) => c.lon), { minimo: 7.5, margen: 3.5, apretado: 5 });
     rs.puntos.forEach((p, i) => {
         const id = 'r-' + p.id;
         const sel = seleccion === id ? ' sel' : '';
@@ -305,9 +306,9 @@ function anilloRevolucion(rs, natal, { polar, linea, seleccion, nombres }) {
         const u = pos[i];
         const [x, y] = polar(u.lon, R2.planetas - u.nivel * 8);
         out.push(`<circle class="toque" cx="${f(x)}" cy="${f(y)}" r="15"/>`);
-        out.push(glifo(G_PUNTOS[p.id], x, y, u.paso < 6 ? 21 : 26));
+        out.push(glifo(G_PUNTOS[p.id], x, y, u.paso < 6 ? 23 : 28));
         const [gx, gy] = polar(u.lon, R2.grados - u.nivel * 8);
-        out.push(`<text class="grado-punto" font-size="13" x="${f(gx)}" y="${f(gy)}">${p.grado}°${p.retro ? '<tspan class="retro">r</tspan>' : ''}</text>`);
+        out.push(`<text class="grado-punto" style="font-size:12.6px" x="${f(gx)}" y="${f(gy)}">${p.grado}°${p.retro ? '<tspan class="retro">r</tspan>' : ''}</text>`);
         out.push('</g>');
     });
     return out.join('');
