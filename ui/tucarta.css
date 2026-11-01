@@ -415,6 +415,27 @@ details > summary {
     cursor: pointer;
 }
 body.sin-scroll { overflow: hidden; }
+.modos-completa { display: none; }
+.figura-rueda:fullscreen .modos-completa, .figura-rueda.completa .modos-completa {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin: 10px auto 0;
+    padding: 0 48px;
+}
+.modos-completa button {
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 300;
+    background: none;
+    border: 1px solid var(--linea-fuerte);
+    border-radius: 50px;
+    color: var(--texto);
+    padding: 5px 12px;
+    cursor: pointer;
+}
+.modos-completa button[aria-pressed="true"] { background: var(--texto); color: var(--bg); border-color: var(--texto); }
 .rueda {
     display: block;
     width: 100%;

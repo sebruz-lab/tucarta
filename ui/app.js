@@ -373,6 +373,13 @@ async function pantallaCompleta(entrar) {
 document.addEventListener('fullscreenchange', acomodarLuego);
 $('.figura-rueda').addEventListener('click', (e) => {
     if (e.target.closest('[data-completa="salir"]')) pantallaCompleta(false);
+    // En pantalla completa se cambia de vista sin salir (todas menos el
+    // calendario, que no tiene rueda).
+    const modo = e.target.closest('.modos-completa [data-modo]')?.dataset.modo;
+    if (modo) {
+        $('#selector-modo').value = modo;
+        $('#selector-modo').dispatchEvent(new Event('change'));
+    }
 });
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && $('.figura-rueda').classList.contains('completa')) pantallaCompleta(false);
@@ -500,6 +507,7 @@ async function calcularTransitos() {
 function pintarControlesTransito() {
     const enTransitos = estado.modo === 'transitos';
     $('#selector-modo').value = estado.modo;
+    document.querySelectorAll('.modos-completa [data-modo]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modo === estado.modo)));
     formTransito.hidden = !enTransitos;
     pintarCalendario();
     pintarControlesRevolucion();
