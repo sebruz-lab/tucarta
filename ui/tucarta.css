@@ -428,6 +428,7 @@ details > summary {
 .rueda .punto .toque { fill: transparent; }
 .rueda .punto.sel .toque { fill: rgba(247, 210, 57, 0.12); }
 .rueda .marca-punto { stroke: currentColor; stroke-width: 2; }
+.rueda .marca-punto[class*="marca-"] { stroke: var(--linea-fuerte); }
 .rueda .punto.transito.sel .toque { fill: rgba(159, 196, 144, 0.18); }
 .rueda .grado-punto {
     fill: currentColor;

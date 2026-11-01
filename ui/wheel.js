@@ -9,21 +9,20 @@
 import { SIGNOS as G_SIGNOS, PUNTOS as G_PUNTOS, ASPECTOS as G_ASPECTOS, glifo } from './glyphs.js';
 import { SIGNOS } from '../engine/chart.js';
 
-// De afuera hacia adentro: signos, planetas, numeros de casa y aspectos.
+// De afuera hacia adentro: signos, columnas de los planetas, numeros de
+// casa y aspectos.
 const R_BASE = {
     exterior: 294,   // borde del anillo de signos
-    signos: 254,     // borde interior del anillo de signos
-    planetas: 218,   // glifos de los planetas
-    grados: 184,     // grado de cada planeta
-    casas: 156,      // linea que separa los planetas del anillo de numeros de casa
-    numeros: 143,    // numeros de casa
-    aspectos: 130    // circulo interior donde llegan los aspectos
+    signos: 254,     // borde interior del anillo de signos (arriba de las columnas)
+    casas: 150,      // linea que separa los planetas del anillo de numeros de casa
+    numeros: 139,    // numeros de casa
+    aspectos: 128    // circulo interior donde llegan los aspectos
 };
 // La natal dentro de la revolucion: sin aspectos, el centro se achica y
 // los planetas ganan lugar (antes de escalar).
 // Los numeros de casa van del lado de adentro, junto al centro, y los
 // planetas ocupan el anillo que dejan libre.
-const R_NATAL_EN_RS = { exterior: 294, signos: 254, planetas: 222, grados: 182, casas: 72, numeros: 56, aspectos: 40 };
+const R_NATAL_EN_RS = { exterior: 294, signos: 254, casas: 72, numeros: 56, aspectos: 40 };
 
 // Clase de linea de cada aspecto (los colores estan en tucarta.css).
 const CLASE_ASPECTO = {
@@ -94,12 +93,6 @@ export function ubicarEnCasas(puntos, cusps, { minimo = 10, margen = 4.5, apreta
     return res;
 }
 
-// Tamaño del glifo segun el lugar que tiene: ~3,8 unidades por grado en el
-// anillo de planetas.
-// En una casa cargada el escalonado da aire extra: el glifo puede ser mas
-// grande que lo que entra en linea recta.
-const tamGlifo = (u, radio, max = 34) => Math.max(24, Math.min(max, u.paso * (radio * Math.PI / 180) * (u.nivel === undefined ? 0.92 : 1.15)));
-const ESCALON = { glifo: 12, grado: 16 }; // cuanto se mete hacia adentro el nivel 1
 
 // Reparte posiciones sobre el circulo para que queden al menos a `minimo`
 // grados entre si, moviendolas lo menos posible. Devuelve las posiciones
@@ -145,11 +138,90 @@ const R_DOBLE = { exterior: 294, glifos: 271 };
 // Revolucion solar (como Solar Fire): la natal adentro, mas chica, y la
 // revolucion afuera con su propio zodiaco, sus casas y sus planetas con
 // grados. El centro queda sin lineas de aspectos.
-const ESCALA_RS = 0.7;
+const ESCALA_RS = 0.66;
 // Letra de los numeros de la natal, tal como se ve en pantalla (en
 // unidades de la rueda): la de la natal de adentro de la revolucion.
 const LETRA_NATAL = { grado: 11.9, casa: 10.1, retro: 6.7 };
-const R_RS = { exterior: 294, signos: 270, planetas: 251, grados: 231, linea: 221, casas: 213 };
+const R_RS = { exterior: 294, signos: 272, linea: 207, casas: 200 };
+
+// Columna de cada planeta, como en Solar Fire: de afuera hacia adentro el
+// glifo, el grado, el glifo del signo y los minutos. Distancias desde el
+// borde del zodiaco y tamanios, en unidades de pantalla.
+const COLUMNA_NATAL = { glifo: 20, grado: 43, signo: 60, minuto: 76, tG: 24, fG: 11.9, tS: 11, fM: 10.5, retro: 6.7 };
+const COLUMNA_EXTERNA = { glifo: 13, grado: 31, signo: 44, minuto: 57, tG: 20, fG: 10.5, tS: 9.5, fM: 9.5, retro: 6.5 };
+
+const difAng = (a, b) => {
+    const d = (((a - b) % 360) + 360) % 360;
+    return d > 180 ? d - 360 : d;
+};
+
+// Reparte los planetas en columnas por toda la rueda y calcula por donde
+// pasa cada cuspide entre las columnas (`paso`). Devuelve el SVG de las
+// columnas, los angulos de paso de las cuspides y los radios usados.
+function columnas(puntos, cusps, { polar, linea, rTope, marca, escala = 1, m, prefijo = '', clase = '', etiqueta = '', seleccion, nombres }) {
+    const r = (d) => rTope - d / escala;
+    const rG = r(m.glifo), rGr = r(m.grado), rS = r(m.signo), rM = r(m.minuto);
+    const grados = (ancho, radio) => ancho / radio * 180 / Math.PI;
+    const texto = (px, letras) => 0.6 * px * letras / escala;
+    const minimo = Math.max(
+        grados(m.tG / escala, rG), grados(texto(m.fG, 3), rGr),
+        grados(m.tS / escala, rS), grados(texto(m.fM, 3.6), rM)) + 0.8;
+    const pos = repartir(puntos.map((p) => p.lon), minimo);
+
+    // Cada cuspide pasa entre la ultima columna de su casa y la primera de
+    // la siguiente: recta si su grado cae en ese hueco; si no, se corre lo
+    // minimo y se quiebra arriba hasta su grado.
+    const orden = puntos.map((p, i) => ({ lon: p.lon, pos: pos[i] }));
+    const medio = minimo / 2;
+    const paso = cusps.map((c) => {
+        let antes = null, despues = null;
+        for (const o of orden) {
+            const d = difAng(o.lon, c);
+            if (d < 0 && (!antes || d > antes.d)) antes = { d, pos: c + difAng(o.pos, c) };
+            if (d >= 0 && (!despues || d < despues.d)) despues = { d, pos: c + difAng(o.pos, c) };
+        }
+        const desde = antes ? antes.pos + medio : -Infinity;
+        const hasta = despues ? despues.pos - medio : Infinity;
+        if (desde <= hasta) return Math.min(Math.max(c, desde), hasta);
+        return (antes.pos + despues.pos) / 2;
+    });
+
+    const letra = (px) => ` style="font-size:${(px / escala).toFixed(2)}px"`;
+    const dos = (n) => String(n).padStart(2, '0');
+    const out = [];
+    puntos.forEach((p, i) => {
+        const id = prefijo + p.id;
+        const sel = seleccion === id ? ' sel' : '';
+        out.push(`<g class="punto${clase ? ' ' + clase : ''}${sel}" data-punto="${id}" tabindex="0" role="button" aria-label="${nombres[p.id] || p.id}${etiqueta}">`);
+        out.push(linea(p.lon, rTope, rTope + marca / escala, 'marca-punto'));
+        const a = pos[i];
+        const [x, y] = polar(a, rG);
+        out.push(`<circle class="toque" cx="${f(x)}" cy="${f(y)}" r="${f(m.tG * 0.75 / escala)}"/>`);
+        out.push(glifo(G_PUNTOS[p.id], x, y, m.tG / escala));
+        const [gx, gy] = polar(a, rGr);
+        out.push(`<text class="grado-punto"${letra(m.fG)} x="${f(gx)}" y="${f(gy)}">${dos(p.grado)}°</text>`);
+        const [sx, sy] = polar(a, rS);
+        const iSigno = SIGNOS.indexOf(p.signo);
+        out.push(glifo(G_SIGNOS[p.signo], sx, sy, m.tS / escala, '', `signo-columna elem-${ELEMENTOS[iSigno % 4]}`, 1.3));
+        const [mx, my] = polar(a, rM);
+        out.push(`<text class="grado-punto minuto"${letra(m.fM)} x="${f(mx)}" y="${f(my)}">${dos(p.minuto)}'${p.retro ? `<tspan class="retro"${letra(m.retro)}>r</tspan>` : ''}</text>`);
+        out.push('</g>');
+    });
+    return { svg: out, paso, codo: rG + (m.tG / 2 + 3) / escala };
+}
+
+// Cuspide desde `rAdentro` hasta `rAfuera`: recta por su paso entre las
+// columnas y, si hace falta, quebrada arriba (en `codo`) hasta su grado
+// real en el borde del zodiaco (`rTope`).
+function cuspide(polar, c, paso, rAdentro, codo, rTope, rAfuera, clase) {
+    const pts = Math.abs(difAng(paso, c)) < 0.01
+        ? [polar(c, rAdentro), polar(c, rAfuera)]
+        : [polar(paso, rAdentro), polar(paso, codo), polar(c, rTope), polar(c, rAfuera)];
+    return `<polyline class="${clase}" fill="none" points="${pts.map(([x, y]) => `${f(x)},${f(y)}`).join(' ')}"/>`;
+}
+
+// Numeros de casa a mitad de camino entre los pasos de sus cuspides.
+const medioCasa = (paso, i) => paso[i] + ((((paso[(i + 1) % 12] - paso[i]) % 360) + 360) % 360) / 2;
 
 // clara: rueda para el fondo blanco; si no, para el fondo oscuro. En las
 // dos los signos van en el color de su elemento.
@@ -166,7 +238,6 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
     // achicada dentro de los transitos o de la revolucion.
     const escala = revolucion ? ESCALA_RS : transitos ? ESCALA_DOBLE : 1;
     const letra = (px) => ` style="font-size:${(px / escala).toFixed(2)}px"`;
-    const tamMax = revolucion ? 40 : 34;
     const linea = (lon, r1, r2, clase) => {
         const [x1, y1] = polar(lon, r1);
         const [x2, y2] = polar(lon, r2);
@@ -192,15 +263,18 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         out.push(linea(g, R.signos, R.signos + largo, 'marca'));
     }
 
+    // Planetas en columnas; las cuspides pasan entre ellas.
+    const col = columnas(carta.puntos, carta.cusps.map((c) => c.lon), {
+        polar, linea, rTope: R.signos, marca: 10, escala, m: COLUMNA_NATAL, seleccion, nombres
+    });
+
     // Casas: cuspides y numeros.
     carta.cusps.forEach((c, i) => {
         const angular = i % 3 === 0;
         const clase = i === 0 ? 'eje eje-ac' : angular ? 'eje' : 'cuspide';
         const largo = angular ? (revolucion ? R.exterior : R.exterior + 6) : R.signos;
-        out.push(linea(c.lon, largo, R.aspectos, clase));
-        const sig = carta.cusps[(i + 1) % 12].lon;
-        const medio = c.lon + (((sig - c.lon) % 360) + 360) % 360 / 2;
-        const [x, y] = polar(medio, R.numeros);
+        out.push(cuspide(polar, c.lon, col.paso[i], R.aspectos, col.codo, R.signos, largo, clase));
+        const [x, y] = polar(medioCasa(col.paso, i), R.numeros);
         out.push(`<text class="num-casa"${letra(LETRA_NATAL.casa)} x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
     });
     // Con revolucion, el AC de la natal va adentro, junto a su eje.
@@ -255,25 +329,9 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         out.push(glifo(G_ASPECTOS[a.aspecto], mx, my, 13, op, `glifo-aspecto ${COLOR_ASPECTO[a.aspecto]}`, 1.2));
     }
 
-    // Planetas: posicion real (marca en el anillo) y glifo dentro de su
-    // casa, separado de los vecinos, con el grado debajo.
-    const pos = ubicarEnCasas(carta.puntos, carta.cusps.map((c) => c.lon));
-    carta.puntos.forEach((p, i) => {
-        const sel = seleccion === p.id ? ' sel' : '';
-        out.push(`<g class="punto${sel}" data-punto="${p.id}" tabindex="0" role="button" aria-label="${nombres[p.id] || p.id}">`);
-        out.push(linea(p.lon, R.signos, R.signos + 10, 'marca-punto'));
-        out.push(linea(p.lon, R.aspectos, R.aspectos + 5, 'marca-punto'));
-        const u = pos[i];
-        const t = u.paso < 10 ? tamGlifo(u, R.planetas, tamMax) : tamMax;
-        const [x, y] = polar(u.lon, R.planetas - u.nivel * ESCALON.glifo);
-        out.push(`<circle class="toque" cx="${f(x)}" cy="${f(y)}" r="22"/>`);
-        out.push(glifo(G_PUNTOS[p.id], x, y, t));
-        const [gx, gy] = polar(u.lon, R.grados - u.nivel * ESCALON.grado);
-        // Dentro de la revolucion la natal va achicada: sus grados se
-        // agrandan para leerse igual. (Con style: el CSS le gana al atributo.)
-        out.push(`<text class="grado-punto"${letra(LETRA_NATAL.grado)} x="${f(gx)}" y="${f(gy)}">${p.grado}°${p.retro ? `<tspan class="retro"${letra(LETRA_NATAL.retro)}>r</tspan>` : ''}</text>`);
-        out.push('</g>');
-    });
+    // Planetas: las columnas, y una marca en el circulo de aspectos.
+    carta.puntos.forEach((p) => out.push(linea(p.lon, R.aspectos, R.aspectos + 5, 'marca-punto marca-' + p.id)));
+    out.push(...col.svg);
 
     let cuerpo = out.join('') + rotulos.join('');
     if (transitos) {
@@ -316,7 +374,7 @@ function anilloRevolucion(rs, natal, { polar, linea, seleccion, nombres }) {
     SIGNOS.forEach((s, i) => {
         out.push(linea(i * 30, R2.signos, R2.exterior, 'borde'));
         const [x, y] = polar(i * 30 + 15, (R2.exterior + R2.signos) / 2);
-        out.push(glifo(G_SIGNOS[s], x, y, 20, `data-signo="${s}"`, `elem-${ELEMENTOS[i % 4]}`, 1.45));
+        out.push(glifo(G_SIGNOS[s], x, y, 17, `data-signo="${s}"`, `elem-${ELEMENTOS[i % 4]}`, 1.45));
     });
     for (let g = 0; g < 360; g++) {
         if (g % 30 === 0) continue;
@@ -324,31 +382,18 @@ function anilloRevolucion(rs, natal, { polar, linea, seleccion, nombres }) {
         out.push(linea(g, R2.signos, R2.signos + largo, 'marca'));
     }
 
-    // Casas de la revolucion: cuspides en su anillo y numeros chicos.
+    // Planetas de afuera en columnas; sus cuspides pasan entre ellas.
+    const col = columnas(rs.puntos, rs.cusps.map((c) => c.lon), {
+        polar, linea, rTope: R2.signos, marca: 6, m: COLUMNA_EXTERNA,
+        prefijo: 'r-', clase: 'revolucion', etiqueta: ' de afuera', seleccion, nombres
+    });
     rs.cusps.forEach((c, i) => {
         const angular = i % 3 === 0;
         const clase = i === 0 ? 'eje eje-ac' : angular ? 'eje' : 'cuspide';
-        out.push(linea(c.lon, borde, angular ? R2.exterior + 6 : R2.signos, clase));
-        const sig = rs.cusps[(i + 1) % 12].lon;
-        const medio = c.lon + (((sig - c.lon) % 360) + 360) % 360 / 2;
-        const [x, y] = polar(medio, R2.casas);
-        out.push(`<text class="num-casa" style="font-size:10.8px" x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
+        out.push(cuspide(polar, c.lon, col.paso[i], borde, col.codo, R2.signos, angular ? R2.exterior + 6 : R2.signos, clase));
+        const [x, y] = polar(medioCasa(col.paso, i), R2.casas);
+        out.push(`<text class="num-casa" style="font-size:10px" x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
     });
-
-    // Planetas de la revolucion, cada uno en su casa, con el grado.
-    const pos = ubicarEnCasas(rs.puntos, rs.cusps.map((c) => c.lon), { minimo: 7.5, margen: 3.5, apretado: 5 });
-    rs.puntos.forEach((p, i) => {
-        const id = 'r-' + p.id;
-        const sel = seleccion === id ? ' sel' : '';
-        out.push(`<g class="punto revolucion${sel}" data-punto="${id}" tabindex="0" role="button" aria-label="${nombres[p.id] || p.id} de la revolución">`);
-        out.push(linea(p.lon, R2.signos, R2.signos - 7, 'marca-punto'));
-        const u = pos[i];
-        const [x, y] = polar(u.lon, R2.planetas - u.nivel * 8);
-        out.push(`<circle class="toque" cx="${f(x)}" cy="${f(y)}" r="15"/>`);
-        out.push(glifo(G_PUNTOS[p.id], x, y, u.paso < 6 ? 23 : 28));
-        const [gx, gy] = polar(u.lon, R2.grados - u.nivel * 8);
-        out.push(`<text class="grado-punto" style="font-size:12.6px" x="${f(gx)}" y="${f(gy)}">${p.grado}°${p.retro ? '<tspan class="retro">r</tspan>' : ''}</text>`);
-        out.push('</g>');
-    });
+    out.push(...col.svg);
     return out.join('');
 }
