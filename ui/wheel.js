@@ -14,10 +14,13 @@ import { SIGNOS } from '../engine/chart.js';
 const R_BASE = {
     exterior: 294,   // borde del anillo de signos
     signos: 254,     // borde interior del anillo de signos (arriba de las columnas)
-    casas: 150,      // linea que separa los planetas del anillo de numeros de casa
-    numeros: 139,    // numeros de casa
-    aspectos: 128    // circulo interior donde llegan los aspectos
+    casas: 162,      // linea que separa los planetas del anillo de numeros de casa
+    numeros: 151,    // numeros de casa (y grado y minutos de cada cuspide)
+    aspectos: 140    // circulo interior donde llegan los aspectos
 };
+// Con transitos la natal va achicada y sus columnas bajan mas: el centro
+// queda como antes.
+const R_NATAL_EN_TRANSITOS = { ...R_BASE, casas: 150, numeros: 139, aspectos: 128 };
 // La natal dentro de la revolucion: sin aspectos, el centro se achica y
 // los planetas ganan lugar (antes de escalar).
 // Los numeros de casa van del lado de adentro, junto al centro, y los
@@ -194,10 +197,11 @@ function ubicarColumnas(puntos, cusps, minimo) {
     return res;
 }
 
-// Grado y minutos de cada cuspide junto al borde del zodiaco: el grado del
-// lado de la casa que empieza y los minutos del otro lado de la linea.
-function rotulosCuspides(polar, cusps, rTope, escala, fC) {
-    const r = rTope - (fC * 0.55 + 3) / escala;
+// Grado y minutos de cada cuspide a radio `r` (en el anillo de los numeros
+// de casa, o junto al zodiaco si ahi no entran): el grado del lado de la
+// casa que empieza y los minutos del otro lado de la linea.
+const junto = (rTope, escala, fC) => rTope - (fC * 0.55 + 3) / escala;
+function rotulosCuspides(polar, cusps, r, escala, fC) {
     const sep = (ancho) => (ancho / 2 + 2.5 / escala) / r * 180 / Math.PI;
     const letra = ` style="font-size:${(fC / escala).toFixed(2)}px"`;
     return cusps.map((c) => {
@@ -303,7 +307,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
     const mc = carta.angulos.find((a) => a.id === 'mc').lon;
     // Con revolucion, manda su Ascendente (a la izquierda) y la natal gira.
     const polar = crearPolar(revolucion ? revolucion.angulos.find((a) => a.id === 'asc').lon : asc);
-    const R = revolucion ? R_NATAL_EN_RS : R_BASE;
+    const R = revolucion ? R_NATAL_EN_RS : transitos ? R_NATAL_EN_TRANSITOS : R_BASE;
     // La natal se ve con la misma letra en todas las vistas, aunque vaya
     // achicada dentro de los transitos o de la revolucion.
     const escala = revolucion ? ESCALA_RS : transitos ? ESCALA_DOBLE : 1;
@@ -349,7 +353,9 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         const [x, y] = polar(medioCasa(carta.cusps.map((k) => k.lon), i), R.numeros);
         out.push(`<text class="num-casa"${letra(LETRA_NATAL.casa)} x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
     });
-    out.push(rotulosCuspides(polar, carta.cusps, R.signos, escala, COLUMNA_NATAL.fC));
+    // En la natal chiquita de adentro de la revolucion no entran junto a
+    // los numeros: van junto al zodiaco.
+    out.push(rotulosCuspides(polar, carta.cusps, revolucion ? junto(R.signos, escala, COLUMNA_NATAL.fC) : R.numeros, escala, COLUMNA_NATAL.fC));
     // Con revolucion, el AC de la natal va adentro, junto a su eje.
     if (revolucion) {
         const [x, y] = polar(asc + 4, R.signos - 16);
@@ -470,7 +476,7 @@ function anilloRevolucion(rs, natal, { polar, linea, seleccion, nombres }) {
         const [x, y] = polar(medioCasa(rs.cusps.map((k) => k.lon), i), R2.casas);
         out.push(`<text class="num-casa" style="font-size:10px" x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
     });
-    out.push(rotulosCuspides(polar, rs.cusps, R2.signos, 1, COLUMNA_EXTERNA.fC));
+    out.push(rotulosCuspides(polar, rs.cusps, R2.casas, 1, COLUMNA_EXTERNA.fC));
     out.push(...col.svg);
     return out.join('');
 }
