@@ -1198,7 +1198,7 @@ body.sin-scroll { overflow: hidden; }
     .esquina { font-size: 0.82rem; }
 }
 
-.pie-impresion { display: none; }
+.pie-impresion, .ficha-impresion { display: none; }
 
 /* ---------- Imprimir ---------- */
 /* A4 vertical: lo que limita es el ancho, asi que la rueda ocupa todo el
@@ -1210,7 +1210,7 @@ body.sin-scroll { overflow: hidden; }
     @page { size: A4 portrait; margin: 0; }
     html, body { background: #fff !important; }
     body > :not(main), main > :not(#resultado), #resultado > :not(.figura-rueda),
-    .esquina button:not(.enlace-huso), .esquina .renglon-huso,
+    .figura-rueda .esquina,
     .figura-rueda .entrar-completa, .figura-rueda .panel-completa, .figura-rueda .salir-completa, #detalle-punto {
         display: none !important;
     }
@@ -1228,13 +1228,24 @@ body.sin-scroll { overflow: hidden; }
     }
     .figura-rueda #rueda { width: 186mm; margin: 0 auto; }
     .figura-rueda .rueda { max-width: none; }
-    .figura-rueda .esquina { top: 12mm !important; font-size: 10pt; max-width: 90mm; }
-    .figura-rueda .esquina-izq { left: 12mm; }
-    .figura-rueda .esquina-der { right: 12mm; }
-    .pie-impresion {
+    /* Fichas como las de Solar Fire, arriba en las esquinas. */
+    .ficha-impresion {
         display: flex;
-        justify-content: space-between;
-        gap: 10mm;
+        flex-direction: column;
+        position: absolute;
+        top: 12mm;
+        max-width: 85mm;
+        font-size: 10pt;
+        line-height: 1.3;
+        color: #15151a;
+    }
+    .ficha-izq { left: 12mm; }
+    .ficha-der { right: 12mm; text-align: right; }
+    .ficha-impresion .nombre { font-size: 13pt; font-weight: 600; }
+    .ficha-impresion .calculo { font-style: italic; color: #5c5f6b; }
+    .ficha-impresion .calculo:first-of-type { margin-top: 2mm; }
+    .pie-impresion {
+        display: block;
         position: absolute;
         left: 12mm;
         right: 12mm;

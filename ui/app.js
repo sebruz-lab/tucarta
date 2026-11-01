@@ -245,6 +245,7 @@ function pintar() {
     $('#huso-contenido').innerHTML = panelHuso(estado.tz, d.eleccion, estado.corrigiendoHuso);
     pintarAdvertencia();
     pintarEsquinas(sistema);
+    pintarFichasImpresion(sistema);
 
     pintarRueda();
     const conTransitos = estado.modo === 'transitos' && estado.transitos;
@@ -284,8 +285,6 @@ function pintarEsquinas(sistema) {
     const nombre = renglon(d.nombre, 'nombre-esquina');
     $('.cambiar-carta').hidden = !guardadas.length;
     const poner = (izq, der) => {
-        // En las vistas con otra carta el huso va junto a cada hora.
-        $('#huso-impresion').textContent = '';
         $('#esquina-izq').innerHTML = [nombre, ...izq].join('');
         $('#esquina-der').innerHTML = der.join('');
     };
@@ -317,16 +316,52 @@ function pintarEsquinas(sistema) {
         else poner(pr, natal('Natal'));
         return;
     }
-    $('#huso-impresion').textContent = [utcTexto(o.total), d.correccion ? 'corregido a mano' : verano].filter(Boolean).join(' · ');
     $('#esquina-izq').innerHTML = [
         nombre, renglon(`${dia}/${m}/${a}`, 'principal'), renglon(`${d.hora} h`, 'principal'), ...renglonesLugar(l).map((t) => renglon(t))
     ].join('');
     $('#esquina-der').innerHTML = [
-        renglon([utcTexto(o.total), d.correccion ? 'corregido a mano' : verano].filter(Boolean).join(' · '), 'principal renglon-huso'),
+        renglon([utcTexto(o.total), d.correccion ? 'corregido a mano' : verano].filter(Boolean).join(' · '), 'principal'),
         renglon(`${coordTexto(l.lat, 'N', 'S')} ${coordTexto(l.lon, 'E', 'O')}`),
         renglon(sistema),
         botonHuso
     ].join('');
+}
+
+// Fichas de la hoja impresa, como las de Solar Fire: nombre, que carta es,
+// fecha, hora con su zona horaria, lugar y coordenadas; y debajo, como se
+// calculo (geocentrica, tropical, sistema de casas, nodo real). Con
+// otra carta (revolucion, progresiones, transitos), su ficha a la derecha.
+function pintarFichasImpresion(sistema) {
+    const d = estado.datos;
+    const o = estado.tz.opciones[d.eleccion] || estado.tz.opciones[0];
+    const linea = (t, clase = '') => (t ? `<span${clase ? ` class="${clase}"` : ''}>${escapar(t)}</span>` : '');
+    const lugar = (l) => (l.manual ? ['Coordenadas a mano'] : [[l.nombre, l.provincia, l.paisNombre].filter(Boolean).join(', ')]);
+    const coords = (l) => `${coordTexto(l.lat, 'N', 'S')} ${coordTexto(l.lon, 'E', 'O')}`;
+    const fecha = (iso) => iso.split('-').reverse().join('/');
+    const calculo = ['Geocéntrica', 'Tropical', sistema, 'Nodo real'].map((t) => linea(t, 'calculo')).join('');
+    const natal = (titulo) => [
+        linea(d.nombre, 'nombre'), linea(titulo), linea(fecha(d.fecha)), linea(`${d.hora} ${utcTexto(o.total)}`),
+        ...lugar(d.lugar).map((t) => linea(t)), linea(coords(d.lugar))
+    ];
+    const { sola, externa } = cartasVista();
+    let izq = natal('Carta Natal');
+    let der = [];
+    if ((sola || externa) && esRS(estado.modo)) {
+        const rs = momentoRevolucionLocal();
+        const revo = [linea(`Revolución Solar ${estado.revolucion.anio}`), linea(rs.fecha), linea(`${rs.hora} ${utcTexto(rs.huso)}`),
+            ...lugar(rs.lugar).map((t) => linea(t)), linea(coords(rs.lugar))];
+        if (externa) der = revo;
+        else izq = [linea(d.nombre, 'nombre'), ...revo];
+    } else if ((sola || externa) && esPR(estado.modo)) {
+        const [al, edad] = textoProgresion();
+        const pr = [linea('Progresiones secundarias'), linea(al), linea(edad)];
+        if (externa) der = pr;
+        else izq = [linea(d.nombre, 'nombre'), ...pr, ...lugar(d.lugar).map((t) => linea(t)), linea(coords(d.lugar))];
+    } else if (estado.modo === 'transitos' && estado.transito) {
+        der = [linea('Tránsitos'), linea(fecha(estado.transito.fecha)), linea(`${estado.transito.hora} h`)];
+    }
+    $('#ficha-izq').innerHTML = izq.join('') + calculo;
+    $('#ficha-der').innerHTML = der.join('');
 }
 
 // Los datos de las esquinas no pisan la rueda: si hace falta (en el
