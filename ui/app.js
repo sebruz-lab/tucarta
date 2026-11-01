@@ -977,8 +977,9 @@ aplicarConfig();
 
 // ---------- Fondo oscuro / claro (lo elige la persona) ----------
 
-let tema = 'oscuro';
-try { tema = localStorage.getItem('tucarta:tema') === 'claro' ? 'claro' : 'oscuro'; } catch {}
+// Claro por defecto; el oscuro, si la persona lo eligio.
+let tema = 'claro';
+try { tema = localStorage.getItem('tucarta:tema') === 'oscuro' ? 'oscuro' : 'claro'; } catch {}
 
 function aplicarTema(nuevo, { medir = false } = {}) {
     tema = nuevo;
