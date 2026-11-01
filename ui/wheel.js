@@ -147,11 +147,69 @@ const R_RS = { exterior: 294, signos: 272, linea: 207, casas: 200 };
 // Columna de cada planeta, como en Solar Fire: de afuera hacia adentro el
 // glifo, el grado, el glifo del signo y los minutos. Distancias desde el
 // borde del zodiaco y tamanios, en unidades de pantalla.
-const COLUMNA_NATAL = { glifo: 20, grado: 43, signo: 60, minuto: 76, tG: 24, fG: 11.9, tS: 11, fM: 10.5, retro: 6.7 };
-const COLUMNA_EXTERNA = { glifo: 13, grado: 31, signo: 44, minuto: 57, tG: 20, fG: 10.5, tS: 9.5, fM: 9.5, retro: 6.5 };
+// fC: letra del grado y los minutos de cada cuspide, junto al zodiaco.
+const COLUMNA_NATAL = { glifo: 26, grado: 48, signo: 64, minuto: 79, tG: 24, fG: 11.9, tS: 11, fM: 10.5, retro: 6.7, fC: 9 };
+const COLUMNA_EXTERNA = { glifo: 20, grado: 36, signo: 47, minuto: 58, tG: 20, fG: 10.5, tS: 9.5, fM: 9.5, retro: 6.5, fC: 8 };
 
 // Distancia minima entre una columna y la cuspide de su casa.
 const medioMinimo = (minimo) => minimo / 2 + 0.3;
+
+// Lugar de cada columna. Los planetas nunca se aprietan: si los de una
+// casa entran corriendolos un poco de su grado exacto (aunque sean varios),
+// se corren lo justo y la cuspide queda recta; la rayita del borde marca el
+// grado real. Si corriendolos no entran, van en fila centrada donde estan
+// y desbordan hacia ese lado: ahi la cuspide se quiebra.
+function ubicarColumnas(puntos, cusps, minimo) {
+    const norm = (x) => ((x % 360) + 360) % 360;
+    const res = puntos.map((p) => p.lon);
+    const margen = medioMinimo(minimo);
+    for (let c = 0; c < 12; c++) {
+        const inicio = cusps[c];
+        const ancho = norm(cusps[(c + 1) % 12] - inicio);
+        const items = puntos
+            .map((p, i) => ({ i, rel: norm(p.lon - inicio), casa: p.casa }))
+            .filter((x) => x.casa === c + 1)
+            .sort((a, b) => a.rel - b.rel);
+        const n = items.length;
+        if (!n) continue;
+        const lo = Math.min(margen, ancho / 2);
+        const hi = Math.max(ancho - margen, ancho / 2);
+        let pos;
+        if ((n - 1) * minimo <= hi - lo) {
+            pos = items.map((x) => Math.min(Math.max(x.rel, lo), hi));
+            for (let k = 1; k < n; k++) pos[k] = Math.max(pos[k], pos[k - 1] + minimo);
+            if (pos[n - 1] > hi) {
+                pos[n - 1] = hi;
+                for (let k = n - 2; k >= 0; k--) pos[k] = Math.min(pos[k], pos[k + 1] - minimo);
+            }
+        } else {
+            let desde = items.reduce((t, x) => t + x.rel, 0) / n - (n - 1) * minimo / 2;
+            const largo = (n - 1) * minimo;
+            if (desde > lo) desde = lo;
+            else if (desde + largo < hi) desde = hi - largo;
+            pos = items.map((_, k) => desde + k * minimo);
+        }
+        items.forEach((x, k) => { res[x.i] = inicio + pos[k]; });
+    }
+    return res;
+}
+
+// Grado y minutos de cada cuspide junto al borde del zodiaco: el grado del
+// lado de la casa que empieza y los minutos del otro lado de la linea.
+function rotulosCuspides(polar, cusps, rTope, escala, fC) {
+    const r = rTope - (fC * 0.55 + 3) / escala;
+    const sep = (ancho) => (ancho / 2 + 2.5 / escala) / r * 180 / Math.PI;
+    const letra = ` style="font-size:${(fC / escala).toFixed(2)}px"`;
+    return cusps.map((c) => {
+        const grado = `${String(c.grado).padStart(2, '0')}°`;
+        const minuto = `${String(c.minuto).padStart(2, '0')}'`;
+        const ancho = 0.6 * fC * 3 / escala;
+        const [gx, gy] = polar(c.lon + sep(ancho), r);
+        const [mx, my] = polar(c.lon - sep(ancho), r);
+        return `<text class="rotulo-cuspide"${letra} x="${f(gx)}" y="${f(gy)}">${grado}</text>` +
+            `<text class="rotulo-cuspide"${letra} x="${f(mx)}" y="${f(my)}">${minuto}</text>`;
+    }).join('');
+}
 
 const difAng = (a, b) => {
     const d = (((a - b) % 360) + 360) % 360;
@@ -166,14 +224,12 @@ function columnas(puntos, cusps, { polar, linea, rTope, marca, escala = 1, m, pr
     const rG = r(m.glifo), rGr = r(m.grado), rS = r(m.signo), rM = r(m.minuto);
     const grados = (ancho, radio) => ancho / radio * 180 / Math.PI;
     const texto = (px, letras) => 0.6 * px * letras / escala;
-    const minimo = Math.max(
+    // Separacion minima entre columnas: el 70% de lo que ocupa cada una
+    // (pedido de Seba: los planetas mas juntos).
+    const minimo = 0.7 * (Math.max(
         grados(m.tG / escala, rG), grados(texto(m.fG, 3), rGr),
-        grados(m.tS / escala, rS), grados(texto(m.fM, 3.6), rM)) + 0.8;
-    // Cada planeta adentro de su casa (corrido un poco hacia adentro si
-    // esta pegado a una cuspide); solo si los de una casa no entran, el
-    // grupo desborda la cuspide y esa cuspide se quiebra.
-    const enCasas = ubicarEnCasas(puntos, cusps, { minimo, margen: medioMinimo(minimo), apretado: minimo });
-    const pos = repartir(enCasas.map((u, i) => (u ? u.lon : puntos[i].lon)), minimo);
+        grados(m.tS / escala, rS), grados(texto(m.fM, 3.6), rM)) + 0.8);
+    const pos = repartir(ubicarColumnas(puntos, cusps, minimo), minimo);
 
     // Cada cuspide pasa entre la ultima columna de su casa y la primera de
     // la siguiente: recta si su grado cae en ese hueco; si no, se corre lo
@@ -293,6 +349,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         const [x, y] = polar(medioCasa(carta.cusps.map((k) => k.lon), i), R.numeros);
         out.push(`<text class="num-casa"${letra(LETRA_NATAL.casa)} x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
     });
+    out.push(rotulosCuspides(polar, carta.cusps, R.signos, escala, COLUMNA_NATAL.fC));
     // Con revolucion, el AC de la natal va adentro, junto a su eje.
     if (revolucion) {
         const [x, y] = polar(asc + 4, R.signos - 16);
@@ -413,6 +470,7 @@ function anilloRevolucion(rs, natal, { polar, linea, seleccion, nombres }) {
         const [x, y] = polar(medioCasa(rs.cusps.map((k) => k.lon), i), R2.casas);
         out.push(`<text class="num-casa" style="font-size:10px" x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
     });
+    out.push(rotulosCuspides(polar, rs.cusps, R2.signos, 1, COLUMNA_EXTERNA.fC));
     out.push(...col.svg);
     return out.join('');
 }

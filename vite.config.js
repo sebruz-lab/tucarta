@@ -4,7 +4,7 @@ import { defineConfig } from 'vite';
 // nombres con hash, porque el sitio cachea JS y CSS 30 dias.
 export default defineConfig({
     root: 'ui',
-    base: '/tucarta/',
+    base: '/cartas/',
     build: {
         outDir: '../dist',
         emptyOutDir: true

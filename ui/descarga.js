@@ -93,7 +93,7 @@ export async function imagenCarta(svg, { titulo, datos, colores }) {
 
     ctx.fillStyle = colores.suave;
     ctx.font = '300 26px Outfit, sans-serif';
-    ctx.fillText('sebabru.com/tucarta', ANCHO / 2, ALTO - 40);
+    ctx.fillText('sebabru.com/cartas', ANCHO / 2, ALTO - 40);
 
     return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
 }
