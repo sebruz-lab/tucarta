@@ -271,7 +271,9 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         cuerpo = doble.join('') + rotulos.join('');
     }
     if (revolucion) cuerpo = anilloRevolucion(revolucion, out, { polar, linea, seleccion, nombres }) + rotulos.join('');
-    return `<svg class="rueda${clara ? ' rueda-clara' : ''}${transitos || revolucion ? ' rueda-doble' : ''}" viewBox="-332 -332 664 664" role="img" aria-label="Rueda de la carta">${cuerpo}</svg>`;
+    // Disco de fondo (blanco en la version clara).
+    const fondo = `<circle class="fondo-rueda" r="${R_BASE.exterior}"/>`;
+    return `<svg class="rueda${clara ? ' rueda-clara' : ''}${transitos || revolucion ? ' rueda-doble' : ''}" viewBox="-332 -332 664 664" role="img" aria-label="Rueda de la carta">${fondo}${cuerpo}</svg>`;
 }
 
 // Anillo de afuera de la revolucion solar; `natal` es el dibujo de la

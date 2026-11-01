@@ -406,6 +406,8 @@ details > summary {
     margin: 0 auto;
     overflow: visible;
 }
+.rueda .fondo-rueda { fill: none; stroke: none; }
+.tema-claro .rueda .fondo-rueda { fill: #ffffff; }
 .rueda .borde { fill: none; stroke: var(--linea-fuerte); stroke-width: 1.8; }
 .rueda .fino { fill: none; stroke: var(--linea-fuerte); stroke-width: 1.4; }
 .rueda .marca { stroke: var(--linea-fuerte); stroke-width: 1.3; }
@@ -478,9 +480,10 @@ details > summary {
 
 /* ---------- Fondo claro (lo elige la persona) ---------- */
 .tema-claro {
-    --bg: #ffffff;
-    --superficie: #f4f4f6;
-    --superficie-2: #ffffff;
+    /* Pagina gris, recuadros en un gris mas claro y la rueda sobre blanco. */
+    --bg: #d3d4d9;
+    --superficie: #e6e7eb;
+    --superficie-2: #eeeff2;
     --texto: #15151a;
     --texto-suave: #5c5f6b;
     --linea: rgba(20, 20, 30, 0.12);
