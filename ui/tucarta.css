@@ -711,20 +711,46 @@ details > summary {
 
 /* ---------- Mis cartas ---------- */
 
-.mis-cartas { margin: 0 0 28px; }
+/* Casillero que se despliega encima del resto (no empuja la pagina). */
+.mis-cartas { margin: 0 0 28px; position: relative; z-index: 5; }
 .mis-cartas > summary {
     font-size: 1.1rem;
     font-weight: 400;
     color: var(--texto);
-    padding: 12px 0;
-    border-top: 1px solid var(--linea);
-    border-bottom: 1px solid var(--linea);
+    padding: 12px 16px;
+    border: 1px solid var(--linea-fuerte);
+    border-radius: var(--radio);
     cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
-.mis-cartas[open] > summary { border-bottom: none; }
-/* Sin sesion es un titulo fijo, no un desplegable. */
-.mis-cartas > summary.fijo { list-style: none; cursor: default; border-top: none; padding: 0 0 10px; }
-.mis-cartas > summary.fijo::-webkit-details-marker { display: none; }
+.mis-cartas > summary::-webkit-details-marker { display: none; }
+.mis-cartas > summary::after {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: translateY(-2px) rotate(45deg);
+    transition: transform 0.2s;
+}
+.mis-cartas[open] > summary { border-radius: var(--radio) var(--radio) 0 0; border-bottom-color: transparent; }
+.mis-cartas[open] > summary::after { transform: translateY(2px) rotate(-135deg); }
+.panel-cartas {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg);
+    border: 1px solid var(--linea-fuerte);
+    border-top: none;
+    border-radius: 0 0 var(--radio) var(--radio);
+    padding: 0 16px 14px;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
+}
+.titulo-calcular { font-size: 1.1rem; font-weight: 400; margin: 0 0 14px; }
 .lista-cartas .sin-cartas { color: var(--texto-suave); font-size: 0.9rem; padding: 12px 0; }
 .lista-cartas { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--linea); }
 .lista-cartas li { display: flex; align-items: center; border-bottom: 1px solid var(--linea); }
@@ -812,7 +838,7 @@ details > summary {
 
 /* ---------- Importar cartas ---------- */
 
-.importar-cartas { margin: -8px 0 20px; }
+.importar-cartas { margin: 0; text-align: center; }
 .importar-cartas .nota { margin: 4px 0 0; }
 .ventana-importar { width: min(560px, calc(100vw - 32px)); }
 .imp-lista {
@@ -892,6 +918,77 @@ details > summary {
     flex-direction: column;
     gap: 4px;
 }
+
+/* ---------- Menu del sitio ---------- */
+
+.cabecera { position: relative; }
+.boton-menu {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-end;
+    width: 30px;
+    height: 22px;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    z-index: 31;
+}
+.boton-menu span {
+    width: 6px;
+    height: 6px;
+    background: var(--texto);
+    border-radius: 50%;
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.boton-menu[aria-expanded="true"] span { border-radius: 2px; height: 2px; }
+.boton-menu[aria-expanded="true"] span:nth-child(1) { width: 100%; transform: translateY(10px) rotate(45deg); }
+.boton-menu[aria-expanded="true"] span:nth-child(2) { opacity: 0; transform: scale(0); }
+.boton-menu[aria-expanded="true"] span:nth-child(3) { width: 100%; transform: translateY(-10px) rotate(-45deg); }
+.menu-sitio {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: min(320px, 100vw);
+    height: 100vh;
+    background: var(--bg);
+    border-left: 1px solid var(--linea);
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 30;
+}
+.menu-sitio[hidden] { display: none; }
+.menu-sitio ul { list-style: none; margin: 0; padding: 0; width: 100%; text-align: center; }
+.menu-sitio a {
+    display: block;
+    padding: 15px 0;
+    color: var(--texto);
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-size: 1.2rem;
+    transition: letter-spacing 0.3s, color 0.3s;
+}
+.menu-sitio a:hover, .menu-sitio a:focus-visible { color: var(--turquesa); letter-spacing: 5px; }
+@media (max-width: 639px) { .menu-sitio { width: 100vw; } }
+
+/* ---------- Comunidad ---------- */
+
+.comunidad {
+    margin: 48px 0 0;
+    padding: 28px 20px;
+    border: 1px solid var(--linea);
+    border-radius: var(--radio);
+    text-align: center;
+}
+.comunidad h2 { font-size: 1.3rem; font-weight: 400; margin: 0 0 10px; }
+.comunidad p { color: var(--texto-suave); max-width: 30em; margin: 0 auto 18px; }
+.comunidad-botones { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.comunidad-botones .boton { text-decoration: none; min-width: 130px; }
 
 /* ---------- Pie ---------- */
 

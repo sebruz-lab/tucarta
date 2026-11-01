@@ -816,10 +816,9 @@ function mostrarFormulario() {
 let almacen = almacenLocal;
 let guardadas = [];
 
-// Con la sesion iniciada: solo el titulo y el desplegable "Tus cartas"
-// (cerrado). Sin sesion: la pregunta y el texto de bienvenida, y "Mis
-// cartas" como titulo fijo si hay cartas en el dispositivo.
-let modoSesion = null;
+// Con la sesion iniciada: el titulo, "Mis cartas" y "Calculá una nueva
+// carta". Sin sesion: la pregunta y el texto de bienvenida, y "Mis cartas"
+// si hay cartas en el dispositivo.
 
 async function pintarMisCartas() {
     try { guardadas = await almacen.listar(); } catch (e) { console.error(e); guardadas = []; }
@@ -827,13 +826,7 @@ async function pintarMisCartas() {
     $('#pregunta-intro').hidden = sesion;
     $('#texto-intro').hidden = sesion;
     const seccion = $('#mis-cartas');
-    const titulo = $('#titulo-mis-cartas');
-    if (sesion !== modoSesion) {
-        modoSesion = sesion;
-        titulo.textContent = sesion ? 'Tus cartas' : 'Mis cartas';
-        titulo.classList.toggle('fijo', !sesion);
-        seccion.open = !sesion;
-    }
+    $('#titulo-calcular').hidden = !sesion || !$('#resultado').hidden;
     seccion.hidden = !$('#resultado').hidden || (!guardadas.length && !sesion);
     // Con muchas cartas, un buscador por nombre; si hay de varios tipos, un
     // filtro por tipo.
@@ -866,9 +859,43 @@ async function pintarMisCartas() {
     }).join('');
 }
 
-// Sin sesion "Mis cartas" es un titulo: no se pliega.
+// "Mis cartas" es un casillero que se despliega: con mouse, al pasar por
+// encima (y se cierra al salir, salvo que se este escribiendo adentro);
+// en pantallas tactiles, al tocarlo.
+const conMouse = matchMedia('(hover: hover) and (pointer: fine)');
+$('#mis-cartas').addEventListener('mouseenter', () => {
+    if (conMouse.matches) $('#mis-cartas').open = true;
+});
+$('#mis-cartas').addEventListener('mouseleave', () => {
+    if (conMouse.matches && !$('#mis-cartas').contains(document.activeElement)) $('#mis-cartas').open = false;
+});
+$('#mis-cartas').addEventListener('focusout', (e) => {
+    if (conMouse.matches && !$('#mis-cartas').contains(e.relatedTarget) && !$('#mis-cartas').matches(':hover')) $('#mis-cartas').open = false;
+});
+// Con mouse ya se abrio al pasar: el clic no lo vuelve a cerrar.
 $('#titulo-mis-cartas').addEventListener('click', (e) => {
-    if (!sesionIniciada()) e.preventDefault();
+    if (conMouse.matches && $('#mis-cartas').open) e.preventDefault();
+});
+
+// ---------- Menu del sitio ----------
+
+function abrirMenu(abrir) {
+    $('#menu-sitio').hidden = !abrir;
+    $('#boton-menu').setAttribute('aria-expanded', String(abrir));
+}
+$('#boton-menu').addEventListener('click', () => abrirMenu($('#menu-sitio').hidden));
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('#menu-sitio').hidden) {
+        abrirMenu(false);
+        $('#boton-menu').focus();
+    }
+});
+document.addEventListener('click', (e) => {
+    if (!$('#menu-sitio').hidden && !e.target.closest('#menu-sitio, #boton-menu')) abrirMenu(false);
+});
+document.querySelector('.comunidad').addEventListener('click', (e) => {
+    const red = e.target.closest('[data-comunidad]')?.dataset.comunidad;
+    if (red) evento('comunidad', { red });
 });
 
 const normalizarTexto = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();

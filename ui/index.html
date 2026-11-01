@@ -36,7 +36,21 @@
             <button type="button" data-tema="oscuro" aria-pressed="false">Oscuro</button>
             <button type="button" data-tema="claro" aria-pressed="true">Claro</button>
         </div>
+        <button type="button" id="boton-menu" class="boton-menu" aria-expanded="false" aria-controls="menu-sitio" aria-label="Menú del sitio">
+            <span></span><span></span><span></span>
+        </button>
     </div>
+    <nav id="menu-sitio" class="menu-sitio" aria-label="Sitio de Seba Bru" hidden>
+        <ul>
+            <li><a href="/#formaciones">Formaciones</a></li>
+            <li><a href="/escuela/abierta/">Formación abierta</a></li>
+            <li><a href="/#consultas">Consultas</a></li>
+            <li><a href="/#podcast">Contenido</a></li>
+            <li><a href="/signos/">Signos</a></li>
+            <li><a href="/#bios">Bios</a></li>
+            <li><a href="/escuela/">Escuela</a></li>
+        </ul>
+    </nav>
 </header>
 
 <dialog id="ventana-cuenta" class="ventana-cuenta" aria-labelledby="titulo-cuenta">
@@ -75,8 +89,9 @@
         <p id="texto-intro">Completá tus datos y mirá tu carta: la rueda, dónde estaba cada planeta y qué dicen tu Sol, tu Luna y tu Ascendente.</p>
     </section>
 
-    <details id="mis-cartas" class="mis-cartas" open hidden>
-        <summary id="titulo-mis-cartas" class="fijo">Mis cartas</summary>
+    <details id="mis-cartas" class="mis-cartas" hidden>
+        <summary id="titulo-mis-cartas">Mis cartas</summary>
+        <div class="panel-cartas">
         <div class="filtros-cartas">
             <input type="search" id="buscar-cartas" class="buscar-cartas" placeholder="Buscar por nombre" aria-label="Buscar en tus cartas" hidden>
             <select id="filtro-cartas" class="filtro-cartas" aria-label="Qué cartas mostrar" hidden>
@@ -89,13 +104,8 @@
         </div>
         <ul id="lista-cartas" class="lista-cartas"></ul>
         <div class="nota" id="nota-mis-cartas">Guardadas en este dispositivo.</div>
+        </div>
     </details>
-
-    <div class="importar-cartas">
-        <button type="button" class="boton-texto" data-importar>¿Tenés tus cartas en algún programa astrológico? Importalas</button>
-        <input type="file" id="archivo-cartas" accept=".txt,.dat,.csv,text/plain" multiple hidden>
-        <p class="nota" id="nota-importar" role="status" hidden></p>
-    </div>
 
     <dialog id="ventana-importar" class="ventana-cuenta ventana-importar" aria-labelledby="titulo-importar">
         <button type="button" class="cerrar" data-imp="cerrar" aria-label="Cerrar">×</button>
@@ -107,6 +117,8 @@
         <button type="button" class="boton boton-principal" data-imp="importar">Importar</button>
         <button type="button" class="boton-texto" data-imp="cerrar">Cancelar</button>
     </dialog>
+
+    <h2 id="titulo-calcular" class="titulo-calcular" hidden>Calculá una nueva carta</h2>
 
     <form id="datos" class="datos" novalidate>
         <label class="campo"><span>¿Qué querés calcular?</span>
@@ -177,6 +189,11 @@
 
         <p class="error" id="error-form" role="alert" hidden></p>
         <button type="submit" class="boton boton-principal">Calcular mi carta</button>
+        <div class="importar-cartas">
+            <button type="button" class="boton-texto" data-importar>¿Tenés tus cartas en algún programa astrológico? Importalas</button>
+            <input type="file" id="archivo-cartas" accept=".txt,.dat,.csv,text/plain" multiple hidden>
+            <p class="nota" id="nota-importar" role="status" hidden></p>
+        </div>
         <p class="nota privacidad">La carta se calcula en tu navegador: tus datos no salen de tu dispositivo, salvo las cartas que guardes en tu cuenta.</p>
     </form>
 
@@ -327,6 +344,15 @@
         <div class="acciones">
             <button type="button" class="boton-texto" data-accion="otra-carta">Calcular otra carta</button>
             <button type="button" class="boton-texto" data-accion="borrar">Borrar mis datos de este dispositivo</button>
+        </div>
+    </section>
+
+    <section class="comunidad" aria-labelledby="titulo-comunidad">
+        <h2 id="titulo-comunidad">Sumate a la Comunidad Astrológica</h2>
+        <p>Un espacio cotidiano para compartir, debatir y seguir pensando el cielo juntos. Sumate por tu plataforma favorita.</p>
+        <div class="comunidad-botones">
+            <a class="boton" href="https://chat.whatsapp.com/JK6IVY51OdtKoP0rulrm4G" target="_blank" rel="noopener noreferrer" data-comunidad="whatsapp">WhatsApp</a>
+            <a class="boton" href="https://t.me/sebastianbru" target="_blank" rel="noopener noreferrer" data-comunidad="telegram">Telegram</a>
         </div>
     </section>
 </main>

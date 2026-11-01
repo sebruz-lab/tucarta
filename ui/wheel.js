@@ -15,7 +15,7 @@ const R_BASE = {
     exterior: 294,   // borde del anillo de signos
     signos: 254,     // borde interior del anillo de signos (arriba de las columnas)
     casas: 162,      // linea que separa los planetas del anillo de numeros de casa
-    numeros: 151,    // numeros de casa (y grado y minutos de cada cuspide)
+    numeros: 151,    // numeros de casa
     aspectos: 140    // circulo interior donde llegan los aspectos
 };
 // Con transitos la natal va achicada y sus columnas bajan mas: el centro
@@ -197,9 +197,9 @@ function ubicarColumnas(puntos, cusps, minimo) {
     return res;
 }
 
-// Grado y minutos de cada cuspide a radio `r` (en el anillo de los numeros
-// de casa, o junto al zodiaco si ahi no entran): el grado del lado de la
-// casa que empieza y los minutos del otro lado de la linea.
+// Grado y minutos de cada cuspide a radio `r` (junto al borde del zodiaco):
+// el grado del lado de la casa que empieza y los minutos del otro lado de
+// la linea.
 const junto = (rTope, escala, fC) => rTope - (fC * 0.55 + 3) / escala;
 function rotulosCuspides(polar, cusps, r, escala, fC) {
     const sep = (ancho) => (ancho / 2 + 2.5 / escala) / r * 180 / Math.PI;
@@ -353,9 +353,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         const [x, y] = polar(medioCasa(carta.cusps.map((k) => k.lon), i), R.numeros);
         out.push(`<text class="num-casa"${letra(LETRA_NATAL.casa)} x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
     });
-    // En la natal chiquita de adentro de la revolucion no entran junto a
-    // los numeros: van junto al zodiaco.
-    out.push(rotulosCuspides(polar, carta.cusps, revolucion ? junto(R.signos, escala, COLUMNA_NATAL.fC) : R.numeros, escala, COLUMNA_NATAL.fC));
+    out.push(rotulosCuspides(polar, carta.cusps, junto(R.signos, escala, COLUMNA_NATAL.fC), escala, COLUMNA_NATAL.fC));
     // Con revolucion, el AC de la natal va adentro, junto a su eje.
     if (revolucion) {
         const [x, y] = polar(asc + 4, R.signos - 16);
@@ -476,7 +474,7 @@ function anilloRevolucion(rs, natal, { polar, linea, seleccion, nombres }) {
         const [x, y] = polar(medioCasa(rs.cusps.map((k) => k.lon), i), R2.casas);
         out.push(`<text class="num-casa" style="font-size:10px" x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
     });
-    out.push(rotulosCuspides(polar, rs.cusps, R2.casas, 1, COLUMNA_EXTERNA.fC));
+    out.push(rotulosCuspides(polar, rs.cusps, junto(R2.signos, 1, COLUMNA_EXTERNA.fC), 1, COLUMNA_EXTERNA.fC));
     out.push(...col.svg);
     return out.join('');
 }
