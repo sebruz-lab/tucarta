@@ -374,6 +374,7 @@ details > summary {
 .esquina .aviso-esquina { color: var(--amarillo); text-decoration: none; letter-spacing: 0.5px; }
 /* El panel del huso se abre desde la esquina de la rueda. */
 .huso:not([open]) { display: none; }
+.panel-lugar-rs { margin-top: 12px; }
 .huso { margin-top: 12px; }
 @media (min-width: 640px) { .figura-rueda { margin: 0; } }
 .rueda {

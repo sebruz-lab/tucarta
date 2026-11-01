@@ -272,7 +272,8 @@ function pintarEsquinas(sistema) {
         $('#esquina-der').innerHTML = [
             renglon('Carta de afuera', 'leyenda'), renglon(`Revolución solar ${estado.revolucion.anio}`, 'titulo-esquina'),
             renglon(rs.fecha, 'principal'), renglon(`${rs.hora} h (${utcTexto(rs.huso)})`, 'principal'),
-            ...renglonesLugar(rs.lugar).map((t) => renglon(t))
+            ...renglonesLugar(rs.lugar).map((t) => renglon(t)),
+            '<button type="button" data-accion="cambiar-lugar-rs">Cambiar lugar</button>'
         ].join('');
         return;
     }
@@ -315,6 +316,27 @@ function acomodarEsquinas() {
 const acomodarLuego = () => requestAnimationFrame(acomodarEsquinas);
 window.addEventListener('resize', acomodarLuego);
 document.fonts?.ready.then(acomodarLuego);
+
+// Cambiar el lugar de la revolucion sin volver a la primera pagina.
+$('.figura-rueda').addEventListener('click', (e) => {
+    if (!e.target.closest('[data-accion="cambiar-lugar-rs"]')) return;
+    const panel = $('#panel-lugar-rs');
+    panel.hidden = false;
+    panel.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    $('#lugar-rs-nuevo').focus();
+});
+conectarBuscador($('#lugar-rs-nuevo'), $('#sugerencias-rs-nuevo'), async (l) => {
+    if (!l || !estado.revolucion) return;
+    estado.revolucion.lugar = l;
+    lugarRS = l;
+    $('#lugar-rs').value = descripcionLugar(l);
+    $('#lugar-rs-nuevo').value = '';
+    $('#panel-lugar-rs').hidden = true;
+    estado.seleccion = null;
+    await calcularRevolucionSolar();
+    pintar();
+    $('.figura-rueda').scrollIntoView({ block: 'start', behavior: 'smooth' });
+});
 
 $('.figura-rueda').addEventListener('click', (e) => {
     if (!e.target.closest('[data-accion="editar-huso"]')) return;
@@ -483,6 +505,7 @@ function momentoRevolucionLocal() {
 function pintarControlesRevolucion() {
     const r = estado.modo === 'revolucion' && estado.revolucion?.resultado;
     $('#controles-rs').hidden = !r;
+    if (!r) $('#panel-lugar-rs').hidden = true;
     if (!r) return;
     const m = momentoRevolucionLocal();
     $('#nota-rs').textContent = `Revolución solar ${r.anio}: ${m.fecha} a las ${m.hora} h (${utcTexto(m.huso)}) ` +

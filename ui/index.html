@@ -208,6 +208,13 @@
             <figcaption id="detalle-punto" class="detalle-punto" aria-live="polite">Tocá un planeta para ver dónde está y con quién se relaciona.</figcaption>
         </figure>
 
+        <div id="panel-lugar-rs" class="campo lugar panel-lugar-rs" hidden>
+            <label for="lugar-rs-nuevo">¿Dónde pasás tu cumpleaños?</label>
+            <input id="lugar-rs-nuevo" type="text" autocomplete="off" placeholder="Escribí la ciudad o el pueblo"
+                role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias-rs-nuevo">
+            <ul id="sugerencias-rs-nuevo" class="sugerencias" role="listbox" hidden></ul>
+        </div>
+
         <details class="huso" id="huso">
             <summary>Huso horario usado</summary>
             <div id="advertencia-huso" class="advertencia" role="alert" hidden></div>
