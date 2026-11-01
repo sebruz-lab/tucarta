@@ -347,6 +347,36 @@ function acomodarEsquinas() {
     fig.style.paddingTop = p + 'px';
 }
 const acomodarLuego = () => requestAnimationFrame(acomodarEsquinas);
+
+// Pantalla completa: la rueda con sus esquinas ocupa toda la pantalla. Con
+// el modo del navegador si lo hay; si no (Safari en el iPhone), la figura
+// se agranda sobre la pagina.
+const enCompleta = () => document.fullscreenElement === $('.figura-rueda') || $('.figura-rueda').classList.contains('completa');
+async function pantallaCompleta(entrar) {
+    const fig = $('.figura-rueda');
+    if (entrar) {
+        evento('pantalla_completa', {});
+        try {
+            if (!fig.requestFullscreen) throw new Error('sin pantalla completa');
+            await fig.requestFullscreen({ navigationUI: 'hide' });
+        } catch {
+            fig.classList.add('completa');
+            document.body.classList.add('sin-scroll');
+        }
+    } else {
+        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+        fig.classList.remove('completa');
+        document.body.classList.remove('sin-scroll');
+    }
+    acomodarLuego();
+}
+document.addEventListener('fullscreenchange', acomodarLuego);
+$('.figura-rueda').addEventListener('click', (e) => {
+    if (e.target.closest('[data-completa="salir"]')) pantallaCompleta(false);
+});
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && $('.figura-rueda').classList.contains('completa')) pantallaCompleta(false);
+});
 window.addEventListener('resize', acomodarLuego);
 document.fonts?.ready.then(acomodarLuego);
 
@@ -1049,6 +1079,8 @@ document.querySelector('.barra-carta').addEventListener('click', async (e) => {
             avisar('No pudimos guardarla. Probá de nuevo en un rato.');
         }
         pintarBotonGuardar();
+    } else if (accion === 'pantalla-completa') {
+        if (!enCompleta()) pantallaCompleta(true);
     } else if (accion === 'descargar') {
         const b = e.target.closest('button');
         b.disabled = true;

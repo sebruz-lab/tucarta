@@ -380,6 +380,41 @@ details > summary {
 .panel-lugar-rs { margin-top: 12px; }
 .huso { margin-top: 12px; }
 @media (min-width: 640px) { .figura-rueda { margin: 0; } }
+/* Pantalla completa: la rueda centrada, lo mas grande que entre. */
+.salir-completa { display: none; }
+.figura-rueda:fullscreen, .figura-rueda.completa {
+    margin: 0;
+    background: var(--bg);
+    overflow: auto;
+    padding: 12px 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.figura-rueda.completa { position: fixed; inset: 0; z-index: 50; }
+.figura-rueda:fullscreen .esquina, .figura-rueda.completa .esquina { top: 12px; }
+@media (min-width: 640px) { .figura-rueda:fullscreen .esquina, .figura-rueda.completa .esquina { font-size: 0.9rem; } }
+.figura-rueda:fullscreen .esquina-izq, .figura-rueda.completa .esquina-izq { left: 16px; }
+.figura-rueda:fullscreen .esquina-der, .figura-rueda.completa .esquina-der { right: 16px; }
+.figura-rueda:fullscreen #rueda, .figura-rueda.completa #rueda { width: min(100%, calc(100vh - 90px)); margin: 0 auto; }
+.figura-rueda:fullscreen .rueda, .figura-rueda.completa .rueda { max-width: none; }
+.figura-rueda:fullscreen .salir-completa, .figura-rueda.completa .salir-completa {
+    display: block;
+    position: fixed;
+    right: 14px;
+    bottom: 12px;
+    z-index: 2;
+    font: inherit;
+    font-size: 1.8rem;
+    line-height: 1;
+    background: none;
+    border: none;
+    color: var(--texto-suave);
+    padding: 6px 10px;
+    cursor: pointer;
+}
+body.sin-scroll { overflow: hidden; }
 .rueda {
     display: block;
     width: 100%;
