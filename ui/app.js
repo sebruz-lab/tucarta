@@ -264,10 +264,13 @@ function pintarEsquinas(sistema) {
     if (rs) {
         // Revolucion: a la izquierda la natal (adentro), a la derecha la
         // revolucion (afuera), como en Solar Fire.
+        // El huso natal se edita tocando el UTC (o desde la Carta Natal).
         $('#esquina-izq').innerHTML = [
             renglon('Carta de adentro', 'leyenda'), renglon('Carta Natal', 'titulo-esquina'),
-            renglon(`${dia}/${m}/${a}`, 'principal'), renglon(`${d.hora} h (${utcTexto(o.total)})`, 'principal'),
-            ...renglonesLugar(l).map((t) => renglon(t)), botonHuso
+            renglon(`${dia}/${m}/${a}`, 'principal'),
+            `<span class="principal">${escapar(d.hora)} h (<button type="button" class="enlace-huso" data-accion="editar-huso">${utcTexto(o.total)}</button>)</span>`,
+            ...renglonesLugar(l).map((t) => renglon(t)),
+            estado.motivoHuso ? '<span class="aviso-esquina">ADVERTENCIA</span>' : ''
         ].join('');
         $('#esquina-der').innerHTML = [
             renglon('Carta de afuera', 'leyenda'), renglon(`Revolución solar ${estado.revolucion.anio}`, 'titulo-esquina'),
