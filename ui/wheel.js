@@ -9,20 +9,21 @@
 import { SIGNOS as G_SIGNOS, PUNTOS as G_PUNTOS, glifo } from './glyphs.js';
 import { SIGNOS } from '../engine/chart.js';
 
-// De afuera hacia adentro: signos, numeros de casa, planetas y aspectos.
+// De afuera hacia adentro: signos, planetas, numeros de casa y aspectos.
 const R_BASE = {
     exterior: 294,   // borde del anillo de signos
     signos: 254,     // borde interior del anillo de signos
-    casas: 228,      // borde interior del anillo de numeros de casa
-    planetas: 200,   // glifos de los planetas
-    grados: 168,     // grado de cada planeta
-    aspectos: 138    // circulo interior donde llegan los aspectos
+    planetas: 218,   // glifos de los planetas
+    grados: 184,     // grado de cada planeta
+    casas: 156,      // linea que separa los planetas del anillo de numeros de casa
+    numeros: 143,    // numeros de casa
+    aspectos: 130    // circulo interior donde llegan los aspectos
 };
 // La natal dentro de la revolucion: sin aspectos, el centro se achica y
 // los planetas ganan lugar (antes de escalar).
 // Los numeros de casa van del lado de adentro, junto al centro, y los
 // planetas ocupan el anillo que dejan libre.
-const R_NATAL_EN_RS = { exterior: 294, signos: 254, casas: null, planetas: 222, grados: 182, aspectos: 40, numeros: 56 };
+const R_NATAL_EN_RS = { exterior: 294, signos: 254, planetas: 222, grados: 182, casas: 72, numeros: 56, aspectos: 40 };
 
 // Clase de linea de cada aspecto (los colores estan en tucarta.css).
 const CLASE_ASPECTO = {
@@ -139,7 +140,7 @@ const R_DOBLE = { exterior: 294, glifos: 271 };
 // revolucion afuera con su propio zodiaco, sus casas y sus planetas con
 // grados. El centro queda sin lineas de aspectos.
 const ESCALA_RS = 0.7;
-const R_RS = { exterior: 294, signos: 270, planetas: 250, grados: 228, casas: 213 };
+const R_RS = { exterior: 294, signos: 270, planetas: 251, grados: 231, linea: 221, casas: 213 };
 
 // clara: rueda para el fondo blanco; si no, para el fondo oscuro. En las
 // dos los signos van en el color de su elemento.
@@ -162,7 +163,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
 
     // Circulos base.
     for (const [r, c] of [[R.exterior, 'borde'], [R.signos, 'borde'], [R.casas, 'fino'], [R.aspectos, 'fino']]) {
-        if (r) out.push(`<circle class="${c}" r="${r}"/>`);
+        out.push(`<circle class="${c}" r="${r}"/>`);
     }
 
     // Anillo de signos: divisiones, marcas de grados (en su borde interior)
@@ -186,7 +187,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         out.push(linea(c.lon, largo, R.aspectos, clase));
         const sig = carta.cusps[(i + 1) % 12].lon;
         const medio = c.lon + (((sig - c.lon) % 360) + 360) % 360 / 2;
-        const [x, y] = polar(medio, R.numeros || (R.signos + R.casas) / 2);
+        const [x, y] = polar(medio, R.numeros);
         out.push(`<text class="num-casa" x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
     });
     // Rotulos de los angulos, por fuera del anillo.
@@ -274,6 +275,8 @@ function anilloRevolucion(rs, natal, { polar, linea, seleccion, nombres }) {
     const borde = R_BASE.exterior * ESCALA_RS;
     const out = [`<g transform="scale(${ESCALA_RS})">${natal.join('')}</g>`];
     out.push(`<circle class="borde" r="${R2.exterior}"/>`, `<circle class="borde" r="${R2.signos}"/>`);
+    // Linea que separa los numeros de casa de los planetas.
+    out.push(`<circle class="fino" r="${R2.linea}"/>`);
 
     // Zodiaco propio de la revolucion.
     SIGNOS.forEach((s, i) => {
