@@ -71,10 +71,9 @@ export const ORBES_MENORES = {
     asc: 3, mc: 3
 };
 
-// Transitos: planetas que transitan (de la Luna a Pluton) y orbe por
-// aspecto, no por punto. Los menores activos son los mismos de la natal.
-export const PUNTOS_TRANSITO = ['sol', 'luna', 'mercurio', 'venus', 'marte',
-    'jupiter', 'saturno', 'urano', 'neptuno', 'pluton'];
+// Transitos: transitan todos los puntos de la carta, con orbe por
+// aspecto y no por punto. Los menores activos son los mismos de la natal.
+export const PUNTOS_TRANSITO = PUNTOS.map((p) => p.id);
 export const ORBES_TRANSITO = {
     conjuncion: 3, oposicion: 3, trigono: 2, cuadratura: 2, sextil: 2, menor: 1
 };

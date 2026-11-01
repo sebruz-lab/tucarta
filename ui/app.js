@@ -121,11 +121,40 @@ function leerFormulario() {
     };
 }
 
+// Que calcular: la carta natal sola o con transitos (y, mas adelante,
+// revolucion solar). Con transitos se pide tambien la fecha, hoy por defecto.
+function tipoElegido() {
+    const tipo = form.elements.tipo.value;
+    $('#campos-transito').hidden = tipo !== 'transitos';
+    try { localStorage.setItem('tucarta:tipo', tipo); } catch {}
+    return tipo;
+}
+form.elements.tipo.addEventListener('change', tipoElegido);
+form.elements.fechaT.addEventListener('input', barrasFecha);
+form.elements.fechaT.addEventListener('change', (e) => { e.target.value = anioCompleto(e.target.value.trim()); });
+
+// Fecha del transito pedida en la primera pagina (la de hoy si se borro).
+function transitoDelFormulario() {
+    const f = form.elements;
+    const fecha = fechaIso(f.fechaT.value.trim());
+    return fecha ? { fecha, hora: `${f.hhT.value}:${f.mmT.value}` } : momentoLocal(new Date());
+}
+
+// El modo con el que se abre una carta: el elegido en la primera pagina.
+function modoDelFormulario() {
+    estado.modo = tipoElegido();
+    if (estado.modo === 'transitos') estado.transito = transitoDelFormulario();
+}
+
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const datos = leerFormulario();
     if (typeof datos === 'string') return mostrarError(datos);
+    if (form.elements.tipo.value === 'transitos' && form.elements.fechaT.value.trim() && !fechaIso(form.elements.fechaT.value.trim())) {
+        return mostrarError('Revisá la fecha del tránsito: tiene que ser día, mes y año, por ejemplo 01/11/2026.');
+    }
     mostrarError('');
+    modoDelFormulario();
     estado.datos = datos;
     estado.seleccion = null;
     estado.corrigiendoHuso = false;
@@ -158,6 +187,7 @@ async function calcular({ nueva = false } = {}) {
 
     if (nueva) {
         evento('carta_calculada', {
+            tipo: estado.modo,
             sistema_casas: estado.ajustes.casas,
             orbes_modificados: orbesModificados(estado.ajustes),
             huso_corregido: Boolean(d.correccion)
@@ -444,6 +474,7 @@ document.querySelector('.acciones').addEventListener('click', (e) => {
             localStorage.removeItem(CLAVE_DATOS);
             localStorage.removeItem('tucarta:ajustes');
             localStorage.removeItem('tucarta:tema');
+            localStorage.removeItem('tucarta:tipo');
         } catch {}
         almacenLocal.borrarTodas();
         estado.ajustes = leerAjustes();
@@ -520,6 +551,7 @@ $('#lista-cartas').addEventListener('click', async (e) => {
         };
         estado.seleccion = null;
         estado.corrigiendoHuso = false;
+        modoDelFormulario();
         evento('carta_abierta', {});
         await calcular({ nueva: true });
     } else if (quitar) {
@@ -664,6 +696,18 @@ function restaurar() {
 }
 restaurar();
 pintarMisCartas();
+
+// Selector de la primera pagina: el ultimo elegido, y el transito en el
+// momento actual.
+form.elements.hhT.innerHTML = opcionesNum(24).replace('<option value="">--</option>', '');
+form.elements.mmT.innerHTML = opcionesNum(60).replace('<option value="">--</option>', '');
+{
+    const ahora = momentoLocal(new Date());
+    form.elements.fechaT.value = ahora.fecha.split('-').reverse().join('/');
+    [form.elements.hhT.value, form.elements.mmT.value] = ahora.hora.split(':');
+    try { if (localStorage.getItem('tucarta:tipo') === 'transitos') form.elements.tipo.value = 'transitos'; } catch {}
+    tipoElegido();
+}
 
 // Cuenta: al entrar o salir cambia donde se guardan las cartas.
 conectarCuenta({

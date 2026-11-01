@@ -82,6 +82,12 @@
     </details>
 
     <form id="datos" class="datos" novalidate>
+        <label class="campo"><span>¿Qué querés calcular?</span>
+            <select name="tipo">
+                <option value="natal">Carta Natal</option>
+                <option value="transitos">Carta Natal + tránsitos</option>
+            </select>
+        </label>
         <label class="campo"><span>Nombre <span class="opcional">(opcional)</span></span>
             <input type="text" name="nombre" autocomplete="given-name" maxlength="60">
         </label>
@@ -115,6 +121,20 @@
             </div>
             <label class="campo">Zona horaria <select name="zona"></select></label>
         </details>
+
+        <div id="campos-transito" class="fila" hidden>
+            <label class="campo"><span>Fecha del tránsito <span class="opcional">(DD/MM/AAAA)</span></span>
+                <input type="text" name="fechaT" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10">
+            </label>
+            <fieldset class="campo hora24">
+                <legend>Hora (24 h)</legend>
+                <div class="hora24-selects">
+                    <select name="hhT" aria-label="Hora del tránsito"></select>
+                    <span aria-hidden="true">:</span>
+                    <select name="mmT" aria-label="Minutos del tránsito"></select>
+                </div>
+            </fieldset>
+        </div>
 
         <p class="error" id="error-form" role="alert" hidden></p>
         <button type="submit" class="boton boton-principal">Calcular mi carta</button>

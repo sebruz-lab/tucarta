@@ -223,7 +223,6 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
     if (transitos) {
         const doble = [`<g transform="scale(${ESCALA_DOBLE})">${out.join('')}</g>`];
         const borde = R.exterior * ESCALA_DOBLE;
-        doble.push(`<circle class="borde" r="${R_DOBLE.exterior}"/>`);
         // Los ejes cruzan tambien el anillo de transitos.
         carta.cusps.forEach((c, i) => {
             if (i % 3 === 0) doble.push(linea(c.lon, borde, R_DOBLE.exterior + 6, i === 0 ? 'eje eje-ac' : 'eje'));

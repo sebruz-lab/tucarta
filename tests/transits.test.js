@@ -17,8 +17,7 @@ describe('tránsitos', () => {
     it('en el mismo instante del nacimiento cada planeta está conjunto a sí mismo', () => {
         const natal = calcularCarta(swe, nacimiento);
         const t = calcularTransitos(swe, { utc: nacimiento.utc, natal });
-        expect(t.puntos.map((p) => p.id)).toEqual(['sol', 'luna', 'mercurio', 'venus', 'marte',
-            'jupiter', 'saturno', 'urano', 'neptuno', 'pluton']);
+        expect(t.puntos.map((p) => p.id)).toEqual(natal.puntos.map((p) => p.id));
         for (const p of t.puntos) {
             const a = t.aspectos.find((x) => x.a === p.id && x.b === p.id);
             expect(a.aspecto).toBe('conjuncion');
