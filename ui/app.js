@@ -822,6 +822,10 @@ let guardadas = [];
 
 async function pintarMisCartas() {
     try { guardadas = await almacen.listar(); } catch (e) { console.error(e); guardadas = []; }
+    // En orden alfabetico por nombre (sin distinguir tildes ni mayusculas);
+    // las de un mismo nombre, por fecha.
+    guardadas.sort((a, b) => (a.nombre || 'Sin nombre').localeCompare(b.nombre || 'Sin nombre', 'es', { sensitivity: 'base', numeric: true }) ||
+        a.fecha.localeCompare(b.fecha));
     const sesion = sesionIniciada();
     $('#pregunta-intro').hidden = sesion;
     $('#texto-intro').hidden = sesion;
