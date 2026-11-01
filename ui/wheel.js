@@ -20,7 +20,9 @@ const R_BASE = {
 };
 // La natal dentro de la revolucion: sin aspectos, el centro se achica y
 // los planetas ganan lugar (antes de escalar).
-const R_NATAL_EN_RS = { exterior: 294, signos: 254, casas: 228, planetas: 180, grados: 138, aspectos: 40 };
+// Los numeros de casa van del lado de adentro, junto al centro, y los
+// planetas ocupan el anillo que dejan libre.
+const R_NATAL_EN_RS = { exterior: 294, signos: 254, casas: null, planetas: 222, grados: 182, aspectos: 40, numeros: 56 };
 
 // Clase de linea de cada aspecto (los colores estan en tucarta.css).
 const CLASE_ASPECTO = {
@@ -160,7 +162,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
 
     // Circulos base.
     for (const [r, c] of [[R.exterior, 'borde'], [R.signos, 'borde'], [R.casas, 'fino'], [R.aspectos, 'fino']]) {
-        out.push(`<circle class="${c}" r="${r}"/>`);
+        if (r) out.push(`<circle class="${c}" r="${r}"/>`);
     }
 
     // Anillo de signos: divisiones, marcas de grados (en su borde interior)
@@ -184,7 +186,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         out.push(linea(c.lon, largo, R.aspectos, clase));
         const sig = carta.cusps[(i + 1) % 12].lon;
         const medio = c.lon + (((sig - c.lon) % 360) + 360) % 360 / 2;
-        const [x, y] = polar(medio, (R.signos + R.casas) / 2);
+        const [x, y] = polar(medio, R.numeros || (R.signos + R.casas) / 2);
         out.push(`<text class="num-casa" x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
     });
     // Rotulos de los angulos, por fuera del anillo.
