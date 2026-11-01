@@ -86,6 +86,7 @@
             <select name="tipo">
                 <option value="natal">Carta Natal</option>
                 <option value="transitos">Carta Natal + tránsitos</option>
+                <option value="calendario">Carta Natal + calendario de tránsitos</option>
             </select>
         </label>
         <label class="campo"><span>Nombre <span class="opcional">(opcional)</span></span>
@@ -123,10 +124,10 @@
         </details>
 
         <div id="campos-transito" class="fila" hidden>
-            <label class="campo"><span>Fecha del tránsito <span class="opcional">(DD/MM/AAAA)</span></span>
+            <label class="campo"><span><span id="etiqueta-fechaT">Fecha del tránsito</span> <span class="opcional">(DD/MM/AAAA)</span></span>
                 <input type="text" name="fechaT" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10">
             </label>
-            <fieldset class="campo hora24">
+            <fieldset class="campo hora24" id="hora-transito">
                 <legend>Hora (24 h)</legend>
                 <div class="hora24-selects">
                     <select name="hhT" aria-label="Hora del tránsito"></select>
@@ -144,15 +145,19 @@
     <div id="cargando" class="cargando" hidden aria-live="polite">Calculando…</div>
 
     <section id="resultado" class="resultado" hidden>
+        <button type="button" class="volver" data-accion="volver">‹ Volver</button>
         <header class="resultado-cabecera">
             <h2 id="titulo-carta">Tu carta</h2>
             <p id="resumen-datos" class="nota visualmente-oculto"></p>
         </header>
 
-        <div class="modo-carta" role="tablist" aria-label="Qué querés ver">
-            <button type="button" role="tab" data-modo="natal" aria-selected="true">Carta natal</button>
-            <button type="button" role="tab" data-modo="transitos" aria-selected="false">Tránsitos</button>
-        </div>
+        <label class="campo modo-carta"><span class="visualmente-oculto">Qué querés ver</span>
+            <select id="selector-modo">
+                <option value="natal">Carta Natal</option>
+                <option value="transitos">Carta Natal + tránsitos</option>
+                <option value="calendario">Carta Natal + calendario de tránsitos</option>
+            </select>
+        </label>
 
         <form id="form-transito" class="controles-transito" novalidate hidden>
             <div class="fila">
@@ -197,6 +202,17 @@
             <button type="button" class="boton" data-accion="guardar">Guardar en mis cartas</button>
         </div>
         <p id="aviso-carta" class="nota aviso-carta" role="status" hidden></p>
+
+        <section id="calendario" class="calendario" aria-labelledby="titulo-calendario" hidden>
+            <h2 id="titulo-calendario">Calendario de tránsitos</h2>
+            <p class="nota">Júpiter, Saturno, Urano, Neptuno, Plutón, Quirón y el Nodo sobre tu carta. Tocá un tránsito para verlo en la rueda.</p>
+            <div class="cal-periodo">
+                <button type="button" data-cal="-1" aria-label="12 meses antes">‹ 12 meses</button>
+                <span id="cal-periodo"></span>
+                <button type="button" data-cal="1" aria-label="12 meses después">12 meses ›</button>
+            </div>
+            <div id="cal-lista"></div>
+        </section>
         <div id="para-imagen" class="para-imagen" aria-hidden="true"></div>
 
         <section class="interpretaciones" aria-label="Tu Sol, tu Luna y tu Ascendente">

@@ -18,6 +18,7 @@ import { NOMBRE_PUNTO, escapar, utcTexto, duracionTexto, coordTexto } from './te
 import { SISTEMAS_CASAS } from '../engine/config.js';
 import { almacenLocal, igualQue } from './miscartas.js';
 import { imagenCarta, entregarImagen } from './descarga.js';
+import { listaCalendario, jdDeFecha, fechaDeJd, fechaCorta, fechaParaVer } from './calendario.js';
 import { conectarCuenta, sesionIniciada } from './panelCuenta.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -32,7 +33,8 @@ const estado = {
     carta: null,
     seleccion: null,    // punto tocado en la rueda ("t-..." si esta en transito)
     corrigiendoHuso: false,
-    modo: 'natal',      // 'natal' | 'transitos'
+    modo: 'natal',      // 'natal' | 'transitos' | 'calendario'
+    calendario: null,   // { desde: 'AAAA-MM-DD', lista }
     transito: null,     // { fecha: 'AAAA-MM-DD', hora: 'HH:MM' } en la hora del dispositivo
     transitos: null     // resultado de engine/transits.js
 };
@@ -125,7 +127,9 @@ function leerFormulario() {
 // revolucion solar). Con transitos se pide tambien la fecha, hoy por defecto.
 function tipoElegido() {
     const tipo = form.elements.tipo.value;
-    $('#campos-transito').hidden = tipo !== 'transitos';
+    $('#campos-transito').hidden = tipo === 'natal';
+    $('#etiqueta-fechaT').textContent = tipo === 'calendario' ? 'Desde' : 'Fecha del tránsito';
+    $('#hora-transito').hidden = tipo === 'calendario';
     try { localStorage.setItem('tucarta:tipo', tipo); } catch {}
     return tipo;
 }
@@ -144,13 +148,14 @@ function transitoDelFormulario() {
 function modoDelFormulario() {
     estado.modo = tipoElegido();
     if (estado.modo === 'transitos') estado.transito = transitoDelFormulario();
+    if (estado.modo === 'calendario') estado.calendario = { desde: transitoDelFormulario().fecha };
 }
 
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const datos = leerFormulario();
     if (typeof datos === 'string') return mostrarError(datos);
-    if (form.elements.tipo.value === 'transitos' && form.elements.fechaT.value.trim() && !fechaIso(form.elements.fechaT.value.trim())) {
+    if (form.elements.tipo.value !== 'natal' && form.elements.fechaT.value.trim() && !fechaIso(form.elements.fechaT.value.trim())) {
         return mostrarError('Revisá la fecha del tránsito: tiene que ser día, mes y año, por ejemplo 01/11/2026.');
     }
     mostrarError('');
@@ -180,6 +185,7 @@ async function calcular({ nueva = false } = {}) {
         return;
     }
     if (estado.modo === 'transitos') await calcularTransitos();
+    if (estado.modo === 'calendario') await calcularCalendario();
     $('#cargando').hidden = true;
     guardarDatos();
     pintar();
@@ -332,8 +338,9 @@ async function calcularTransitos() {
 
 function pintarControlesTransito() {
     const enTransitos = estado.modo === 'transitos';
-    document.querySelectorAll('[data-modo]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.modo === estado.modo)));
+    $('#selector-modo').value = estado.modo;
     formTransito.hidden = !enTransitos;
+    pintarCalendario();
     if (!enTransitos || !estado.transito) return;
     const f = formTransito.elements;
     if (document.activeElement !== f.fecha) f.fecha.value = estado.transito.fecha.split('-').reverse().join('/');
@@ -348,16 +355,79 @@ async function cambiarTransito(nuevo) {
     pintar();
 }
 
-document.querySelector('.modo-carta').addEventListener('click', async (e) => {
-    const modo = e.target.closest('[data-modo]')?.dataset.modo;
-    if (!modo || modo === estado.modo) return;
+// Menu de la pagina de la carta: cambia la vista al instante y queda
+// elegido tambien en el de la primera pagina.
+$('#selector-modo').addEventListener('change', async (e) => {
+    const modo = e.target.value;
+    if (modo === estado.modo) return;
     estado.modo = modo;
+    form.elements.tipo.value = modo;
+    tipoElegido();
     estado.seleccion = null;
     if (modo === 'transitos') {
         await calcularTransitos();
         evento('transitos_vistos', {});
     }
+    if (modo === 'calendario') {
+        $('#cargando').hidden = false;
+        await calcularCalendario();
+        $('#cargando').hidden = true;
+        evento('calendario_visto', {});
+    }
     pintar();
+});
+
+// ---------- Calendario de transitos ----------
+
+// Periodo de 12 meses desde la fecha elegida (00:00 del dispositivo).
+function periodoCalendario() {
+    estado.calendario ||= { desde: momentoLocal(new Date()).fecha };
+    const [a, m, d] = estado.calendario.desde.split('-').map(Number);
+    return { desde: jdDeFecha(new Date(a, m - 1, d)), hasta: jdDeFecha(new Date(a + 1, m - 1, d)) };
+}
+
+async function calcularCalendario() {
+    const { desde, hasta } = periodoCalendario();
+    try {
+        estado.calendario.lista = await calcularEnWorker({
+            tipo: 'calendario', natal: estado.carta, desde, hasta, ajustes: estado.ajustes
+        });
+    } catch (err) {
+        console.error(err);
+        estado.calendario.lista = null;
+    }
+}
+
+function pintarCalendario() {
+    const visible = estado.modo === 'calendario' && estado.calendario?.lista;
+    $('#calendario').hidden = !visible;
+    if (!visible) return;
+    const { desde, hasta } = periodoCalendario();
+    $('#cal-periodo').textContent = `Del ${fechaCorta(desde)} al ${fechaCorta(hasta)}`;
+    $('#cal-lista').innerHTML = listaCalendario(estado.calendario.lista, desde, hasta);
+}
+
+$('#calendario').addEventListener('click', async (e) => {
+    const paso = e.target.closest('[data-cal]')?.dataset.cal;
+    const item = e.target.closest('[data-cal-item]')?.dataset.calItem;
+    if (paso) {
+        const [a, m, d] = estado.calendario.desde.split('-').map(Number);
+        estado.calendario = { desde: momentoLocal(new Date(a + Number(paso), m - 1, d)).fecha };
+        $('#cargando').hidden = false;
+        await calcularCalendario();
+        $('#cargando').hidden = true;
+        pintar();
+    } else if (item != null) {
+        // A la rueda doble, en la fecha exacta del transito.
+        const t = estado.calendario.lista[Number(item)];
+        const { desde, hasta } = periodoCalendario();
+        estado.modo = 'transitos';
+        estado.seleccion = 't-' + t.a;
+        estado.transito = momentoLocal(fechaDeJd(fechaParaVer(t, desde, hasta)));
+        await calcularTransitos();
+        pintar();
+        $('.modo-carta').scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
 });
 
 formTransito.addEventListener('click', (e) => {
@@ -482,6 +552,10 @@ document.querySelector('.acciones').addEventListener('click', (e) => {
         lugarElegido = null;
         mostrarFormulario();
     }
+});
+
+$('#resultado').addEventListener('click', (e) => {
+    if (e.target.closest('[data-accion="volver"]')) mostrarFormulario();
 });
 
 function mostrarFormulario() {
@@ -705,7 +779,10 @@ form.elements.mmT.innerHTML = opcionesNum(60).replace('<option value="">--</opti
     const ahora = momentoLocal(new Date());
     form.elements.fechaT.value = ahora.fecha.split('-').reverse().join('/');
     [form.elements.hhT.value, form.elements.mmT.value] = ahora.hora.split(':');
-    try { if (localStorage.getItem('tucarta:tipo') === 'transitos') form.elements.tipo.value = 'transitos'; } catch {}
+    try {
+        const tipo = localStorage.getItem('tucarta:tipo');
+        if (tipo === 'transitos' || tipo === 'calendario') form.elements.tipo.value = tipo;
+    } catch {}
     tipoElegido();
 }
 

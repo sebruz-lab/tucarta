@@ -610,28 +610,22 @@ details > summary {
 .tipo-aspecto.quincuncio .icono { color: var(--asp-quincuncio); }
 .tipo-aspecto .icono { margin: 0 2px; }
 
-/* ---------- Natal / transitos ---------- */
-
-.modo-carta {
-    display: flex;
-    border: 1px solid var(--linea-fuerte);
-    border-radius: 50px;
-    padding: 3px;
-    gap: 2px;
-    margin: 8px 0 16px;
-}
-.modo-carta button {
-    flex: 1;
+.volver {
+    display: block;
+    margin-right: auto;
+    text-align: left;
     font: inherit;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     background: none;
     border: none;
     color: var(--texto-suave);
-    padding: 9px 12px;
-    border-radius: 50px;
+    padding: 16px 0 4px;
     cursor: pointer;
 }
-.modo-carta button[aria-selected="true"] { background: var(--texto); color: var(--bg); }
+
+/* ---------- Natal / transitos ---------- */
+
+.modo-carta { margin: 8px 0 16px; }
 .controles-transito { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
 .pasos-transito { display: flex; gap: 6px; }
 .pasos-transito button {
@@ -649,6 +643,59 @@ details > summary {
 .pasos-transito [data-paso="hoy"] { border-color: var(--linea-fuerte); }
 .controles-transito .nota { margin: 0; }
 .tabla .en-transito .icono { color: var(--transito); }
+
+/* ---------- Calendario de transitos ---------- */
+
+.calendario { margin-top: 24px; }
+.calendario h2 { font-size: 1.4rem; margin-bottom: 6px; }
+.cal-periodo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 14px 0 6px;
+    font-size: 0.9rem;
+}
+.cal-periodo button {
+    font: inherit;
+    font-size: 0.82rem;
+    background: var(--superficie);
+    border: 1px solid var(--linea);
+    color: var(--texto);
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.cal-mes {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--amarillo);
+    margin: 22px 0 4px;
+    font-weight: 400;
+}
+.cal-lista { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--linea); }
+.cal-lista li { border-bottom: 1px solid var(--linea); }
+.cal-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    font: inherit;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--texto);
+    padding: 11px 0;
+    cursor: pointer;
+}
+.cal-titulo { font-size: 0.95rem; line-height: 1.6; }
+.cal-titulo .icono { vertical-align: -3px; margin: 0 4px 0 6px; color: var(--texto); }
+.cal-titulo > .icono:first-child, .cal-titulo .en-transito .icono { margin-left: 0; }
+.cal-titulo .en-transito .icono { color: var(--transito); }
+.cal-pasadas { color: var(--texto-suave); font-size: 0.85rem; }
+.cal-fechas { font-size: 0.82rem; color: var(--texto-suave); }
 
 /* ---------- Descargar y guardar ---------- */
 
@@ -826,4 +873,11 @@ details > summary {
 @media (min-width: 640px) {
     .botones-consulta { flex-direction: row; }
     .acciones { flex-direction: row; gap: 24px; }
+}
+
+/* En la compu la rueda sale de la columna de texto para verse mas grande. */
+@media (min-width: 900px) {
+    .figura-rueda { margin: 0 calc((100% - min(860px, 100vw - 48px)) / 2); }
+    .rueda { max-width: 860px; }
+    .esquina { font-size: 0.82rem; }
 }
