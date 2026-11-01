@@ -21,7 +21,7 @@ import { SISTEMAS_CASAS } from '../engine/config.js';
 import { almacenLocal, igualQue } from './miscartas.js';
 import { imagenCarta, entregarImagen } from './descarga.js';
 import { listaCalendario, jdDeFecha, fechaDeJd, fechaCorta, fechaParaVer } from './calendario.js';
-import { conectarCuenta, sesionIniciada, conCuenta } from './panelCuenta.js';
+import { conectarCuenta, sesionIniciada, conCuenta, abrirEntrar } from './panelCuenta.js';
 import { leerArchivoCartas, textoDeArchivo } from './importar.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -870,7 +870,17 @@ $('#buscar-cartas').addEventListener('input', () => pintarMisCartas());
 // ---------- Importar cartas (de Solar Fire; se lee en el navegador) ----------
 
 let paraImportar = [];
-$('[data-importar]').addEventListener('click', () => $('#archivo-cartas').click());
+// Importar es para quien tiene cuenta: las cartas quedan en su base de datos.
+$('[data-importar]').addEventListener('click', () => {
+    if (conCuenta()) {
+        $('#nota-importar').hidden = true;
+        $('#archivo-cartas').click();
+        return;
+    }
+    $('#nota-importar').textContent = 'Para importar tus cartas, entrá con tu cuenta: quedan guardadas en ella y las ves desde cualquier dispositivo.';
+    $('#nota-importar').hidden = false;
+    abrirEntrar();
+});
 $('#archivo-cartas').addEventListener('change', async (e) => {
     const archivos = [...e.target.files];
     e.target.value = '';
@@ -902,9 +912,7 @@ function pintarImportar(formatos, salteadas) {
         <span><span class="nombre">${escapar(c.nombre || 'Sin nombre')}</span>
         <span class="nota">${c.fecha.split('-').reverse().join('/')} · ${escapar(c.hora)} h · ${escapar(c.lugar.nombre)}</span></span>
     </label></li>`).join('');
-    $('#imp-destino').textContent = hay
-        ? (conCuenta() ? 'Se guardan en tu cuenta: las vas a ver desde cualquier dispositivo.' : 'Se guardan en este dispositivo.')
-        : '';
+    $('#imp-destino').textContent = hay ? 'Se guardan en tu cuenta: las vas a ver desde cualquier dispositivo.' : '';
     $('[data-imp="importar"]').hidden = !hay;
     contarImportar();
 }
@@ -928,6 +936,7 @@ $('#ventana-importar').addEventListener('click', async (e) => {
     if (accion === 'cerrar') {
         $('#ventana-importar').close();
     } else if (accion === 'importar') {
+        if (!conCuenta()) return $('#ventana-importar').close();
         const elegidas = [...$('#imp-lista').querySelectorAll('input:checked')].map((c) => paraImportar[Number(c.dataset.i)]);
         const b = e.target.closest('button');
         b.disabled = true;

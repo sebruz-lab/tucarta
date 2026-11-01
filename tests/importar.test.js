@@ -29,9 +29,9 @@ describe('importar cartas de Solar Fire', () => {
         expect(ARCHIVO).toContain('Pegadoo31 Dec 2014');
     });
 
-    it('fecha, hora (con segundos) y lugar', () => {
+    it('fecha, hora (sin segundos) y lugar', () => {
         expect(cartas[0]).toMatchObject({ fecha: '1984-03-01', hora: '13:15', lugar: { nombre: 'Moron', paisNombre: 'Argentina' } });
-        expect(cartas[1].hora).toBe('17:00:45');
+        expect(cartas[1].hora).toBe('17:00');
         expect(cartas[3]).toMatchObject({ nombre: 'Dina Partida', fecha: '1979-05-15', hora: '07:50' });
     });
 

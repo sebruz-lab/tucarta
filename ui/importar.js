@@ -3,7 +3,7 @@
 //
 // Cada lector recibe el texto y devuelve { cartas, salteadas }, con cartas
 // en el formato de los datos del formulario: { nombre, fecha 'AAAA-MM-DD',
-// hora 'HH:MM[:SS]', lugar, correccion, eleccion }. La correccion es el huso
+// hora 'HH:MM' (sin segundos), lugar, correccion, eleccion }. La correccion es el huso
 // que uso el programa de origen, asi la carta da igual que alla.
 
 const MESES = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6, Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12 };
@@ -66,13 +66,13 @@ export function leerSolarFire(texto) {
             fecha.lastIndex = i + 1;
             continue;
         }
-        const [d, mes, a, h, min, s] = [m[1], MESES[m[2]], m[3], m[4], m[5], m[6]];
+        const [d, mes, a, h, min] = [m[1], MESES[m[2]], m[3], m[4], m[5]];
         const lugar = campo(37, 20).trim();
         const pais = campo(57, 20).trim();
         cartas.push({
             nombre: nombre.slice(0, 60),
             fecha: `${a}-${dos(mes)}-${dos(d)}`,
-            hora: `${dos(h)}:${min}${s ? ':' + s : ''}`,
+            hora: `${dos(h)}:${min}`, // los segundos no hacen falta
             lugar: {
                 nombre: lugar || 'Lugar sin nombre', paisNombre: pais || undefined, lat, lon,
                 zona: ZONA_PAIS[sinTildes(pais)] || zonaFija(huso)
