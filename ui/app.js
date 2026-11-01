@@ -16,11 +16,13 @@ import { bloquesInterpretacion, idsInterpretacion } from './interp.js';
 import { textosInterpretacion, configRemota } from './firestore.js';
 import { CONFIG_POR_DEFECTO } from './config.js';
 import { evento } from './analytics.js';
-import { NOMBRE_PUNTO, escapar, utcTexto, duracionTexto, coordTexto } from './textos.js';
-import { SISTEMAS_CASAS } from '../engine/config.js';
+import { NOMBRE_PUNTO, NOMBRE_ASPECTO, escapar, utcTexto, duracionTexto, coordTexto } from './textos.js';
+import { SISTEMAS_CASAS, PUNTOS, ANGULOS } from '../engine/config.js';
 import { almacenLocal, igualQue } from './miscartas.js';
 import { imagenCarta, entregarImagen } from './descarga.js';
 import { listaCalendario, jdDeFecha, fechaDeJd, fechaCorta, fechaParaVer } from './calendario.js';
+import { dibujarEfemerides, geometria } from './efemerides.js';
+import { TRANSITAN_EFEMERIDES } from '../engine/efemerides.js';
 import { conectarCuenta, sesionIniciada, conCuenta, abrirEntrar, esAdmin } from './panelCuenta.js';
 import { leerArchivoCartas, textoDeArchivo, completarLugares } from './importar.js';
 import { buscar as buscarLugar } from './form.js';
@@ -138,15 +140,17 @@ function leerFormulario() {
 const esRS = (m) => m === 'revolucion' || m === 'revolucion-sola';
 const esPR = (m) => m === 'progresion' || m === 'progresion-sola';
 const esSola = (m) => m === 'revolucion-sola' || m === 'progresion-sola';
-const MODOS = ['natal', 'revolucion-sola', 'revolucion', 'transitos', 'calendario', 'progresion-sola', 'progresion'];
+const MODOS = ['natal', 'revolucion-sola', 'revolucion', 'transitos', 'calendario', 'efemerides', 'progresion-sola', 'progresion'];
+// Vistas sin rueda: listas y graficos de tiempo.
+const sinRueda = (m) => m === 'calendario' || m === 'efemerides';
 
 // Que calcular. Transitos, calendario y progresiones piden una fecha (hoy
 // por defecto); la revolucion, donde se pasa el cumpleanios.
 function tipoElegido() {
     const tipo = form.elements.tipo.value;
-    $('#campos-transito').hidden = !(tipo === 'transitos' || tipo === 'calendario' || esPR(tipo));
+    $('#campos-transito').hidden = !(tipo === 'transitos' || sinRueda(tipo) || esPR(tipo));
     $('#campos-revolucion').hidden = !esRS(tipo);
-    $('#etiqueta-fechaT').textContent = tipo === 'calendario' ? 'Desde' : esPR(tipo) ? 'Progresar al' : 'Fecha del tránsito';
+    $('#etiqueta-fechaT').textContent = sinRueda(tipo) ? 'Desde' : esPR(tipo) ? 'Progresar al' : 'Fecha del tránsito';
     $('#hora-transito').hidden = tipo !== 'transitos';
     try { localStorage.setItem('tucarta:tipo', tipo); } catch {}
     return tipo;
@@ -167,6 +171,7 @@ function modoDelFormulario() {
     estado.modo = tipoElegido();
     if (estado.modo === 'transitos') estado.transito = transitoDelFormulario();
     if (estado.modo === 'calendario') estado.calendario = { desde: transitoDelFormulario().fecha };
+    if (estado.modo === 'efemerides') estado.efemerides = { anio: Number(transitoDelFormulario().fecha.slice(0, 4)) };
     if (esRS(estado.modo)) estado.revolucion = { anio: null, lugar: lugarRS };
     if (esPR(estado.modo)) estado.progresion = { fecha: transitoDelFormulario().fecha };
 }
@@ -206,6 +211,7 @@ async function calcular({ nueva = false } = {}) {
     }
     if (estado.modo === 'transitos') await calcularTransitos();
     if (estado.modo === 'calendario') await calcularCalendario();
+    if (estado.modo === 'efemerides') await calcularEfemerides();
     if (esRS(estado.modo)) await calcularRevolucionSolar();
     if (esPR(estado.modo)) await calcularProgresion();
     $('#cargando').hidden = true;
@@ -592,6 +598,7 @@ function pintarControlesTransito() {
     document.querySelectorAll('.modos-completa [data-modo]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modo === estado.modo)));
     formTransito.hidden = !enTransitos;
     pintarCalendario();
+    pintarEfemerides();
     pintarControlesRevolucion();
     pintarControlesProgresion();
     if (!enTransitos || !estado.transito) return;
@@ -658,6 +665,12 @@ async function aplicarModo(modo) {
         await calcularCalendario();
         $('#cargando').hidden = true;
         evento('calendario_visto', {});
+    }
+    if (modo === 'efemerides') {
+        $('#cargando').hidden = false;
+        await calcularEfemerides();
+        $('#cargando').hidden = true;
+        evento('efemerides_vistas', {});
     }
     pintar();
 }
@@ -787,7 +800,7 @@ function pintarCalendario() {
     const visible = estado.modo === 'calendario' && estado.calendario?.lista;
     $('#calendario').hidden = !visible;
     // En el calendario va directo la lista: la rueda aparece al tocar un transito.
-    for (const sel of ['.figura-rueda', '.barra-carta', '#huso']) $(sel).hidden = estado.modo === 'calendario';
+    for (const sel of ['.figura-rueda', '.barra-carta', '#huso']) $(sel).hidden = sinRueda(estado.modo);
     if (!visible) return;
     const { desde, hasta } = periodoCalendario();
     $('#cal-periodo').textContent = `Del ${fechaCorta(desde)} al ${fechaCorta(hasta)}`;
@@ -815,6 +828,136 @@ $('#calendario').addEventListener('click', async (e) => {
         pintar();
         $('.modo-carta').scrollIntoView({ block: 'start', behavior: 'smooth' });
     }
+});
+
+// ---------- Efemerides graficas ----------
+
+// Lo elegido (periodo, modulo, planetas y puntos) queda en el dispositivo.
+const EF_POR_DEFECTO = { anios: 2, modulo: 30, transitan: TRANSITAN_EFEMERIDES, natales: null };
+const PUNTOS_EF = PUNTOS.filter((p) => p.id !== 'luna'); // la Luna da la vuelta al modulo cada dos dias
+let ef = { ...EF_POR_DEFECTO };
+try { ef = { ...EF_POR_DEFECTO, ...JSON.parse(localStorage.getItem('tucarta:efemerides') || '{}') }; } catch {}
+const guardarEf = () => { try { localStorage.setItem('tucarta:efemerides', JSON.stringify(ef)); } catch {} };
+
+function periodoEfemerides() {
+    estado.efemerides ||= { anio: new Date().getFullYear() };
+    const a = estado.efemerides.anio;
+    return { desde: jdDeFecha(new Date(a, 0, 1)), hasta: jdDeFecha(new Date(a + ef.anios, 0, 1)) };
+}
+
+async function calcularEfemerides() {
+    const { desde, hasta } = periodoEfemerides();
+    try {
+        estado.efemerides.datos = await calcularEnWorker({
+            tipo: 'efemerides', natal: estado.carta, desde, hasta,
+            modulo: ef.modulo, planetas: ef.transitan, natales: ef.natales
+        });
+    } catch (err) {
+        console.error(err);
+        estado.efemerides.datos = null;
+    }
+    estado.efemerides.cruce = null;
+}
+
+const casilla = (grupo, id, nombre, marcada) =>
+    `<label class="casilla"><input type="checkbox" data-ef-${grupo}="${id}"${marcada ? ' checked' : ''}> ${escapar(nombre)}</label>`;
+
+function pintarEfemerides() {
+    const e = estado.modo === 'efemerides' && estado.efemerides?.datos;
+    $('#efemerides').hidden = !e;
+    document.body.classList.toggle('vista-efemerides', Boolean(e));
+    if (!e) return;
+    const { desde, hasta } = periodoEfemerides();
+    $('#ef-periodo').textContent = `${fechaCorta(desde)} al ${fechaCorta(hasta)}`;
+    $('#ef-subtitulo').dataset.periodo = `del ${fechaCorta(desde)} al ${fechaCorta(hasta)}`;
+    $('#ef-subtitulo').textContent = [estado.datos.nombre, 'Tránsitos geocéntricos', `módulo ${ef.modulo}°`].filter(Boolean).join(' · ');
+    $('#ef-anios').value = String(ef.anios);
+    $('#ef-modulo').value = String(ef.modulo);
+    $('#ef-transitan').innerHTML = PUNTOS_EF.map((p) => casilla('t', p.id, NOMBRE_PUNTO[p.id] || p.nombre, ef.transitan.includes(p.id))).join('');
+    const natales = [...PUNTOS, ...ANGULOS];
+    $('#ef-natales').innerHTML = natales.map((p) => casilla('n', p.id, NOMBRE_PUNTO[p.id] || p.nombre, !ef.natales || ef.natales.includes(p.id))).join('');
+    $('#ef-grafico').innerHTML = dibujarEfemerides(e, { hoy: jdDeFecha(new Date()) });
+    pintarDetalleEf();
+}
+
+function pintarDetalleEf() {
+    const e = estado.efemerides.datos;
+    const c = e.cruces[estado.efemerides.cruce];
+    $('#ef-detalle').innerHTML = !c
+        ? 'Pasá el mouse para ver la fecha y el grado; tocá un aspecto para ver el detalle.'
+        : `<strong>${escapar(NOMBRE_PUNTO[c.a])} en tránsito, ${escapar(NOMBRE_ASPECTO[c.aspecto].toLowerCase())} a ${escapar(NOMBRE_PUNTO[c.b])} natal</strong>` +
+          ` · exacto el ${fechaCorta(c.jd)} <button type="button" class="boton-texto en-linea" data-ef-ver>Ver en la rueda</button>`;
+    document.querySelectorAll('#ef-grafico .ef-cruce').forEach((g) => g.classList.toggle('sel', Number(g.dataset.cruce) === estado.efemerides.cruce));
+}
+
+async function recalcularEfemerides() {
+    guardarEf();
+    $('#cargando').hidden = false;
+    await calcularEfemerides();
+    $('#cargando').hidden = true;
+    pintarEfemerides();
+}
+
+$('#efemerides').addEventListener('click', async (e) => {
+    const paso = e.target.closest('[data-ef]')?.dataset.ef;
+    const cruce = e.target.closest('[data-cruce]')?.dataset.cruce;
+    if (paso) {
+        estado.efemerides.anio += Number(paso) * ef.anios;
+        await recalcularEfemerides();
+    } else if (cruce != null) {
+        estado.efemerides.cruce = Number(cruce);
+        pintarDetalleEf();
+    } else if (e.target.closest('[data-ef-ver]')) {
+        // A la rueda doble, el dia exacto del aspecto.
+        const c = estado.efemerides.datos.cruces[estado.efemerides.cruce];
+        estado.modo = 'transitos';
+        estado.seleccion = 't-' + c.a;
+        estado.transito = momentoLocal(fechaDeJd(c.jd));
+        await calcularTransitos();
+        pintar();
+        $('.modo-carta').scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+});
+
+$('#efemerides').addEventListener('change', async (e) => {
+    const t = e.target;
+    if (t.id === 'ef-anios') ef.anios = Number(t.value);
+    else if (t.id === 'ef-modulo') ef.modulo = Number(t.value);
+    else if (t.dataset.efT) {
+        ef.transitan = [...document.querySelectorAll('[data-ef-t]:checked')].map((c) => c.dataset.efT);
+    } else if (t.dataset.efN) {
+        const marcados = [...document.querySelectorAll('[data-ef-n]:checked')].map((c) => c.dataset.efN);
+        ef.natales = marcados.length === PUNTOS.length + ANGULOS.length ? null : marcados;
+    } else return;
+    const abierto = $('.ef-ajustes').open;
+    await recalcularEfemerides();
+    $('.ef-ajustes').open = abierto;
+});
+
+// Lectura de fecha y grado bajo el mouse (o el dedo).
+$('#ef-grafico').addEventListener('pointermove', (e) => {
+    const svg = e.target.closest('svg');
+    const datos = estado.efemerides?.datos;
+    if (!svg || !datos) return;
+    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.getScreenCTM().inverse());
+    const g = geometria(datos);
+    const linea = svg.querySelector('.ef-cursor');
+    const texto = svg.querySelector('.ef-lectura');
+    const dentro = g.dentro(p.x, p.y);
+    linea.setAttribute('visibility', dentro ? 'visible' : 'hidden');
+    texto.setAttribute('visibility', dentro ? 'visible' : 'hidden');
+    if (!dentro) return;
+    const grado = g.grado(p.y);
+    const gr = Math.floor(grado);
+    const min = Math.floor((grado - gr) * 60);
+    linea.setAttribute('x1', p.x);
+    linea.setAttribute('x2', p.x);
+    texto.setAttribute('x', p.x + (p.x > 900 ? -8 : 8));
+    texto.setAttribute('text-anchor', p.x > 900 ? 'end' : 'start');
+    texto.textContent = `${fechaCorta(g.jd(p.x))} · ${gr}°${String(min).padStart(2, '0')}'`;
+});
+$('#ef-grafico').addEventListener('pointerleave', () => {
+    document.querySelectorAll('#ef-grafico .ef-cursor, #ef-grafico .ef-lectura').forEach((x) => x.setAttribute('visibility', 'hidden'));
 });
 
 formTransito.addEventListener('click', (e) => {

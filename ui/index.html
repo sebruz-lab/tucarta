@@ -145,6 +145,7 @@
                 <option value="revolucion">Carta Natal + Revolución Solar</option>
                 <option value="transitos">Carta Natal + tránsitos</option>
                 <option value="calendario">Calendario de tránsitos</option>
+                <option value="efemerides">Efemérides gráficas</option>
                 <option value="progresion-sola">Progresiones secundarias</option>
                 <option value="progresion">Carta Natal + Progresiones</option>
             </select>
@@ -230,6 +231,7 @@
                 <option value="revolucion">Carta Natal + Revolución Solar</option>
                 <option value="transitos">Carta Natal + tránsitos</option>
                 <option value="calendario">Calendario de tránsitos</option>
+                <option value="efemerides">Efemérides gráficas</option>
                 <option value="progresion-sola">Progresiones secundarias</option>
                 <option value="progresion">Carta Natal + Progresiones</option>
             </select>
@@ -337,6 +339,38 @@
                 <button type="button" data-cal="6" aria-label="6 meses después">6 meses ›</button>
             </div>
             <div id="cal-lista"></div>
+        </section>
+        <section id="efemerides" class="efemerides" aria-labelledby="titulo-efemerides" hidden>
+            <h2 id="titulo-efemerides">Efemérides gráficas</h2>
+            <p class="nota" id="ef-subtitulo"></p>
+            <div class="ef-controles">
+                <div class="cal-periodo">
+                    <button type="button" data-ef="-1" aria-label="Período anterior">‹‹</button>
+                    <span id="ef-periodo"></span>
+                    <button type="button" data-ef="1" aria-label="Período siguiente">››</button>
+                </div>
+                <label class="campo">Período
+                    <select id="ef-anios">
+                        <option value="1">1 año</option>
+                        <option value="2">2 años</option>
+                        <option value="5">5 años</option>
+                    </select>
+                </label>
+                <label class="campo">Módulo
+                    <select id="ef-modulo">
+                        <option value="30">30° (todos los aspectos)</option>
+                        <option value="45">45° (aspectos tensos)</option>
+                        <option value="90">90° (conjunción, cuadratura y oposición)</option>
+                    </select>
+                </label>
+            </div>
+            <details class="ef-ajustes">
+                <summary>Qué planetas y puntos mostrar</summary>
+                <fieldset><legend>En tránsito</legend><div id="ef-transitan" class="ef-casillas"></div></fieldset>
+                <fieldset><legend>De la carta natal</legend><div id="ef-natales" class="ef-casillas"></div></fieldset>
+            </details>
+            <div id="ef-grafico" class="ef-grafico"></div>
+            <p id="ef-detalle" class="ef-detalle" aria-live="polite"></p>
         </section>
         <div id="para-imagen" class="para-imagen" aria-hidden="true"></div>
 
