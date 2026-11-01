@@ -36,13 +36,15 @@ export function momentoRevolucion(swe, natal, anio) {
     return jd;
 }
 
-// anio: el de la revolucion; o null para la del proximo cumpleanios
-// contando desde `ahora` (dia juliano).
+// anio: el de la revolucion; o null para la del cumpleanios mas cercano a
+// `ahora` (dia juliano), ya haya pasado o este por venir.
 export function calcularRevolucion(swe, { natal, anio = null, ahora, lat, lon, ajustes = AJUSTES_POR_DEFECTO }) {
     let a = anio;
     if (a == null) {
-        a = utcDeJd(ahora).anio;
-        if (momentoRevolucion(swe, natal, a) < ahora) a += 1;
+        const este = utcDeJd(ahora).anio;
+        a = [este - 1, este, este + 1]
+            .map((x) => ({ x, d: Math.abs(momentoRevolucion(swe, natal, x) - ahora) }))
+            .sort((p, q) => p.d - q.d)[0].x;
     }
     const jd = momentoRevolucion(swe, natal, a);
     const utc = utcDeJd(jd);

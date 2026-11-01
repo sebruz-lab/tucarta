@@ -283,13 +283,21 @@
             <div id="esquina-der" class="esquina esquina-der"></div>
             <div id="rueda"></div>
             <figcaption id="detalle-punto" class="detalle-punto" aria-live="polite">Tocá un planeta para ver dónde está y con quién se relaciona.</figcaption>
-            <div class="modos-completa" role="group" aria-label="Qué querés ver">
-                <button type="button" data-modo="natal" title="Carta Natal">CN</button>
-                <button type="button" data-modo="revolucion-sola" title="Revolución Solar">RS</button>
-                <button type="button" data-modo="revolucion" title="Carta Natal + Revolución Solar">CN + RS</button>
-                <button type="button" data-modo="transitos" title="Carta Natal + tránsitos">CN + Tr</button>
-                <button type="button" data-modo="progresion-sola" title="Progresiones secundarias">PR</button>
-                <button type="button" data-modo="progresion" title="Carta Natal + Progresiones">CN + PR</button>
+            <button type="button" class="entrar-completa" data-completa="entrar" aria-label="Ver en pantalla completa" title="Pantalla completa"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+            <div class="panel-completa">
+                <button type="button" class="cambiar-carta" data-completa="cartas" aria-expanded="false">Mis cartas</button>
+                <div class="cartas-completa" hidden>
+                    <input type="search" class="buscar-completa" placeholder="Buscar por nombre" aria-label="Buscar en tus cartas">
+                    <ul class="lista-completa"></ul>
+                </div>
+                <div class="modos-completa" role="group" aria-label="Qué querés ver">
+                    <button type="button" data-modo="natal">Carta Natal</button>
+                    <button type="button" data-modo="revolucion-sola">Revolución Solar</button>
+                    <button type="button" data-modo="revolucion">Carta Natal +<br>Revolución Solar</button>
+                    <button type="button" data-modo="transitos">Carta Natal +<br>tránsitos</button>
+                    <button type="button" data-modo="progresion-sola">Progresiones<br>secundarias</button>
+                    <button type="button" data-modo="progresion">Carta Natal +<br>Progresiones</button>
+                </div>
             </div>
             <button type="button" class="salir-completa" data-completa="salir" aria-label="Salir de pantalla completa">×</button>
         </figure>
@@ -310,6 +318,7 @@
         <div class="barra-carta">
             <button type="button" class="boton" data-accion="pantalla-completa">Pantalla completa</button>
             <button type="button" class="boton" data-accion="descargar">Descargar imagen</button>
+            <button type="button" class="boton" data-accion="imprimir">Imprimir</button>
             <button type="button" class="boton" data-accion="guardar">Guardar en mis cartas</button>
         </div>
         <p id="aviso-carta" class="nota aviso-carta" role="status" hidden></p>

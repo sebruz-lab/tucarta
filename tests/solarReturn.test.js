@@ -22,12 +22,12 @@ describe('revolución solar', () => {
         }
     });
 
-    it('sin año: la del próximo cumpleaños', () => {
-        const ahora = diaJuliano(swe, { anio: 2026, mes: 11, dia: 1, hora: 12, minuto: 0 });
-        expect(calcularRevolucion(swe, { natal, ahora, lat: -34.65, lon: -58.62 }).anio).toBe(2027);
-        const antes = diaJuliano(swe, { anio: 2026, mes: 2, dia: 1, hora: 12, minuto: 0 });
-        expect(calcularRevolucion(swe, { natal, ahora: antes, lat: -34.65, lon: -58.62 }).anio).toBe(2026);
-        expect(momentoRevolucion(swe, natal, 2027)).toBeGreaterThan(ahora);
+    it('sin año: la del cumpleaños más cercano (pasado o por venir)', () => {
+        const rs = (anio, mes, dia) => calcularRevolucion(swe, { natal, ahora: diaJuliano(swe, { anio, mes, dia, hora: 12, minuto: 0 }), lat: -34.65, lon: -58.62 }).anio;
+        expect(rs(2026, 11, 1)).toBe(2027); // faltan 4 meses; pasaron 8
+        expect(rs(2026, 2, 1)).toBe(2026);  // falta 1 mes
+        expect(rs(2026, 5, 1)).toBe(2026);  // pasaron 2 meses: la de este año
+        expect(rs(2027, 1, 10)).toBe(2027); // a fin de enero, la de marzo
     });
 
     it('las casas dependen del lugar del cumpleaños', () => {

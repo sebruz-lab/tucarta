@@ -42,7 +42,7 @@ const estado = {
     // | 'progresion-sola' | 'progresion'
     modo: 'natal',
     calendario: null,   // { desde: 'AAAA-MM-DD', lista }
-    revolucion: null,   // { anio (null: el proximo cumpleanios), lugar (null: el de nacimiento), resultado }
+    revolucion: null,   // { anio (null: el cumpleanios mas cercano), lugar (null: el de nacimiento), resultado }
     progresion: null,   // { fecha: 'AAAA-MM-DD' (a la que se progresa), resultado }
     transito: null,     // { fecha: 'AAAA-MM-DD', hora: 'HH:MM' } en la hora del dispositivo
     transitos: null     // resultado de engine/transits.js
@@ -279,8 +279,12 @@ function pintarEsquinas(sistema) {
     const { sola, externa } = cartasVista();
     const otra = sola || externa;
     const coords = (x) => renglon(`${coordTexto(x.lat, 'N', 'S')} ${coordTexto(x.lon, 'E', 'O')}`);
+    // El nombre arriba de todo a la izquierda (en pantalla completa es lo
+    // unico que dice de quien es la carta).
+    const nombre = renglon(d.nombre, 'nombre-esquina');
+    $('.cambiar-carta').hidden = !guardadas.length;
     const poner = (izq, der) => {
-        $('#esquina-izq').innerHTML = izq.join('');
+        $('#esquina-izq').innerHTML = [nombre, ...izq].join('');
         $('#esquina-der').innerHTML = der.join('');
     };
     // La natal: el huso se edita tocando el UTC (o desde la Carta Natal).
@@ -312,7 +316,7 @@ function pintarEsquinas(sistema) {
         return;
     }
     $('#esquina-izq').innerHTML = [
-        renglon(`${dia}/${m}/${a}`, 'principal'), renglon(`${d.hora} h`, 'principal'), ...renglonesLugar(l).map((t) => renglon(t))
+        nombre, renglon(`${dia}/${m}/${a}`, 'principal'), renglon(`${d.hora} h`, 'principal'), ...renglonesLugar(l).map((t) => renglon(t))
     ].join('');
     $('#esquina-der').innerHTML = [
         renglon([utcTexto(o.total), d.correccion ? 'corregido a mano' : verano].filter(Boolean).join(' · '), 'principal'),
@@ -372,15 +376,54 @@ async function pantallaCompleta(entrar) {
     acomodarLuego();
 }
 document.addEventListener('fullscreenchange', acomodarLuego);
+// Panel de pantalla completa: otra carta de "Mis cartas" y las vistas
+// (todas menos el calendario, que no tiene rueda). Con mouse, la vista
+// cambia al pasar por la palabra; tocando, al tocarla.
 $('.figura-rueda').addEventListener('click', (e) => {
-    if (e.target.closest('[data-completa="salir"]')) pantallaCompleta(false);
-    // En pantalla completa se cambia de vista sin salir (todas menos el
-    // calendario, que no tiene rueda).
+    const accion = e.target.closest('[data-completa]')?.dataset.completa;
+    if (accion === 'salir') pantallaCompleta(false);
+    else if (accion === 'entrar') pantallaCompleta(true);
+    else if (accion === 'cartas') mostrarCartasCompleta($('.cartas-completa').hidden);
     const modo = e.target.closest('.modos-completa [data-modo]')?.dataset.modo;
-    if (modo) {
-        $('#selector-modo').value = modo;
-        $('#selector-modo').dispatchEvent(new Event('change'));
+    if (modo) cambiarModo(modo);
+    const id = e.target.closest('[data-abrir-completa]')?.dataset.abrirCompleta;
+    if (id) {
+        mostrarCartasCompleta(false);
+        abrirGuardada(guardadas.find((c) => c.id === id), { mismaVista: true });
     }
+});
+let esperaModo;
+$('.modos-completa').addEventListener('pointerover', (e) => {
+    const modo = e.pointerType === 'mouse' && e.target.closest('[data-modo]')?.dataset.modo;
+    if (!modo) return;
+    clearTimeout(esperaModo);
+    esperaModo = setTimeout(() => cambiarModo(modo), 120);
+});
+$('.modos-completa').addEventListener('pointerleave', () => clearTimeout(esperaModo));
+
+function mostrarCartasCompleta(abrir) {
+    $('.cartas-completa').hidden = !abrir;
+    $('.cambiar-carta').setAttribute('aria-expanded', String(abrir));
+    if (abrir) {
+        $('.buscar-completa').value = '';
+        pintarCartasCompleta();
+        $('.buscar-completa').focus();
+    }
+}
+function pintarCartasCompleta() {
+    const r = buscarEnLista(guardadas.map((c) => c.nombre), $('.buscar-completa').value);
+    const marcadas = new Set(r.coinciden);
+    $('.lista-completa').innerHTML = guardadas.map((c, i) => `<li${marcadas.has(i) ? ' class="coincide"' : ''}>
+        <button type="button" data-abrir-completa="${escapar(c.id)}">${escapar(c.nombre || 'Sin nombre')}
+        <span class="nota">${c.fecha.split('-').reverse().join('/')}${c.tipo && c.tipo !== 'natal' ? ' · ' + TIPOS[c.tipo] : ''}</span></button></li>`).join('');
+    const li = $('.lista-completa').children[r.indice];
+    $('.lista-completa').scrollTop = li ? li.offsetTop : 0;
+}
+$('.buscar-completa').addEventListener('input', pintarCartasCompleta);
+$('.buscar-completa').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    $('.lista-completa .coincide button')?.click();
 });
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && $('.figura-rueda').classList.contains('completa')) pantallaCompleta(false);
@@ -529,8 +572,31 @@ async function cambiarTransito(nuevo) {
 
 // Menu de la pagina de la carta: cambia la vista al instante y queda
 // elegido tambien en el de la primera pagina.
-$('#selector-modo').addEventListener('change', async (e) => {
-    const modo = e.target.value;
+// Cambio de vista. Van de a uno: si se pide otro mientras se calcula (al
+// pasar el mouse por el panel de pantalla completa), queda el ultimo.
+let cambiandoModo = false;
+let modoPendiente = null;
+async function cambiarModo(modo) {
+    if (cambiandoModo) {
+        modoPendiente = modo;
+        return;
+    }
+    cambiandoModo = true;
+    try {
+        await aplicarModo(modo);
+    } finally {
+        cambiandoModo = false;
+    }
+    if (modoPendiente) {
+        const m = modoPendiente;
+        modoPendiente = null;
+        cambiarModo(m);
+    }
+}
+$('#selector-modo').addEventListener('change', (e) => cambiarModo(e.target.value));
+
+async function aplicarModo(modo) {
+    $('#selector-modo').value = modo;
     if (modo === estado.modo) return;
     estado.modo = modo;
     form.elements.tipo.value = modo;
@@ -556,7 +622,7 @@ $('#selector-modo').addEventListener('change', async (e) => {
         evento('calendario_visto', {});
     }
     pintar();
-});
+}
 
 // ---------- Revolucion solar ----------
 
@@ -1097,17 +1163,7 @@ $('#lista-cartas').addEventListener('click', async (e) => {
     const abrir = e.target.closest('[data-abrir]')?.dataset.abrir;
     const quitar = e.target.closest('[data-quitar]')?.dataset.quitar;
     if (abrir) {
-        const c = guardadas.find((x) => x.id === abrir);
-        if (!c) return;
-        estado.datos = {
-            nombre: c.nombre || '', fecha: c.fecha, hora: c.hora, lugar: c.lugar,
-            correccion: c.correccion || null, eleccion: c.eleccion || 0, tipo: c.tipo, grupo: c.grupo
-        };
-        estado.seleccion = null;
-        estado.corrigiendoHuso = false;
-        modoDelFormulario();
-        evento('carta_abierta', {});
-        await calcular({ nueva: true });
+        await abrirGuardada(guardadas.find((x) => x.id === abrir));
     } else if (quitar) {
         const c = guardadas.find((x) => x.id === quitar);
         if (!c || !confirm(`¿Borrar la carta de ${c.nombre || 'Sin nombre'}?`)) return;
@@ -1115,6 +1171,25 @@ $('#lista-cartas').addEventListener('click', async (e) => {
         pintarMisCartas();
     }
 });
+
+// Abre una carta guardada. mismaVista: en la vista que se esta mirando
+// (desde la pantalla completa); si no, en la elegida en el formulario.
+async function abrirGuardada(c, { mismaVista = false } = {}) {
+    if (!c) return;
+    estado.datos = {
+        nombre: c.nombre || '', fecha: c.fecha, hora: c.hora, lugar: c.lugar,
+        correccion: c.correccion || null, eleccion: c.eleccion || 0, tipo: c.tipo, grupo: c.grupo
+    };
+    estado.seleccion = null;
+    estado.corrigiendoHuso = false;
+    if (mismaVista) {
+        form.elements.tipo.value = estado.modo;
+        estado.revolucion = null;
+    }
+    modoDelFormulario();
+    evento('carta_abierta', { pantalla_completa: mismaVista });
+    await calcular({ nueva: !mismaVista });
+}
 
 function avisar(texto) {
     $('#aviso-carta').textContent = texto;
@@ -1143,6 +1218,9 @@ document.querySelector('.barra-carta').addEventListener('click', async (e) => {
             avisar('No pudimos guardarla. Probá de nuevo en un rato.');
         }
         pintarBotonGuardar();
+    } else if (accion === 'imprimir') {
+        evento('carta_impresa', { tipo: estado.modo });
+        window.print();
     } else if (accion === 'pantalla-completa') {
         if (!enCompleta()) pantallaCompleta(true);
     } else if (accion === 'descargar') {
@@ -1230,6 +1308,22 @@ function aplicarTema(nuevo, { medir = false } = {}) {
     if (estado.carta) pintarRueda();
     if (medir) evento('cambio_fondo', { fondo: tema });
 }
+// Impresa, siempre en fondo claro (sin cambiar lo que eligio la persona).
+let temaAntesDeImprimir = null;
+window.addEventListener('beforeprint', () => {
+    if (tema === 'claro') return;
+    temaAntesDeImprimir = tema;
+    tema = 'claro';
+    document.body.classList.add('tema-claro');
+    if (estado.carta) pintarRueda();
+});
+window.addEventListener('afterprint', () => {
+    if (!temaAntesDeImprimir) return;
+    tema = temaAntesDeImprimir;
+    temaAntesDeImprimir = null;
+    document.body.classList.remove('tema-claro');
+    if (estado.carta) pintarRueda();
+});
 document.querySelector('.selector-tema').addEventListener('click', (e) => {
     const b = e.target.closest('[data-tema]');
     if (b) aplicarTema(b.dataset.tema, { medir: true });
