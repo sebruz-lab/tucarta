@@ -1258,13 +1258,15 @@ body.sin-scroll { overflow: hidden; }
     box-sizing: border-box;
 }
 #efemerides.completa { position: fixed; inset: 0; z-index: 50; }
-#efemerides:fullscreen .ef-acciones, #efemerides.completa .ef-acciones { display: none; }
+/* En pantalla completa va solo el grafico (sin titulo ni configuradores). */
+#efemerides:fullscreen > :not(.ef-grafico):not(.ef-salir), #efemerides.completa > :not(.ef-grafico):not(.ef-salir) { display: none; }
+#efemerides:fullscreen, #efemerides.completa { display: flex; flex-direction: column; justify-content: center; }
 /* En pantallas anchas entra todo; en el celular sigue deslizandose. */
 @media (min-width: 900px) {
     #efemerides:fullscreen .ef-grafico, #efemerides.completa .ef-grafico { margin: 0; padding: 0; overflow: visible; }
     #efemerides:fullscreen .ef-svg, #efemerides.completa .ef-svg {
         min-width: 0;
-        width: min(100%, calc((100vh - 190px) * 1200 / 700));
+        width: min(100%, calc((100vh - 40px) * 1200 / 700));
         margin: 0 auto;
     }
 }
