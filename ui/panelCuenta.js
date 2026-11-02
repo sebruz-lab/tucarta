@@ -10,7 +10,7 @@ import { evento } from './analytics.js';
 const $ = (sel) => document.querySelector(sel);
 
 // estado: 'cargando' | 'fuera' | 'sin-aceptar' | 'adentro'
-const cuenta = { estado: 'cargando', email: '', novedades: false, datos: null };
+const cuenta = { estado: 'cargando', email: '', novedades: false, datos: null, admin: false };
 let mod = null;           // cuenta.js, cuando termina de cargar
 let alCambiar = () => {};
 let quiereUsarla = false; // entro desde la ventana: seguir al aviso
@@ -18,9 +18,10 @@ let quiereUsarla = false; // entro desde la ventana: seguir al aviso
 export const conCuenta = () => cuenta.estado === 'adentro';
 export const sesionIniciada = () => cuenta.estado === 'adentro' || cuenta.estado === 'sin-aceptar';
 // Las cuentas de Seba (las mismas que administran la escuela): ven las
-// herramientas internas, como importar la planilla de inscripciones.
-const ADMINS = ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
-export const esAdmin = () => conCuenta() && ADMINS.includes((cuenta.email || '').toLowerCase());
+// herramientas internas, como importar la planilla de inscripciones. La
+// lista de admins vive solo en el servidor (functions/index.js); acá no se
+// compara ningún email, solo se confirma lo que dijo chequearAdmin().
+export const esAdmin = () => conCuenta() && cuenta.admin === true;
 
 // alCambiarAlmacen(almacen): se llama cada vez que cambia donde se guardan
 // las cartas.
@@ -40,12 +41,13 @@ export function conectarCuenta({ alCambiarAlmacen }) {
 
 async function sesionCambiada(usuario) {
     if (!usuario) {
-        Object.assign(cuenta, { estado: 'fuera', email: '', datos: null });
+        Object.assign(cuenta, { estado: 'fuera', email: '', datos: null, admin: false });
         pintar();
         alCambiar(almacenLocal);
         return;
     }
     cuenta.email = usuario.email || '';
+    cuenta.admin = await mod.chequearAdmin(usuario);
     cuenta.datos = mod.datosDeCuenta(usuario);
     let perfil = null;
     try { perfil = await cuenta.datos.perfil(); } catch (e) { console.error(e); }

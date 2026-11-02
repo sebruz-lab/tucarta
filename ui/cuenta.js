@@ -33,6 +33,29 @@ export const crearCuenta = (email, pass) => createUserWithEmailAndPassword(auth,
 export const recuperarClave = (email) => sendPasswordResetEmail(auth, email);
 export const salir = () => signOut(auth);
 
+const FUNCIONES = 'https://us-central1-sebabru-e5563.cloudfunctions.net';
+
+// Confirma del lado del servidor si esta cuenta es admin (la lista de
+// emails vive en functions/index.js, no acá) y, si lo es, deja puesto el
+// custom claim para la próxima vez. Ante cualquier error de red devuelve
+// false -- nunca desbloquea nada "por las dudas".
+export async function chequearAdmin(usuario) {
+    try {
+        const idToken = await usuario.getIdToken();
+        const r = await fetch(`${FUNCIONES}/fijarClaimsAdmin`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${idToken}` },
+        });
+        if (!r.ok) return false;
+        const { admin } = await r.json();
+        if (admin) await usuario.getIdToken(true); // refresca el token con el claim nuevo
+        return Boolean(admin);
+    } catch (e) {
+        console.error(e);
+        return false;
+    }
+}
+
 // Mensajes sin el codigo crudo de Firebase: no confirman si un mail ya
 // tiene cuenta (igual que en la escuela).
 export function mensajeError(e) {
