@@ -1246,6 +1246,42 @@ body.sin-scroll { overflow: hidden; }
 .ef-svg .ef-lectura { fill: var(--texto); font-size: 12px; pointer-events: none; paint-order: stroke; stroke: var(--bg); stroke-width: 4px; }
 .ef-detalle { font-size: 0.9rem; color: var(--texto-suave); min-height: 1.5em; margin: 10px 0 0; }
 .ef-detalle strong { color: var(--texto); font-weight: 400; }
+.ef-acciones { margin-top: 14px; }
+/* Pantalla completa del grafico: lo mas grande que entre, sin deslizar. */
+.ef-salir { display: none; }
+#efemerides:fullscreen, #efemerides.completa {
+    margin: 0;
+    padding: 14px 20px;
+    background: var(--bg);
+    overflow: auto;
+    box-sizing: border-box;
+}
+#efemerides.completa { position: fixed; inset: 0; z-index: 50; }
+#efemerides:fullscreen .ef-acciones, #efemerides.completa .ef-acciones { display: none; }
+/* En pantallas anchas entra todo; en el celular sigue deslizandose. */
+@media (min-width: 900px) {
+    #efemerides:fullscreen .ef-grafico, #efemerides.completa .ef-grafico { margin: 0; padding: 0; overflow: visible; }
+    #efemerides:fullscreen .ef-svg, #efemerides.completa .ef-svg {
+        min-width: 0;
+        width: min(100%, calc((100vh - 190px) * 1200 / 700));
+        margin: 0 auto;
+    }
+}
+#efemerides:fullscreen .ef-salir, #efemerides.completa .ef-salir {
+    display: block;
+    position: fixed;
+    top: 10px;
+    right: 14px;
+    z-index: 2;
+    font: inherit;
+    font-size: 1.8rem;
+    line-height: 1;
+    background: none;
+    border: none;
+    color: var(--texto-suave);
+    padding: 6px 10px;
+    cursor: pointer;
+}
 
 /* ---------- Imprimir ---------- */
 /* A4 vertical: lo que limita es el ancho, asi que la rueda ocupa todo el
@@ -1311,7 +1347,8 @@ body.sin-scroll { overflow: hidden; }
     body.vista-efemerides, body.vista-efemerides main, body.vista-efemerides #resultado { page: apaisada; }
     body.vista-efemerides #resultado > .figura-rueda { display: none !important; }
     body.vista-efemerides #resultado > #efemerides { display: block !important; page: apaisada; padding: 10mm 12mm 0; }
-    body.vista-efemerides .ef-controles, body.vista-efemerides .ef-ajustes, body.vista-efemerides .ef-detalle { display: none !important; }
+    body.vista-efemerides .ef-controles, body.vista-efemerides .ef-ajustes, body.vista-efemerides .ef-detalle,
+    body.vista-efemerides .ef-acciones, body.vista-efemerides .ef-salir { display: none !important; }
     body.vista-efemerides #efemerides h2 { font-size: 13pt; }
     body.vista-efemerides #ef-subtitulo::after { content: ' · ' attr(data-periodo); }
     .ef-grafico { overflow: visible; margin: 0 !important; padding: 0; }

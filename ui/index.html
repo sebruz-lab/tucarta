@@ -341,6 +341,7 @@
             <div id="cal-lista"></div>
         </section>
         <section id="efemerides" class="efemerides" aria-labelledby="titulo-efemerides" hidden>
+            <button type="button" class="ef-salir" data-ef-accion="salir" aria-label="Salir de pantalla completa">×</button>
             <h2 id="titulo-efemerides">Efemérides gráficas</h2>
             <p class="nota" id="ef-subtitulo"></p>
             <div class="ef-controles">
@@ -371,6 +372,11 @@
             </details>
             <div id="ef-grafico" class="ef-grafico"></div>
             <p id="ef-detalle" class="ef-detalle" aria-live="polite"></p>
+            <div class="barra-carta ef-acciones">
+                <button type="button" class="boton" data-ef-accion="completa">Pantalla completa</button>
+                <button type="button" class="boton" data-ef-accion="descargar">Descargar imagen</button>
+                <button type="button" class="boton" data-ef-accion="imprimir">Imprimir</button>
+            </div>
         </section>
         <div id="para-imagen" class="para-imagen" aria-hidden="true"></div>
 

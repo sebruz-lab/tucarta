@@ -25,7 +25,7 @@ async function fuente() {
 }
 
 // svg: un <svg> ya insertado en la pagina (hace falta para leer sus estilos).
-async function svgAutonomo(svg, lado) {
+async function svgAutonomo(svg, ancho, alto = ancho) {
     const copia = svg.cloneNode(true);
     const originales = [svg, ...svg.querySelectorAll('*')];
     const copias = [copia, ...copia.querySelectorAll('*')];
@@ -35,8 +35,8 @@ async function svgAutonomo(svg, lado) {
         copias[i].setAttribute('style', estilo);
     });
     copia.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    copia.setAttribute('width', lado);
-    copia.setAttribute('height', lado);
+    copia.setAttribute('width', ancho);
+    copia.setAttribute('height', alto);
     copia.insertAdjacentHTML('afterbegin',
         `<style>@font-face{font-family:'Outfit';font-weight:300 600;src:url(data:font/woff2;base64,${await fuente()}) format('woff2');}</style>`);
     return new XMLSerializer().serializeToString(copia);
@@ -95,6 +95,36 @@ export async function imagenCarta(svg, { titulo, datos, colores }) {
     ctx.font = '300 26px Outfit, sans-serif';
     ctx.fillText('sebabru.com/cartas', ANCHO / 2, ALTO - 40);
 
+    return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+}
+
+// Imagen de las efemerides graficas: apaisada, con el titulo, el periodo
+// y el grafico a lo ancho.
+export async function imagenEfemerides(svg, { titulo, datos, colores }) {
+    const [, , vw, vh] = svg.getAttribute('viewBox').split(' ').map(Number);
+    const ancho = 2400;
+    const w = ancho - 120;
+    const h = Math.round(w * vh / vw);
+    const alto = h + 260;
+    const img = await cargarImagen('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(await svgAutonomo(svg, w, h)));
+    await document.fonts.load('300 40px Outfit');
+    const canvas = document.createElement('canvas');
+    canvas.width = ancho;
+    canvas.height = alto;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = colores.fondo;
+    ctx.fillRect(0, 0, ancho, alto);
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = colores.texto;
+    ctx.font = '300 52px Outfit, sans-serif';
+    ctx.fillText(titulo, 60, 96);
+    ctx.fillStyle = colores.suave;
+    ctx.font = '300 30px Outfit, sans-serif';
+    ctx.fillText(datos, 60, 146);
+    ctx.drawImage(img, 60, 190, w, h);
+    ctx.textAlign = 'right';
+    ctx.font = '300 26px Outfit, sans-serif';
+    ctx.fillText('sebabru.com/cartas', ancho - 60, alto - 30);
     return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
 }
 

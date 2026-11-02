@@ -17,7 +17,7 @@ const COLOR_ASPECTO = {
 };
 
 // Medidas del grafico (unidades del viewBox).
-export const MEDIDAS = { ancho: 1200, alto: 700, izq: 46, der: 74, arriba: 76, abajo: 40 };
+export const MEDIDAS = { ancho: 1200, alto: 700, izq: 84, der: 84, arriba: 80, abajo: 44 };
 const f = (n) => n.toFixed(1);
 const norm = (x, m) => ((x % m) + m) % m;
 
@@ -41,6 +41,12 @@ const glifoPunto = (id, x, y, t) => (G_PUNTOS[id]
     : `<text x="${f(x)}" y="${f(y)}" class="ef-angulo">${id === 'asc' ? 'AC' : 'MC'}</text>`);
 const signoDe = (lon) => SIGNOS[Math.floor(norm(lon, 360) / 30)];
 
+// Separa rotulos ordenados por `y` para que queden al menos a `paso` (deja
+// la posicion final en `ry`).
+function separar(lista, paso) {
+    lista.forEach((r, i) => { r.ry = i ? Math.max(r.y, lista[i - 1].ry + paso) : r.y; });
+}
+
 export function dibujarEfemerides(e, { hoy = null } = {}) {
     const { ancho, alto, izq, der, arriba, abajo } = MEDIDAS;
     const g = geometria(e);
@@ -52,7 +58,7 @@ export function dibujarEfemerides(e, { hoy = null } = {}) {
     const paso = e.modulo === 90 ? 10 : 5;
     for (let d = 0; d <= e.modulo; d += paso) {
         out.push(`<line class="ef-grilla" x1="${izq}" x2="${ancho - der}" y1="${f(g.y(d))}" y2="${f(g.y(d))}"/>`);
-        out.push(`<text class="ef-grado" x="${izq - 6}" y="${f(g.y(d))}">${d}°</text>`);
+        out.push(`<text class="ef-grado" x="${izq - 4}" y="${f(g.y(d))}">${d}°</text>`);
     }
 
     // Anios y meses arriba.
@@ -87,14 +93,14 @@ export function dibujarEfemerides(e, { hoy = null } = {}) {
     for (const n of rotulos) {
         out.push(`<line class="ef-natal" data-punto="${n.id}" x1="${izq}" x2="${ancho - der}" y1="${f(n.y)}" y2="${f(n.y)}"/>`);
     }
-    for (let i = 1; i < rotulos.length; i++) rotulos[i].ry = Math.max(rotulos[i].y, (rotulos[i - 1].ry ?? rotulos[i - 1].y) + 15);
+    separar(rotulos, 18);
     for (const n of rotulos) {
         const ry = n.ry ?? n.y;
         const x = ancho - der + 14;
         if (Math.abs(ry - n.y) > 1) out.push(`<line class="ef-guia" x1="${ancho - der}" x2="${x - 8}" y1="${f(n.y)}" y2="${f(ry)}"/>`);
-        out.push(`<g class="punto" data-punto="${n.id}">${glifoPunto(n.id, x, ry, 15.6)}</g>`);
+        out.push(`<g class="punto" data-punto="${n.id}">${glifoPunto(n.id, x, ry, 18.7)}</g>`);
         const signo = signoDe(n.lon);
-        out.push(`<g class="ef-signo">${glifo(G_SIGNOS[signo], x + 20, ry, 11, '', `elem-${['fuego', 'tierra', 'aire', 'agua'][SIGNOS.indexOf(signo) % 4]}`)}</g>`);
+        out.push(`<g class="ef-signo">${glifo(G_SIGNOS[signo], x + 24, ry, 12, '', `elem-${['fuego', 'tierra', 'aire', 'agua'][SIGNOS.indexOf(signo) % 4]}`)}</g>`);
     }
 
     // Planetas en transito: una linea por tramo (se corta al pasar de un
@@ -116,8 +122,8 @@ export function dibujarEfemerides(e, { hoy = null } = {}) {
                         const directo = m < prev;
                         const y = directo ? arriba - 8 : alto - abajo + 12;
                         const signo = signoDe(lon);
-                        out.push(`<g class="punto ef-ingreso" data-punto="${l.id}">${glifo(G_PUNTOS[l.id], x, directo ? y - 14 : y, 13.2)}</g>`);
-                        out.push(`<g class="ef-signo">${glifo(G_SIGNOS[signo], x, directo ? y : y + 14, 10, '', `elem-${['fuego', 'tierra', 'aire', 'agua'][SIGNOS.indexOf(signo) % 4]}`)}</g>`);
+                        out.push(`<g class="punto ef-ingreso" data-punto="${l.id}">${glifo(G_PUNTOS[l.id], x, directo ? y - 17 : y, 15.8)}</g>`);
+                        out.push(`<g class="ef-signo">${glifo(G_SIGNOS[signo], x, directo ? y : y + 17, 11, '', `elem-${['fuego', 'tierra', 'aire', 'agua'][SIGNOS.indexOf(signo) % 4]}`)}</g>`);
                     }
                 }
             }
@@ -127,9 +133,18 @@ export function dibujarEfemerides(e, { hoy = null } = {}) {
         for (const t of tramos.filter((x) => x.length > 1)) {
             out.push(`<polyline class="ef-linea" data-punto="${l.id}" points="${t.join(' ')}"/>`);
         }
-        // El glifo del planeta al principio de la linea.
-        const m0 = norm(l.lons[0], e.modulo);
-        out.push(`<g class="punto" data-punto="${l.id}">${glifo(G_PUNTOS[l.id], izq - 32, g.y(m0), 14.4)}</g>`);
+    }
+
+    // A la izquierda, cada planeta en transito donde empieza, con su signo
+    // (separados si caen juntos).
+    const inicios = e.lineas.map((l) => ({ id: l.id, lon: l.lons[0], y: g.y(norm(l.lons[0], e.modulo)) })).sort((a, b) => a.y - b.y);
+    separar(inicios, 18);
+    for (const p of inicios) {
+        const ry = p.ry ?? p.y;
+        if (Math.abs(ry - p.y) > 1) out.push(`<line class="ef-guia" x1="${izq - 4}" x2="${izq - 12}" y1="${f(p.y)}" y2="${f(ry)}"/>`);
+        out.push(`<g class="punto" data-punto="${p.id}">${glifo(G_PUNTOS[p.id], izq - 64, ry, 17.3)}</g>`);
+        const signo = signoDe(p.lon);
+        out.push(`<g class="ef-signo">${glifo(G_SIGNOS[signo], izq - 42, ry, 12, '', `elem-${['fuego', 'tierra', 'aire', 'agua'][SIGNOS.indexOf(signo) % 4]}`)}</g>`);
     }
 
     // Cruces: el glifo del aspecto exacto (con un circulo para tocarlo).

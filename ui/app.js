@@ -19,7 +19,7 @@ import { evento } from './analytics.js';
 import { NOMBRE_PUNTO, NOMBRE_ASPECTO, escapar, utcTexto, duracionTexto, coordTexto } from './textos.js';
 import { SISTEMAS_CASAS, PUNTOS, ANGULOS } from '../engine/config.js';
 import { almacenLocal, igualQue } from './miscartas.js';
-import { imagenCarta, entregarImagen } from './descarga.js';
+import { imagenCarta, imagenEfemerides, entregarImagen } from './descarga.js';
 import { listaCalendario, jdDeFecha, fechaDeJd, fechaCorta, fechaParaVer } from './calendario.js';
 import { dibujarEfemerides, geometria } from './efemerides.js';
 import { TRANSITAN_EFEMERIDES } from '../engine/efemerides.js';
@@ -898,7 +898,60 @@ async function recalcularEfemerides() {
     pintarEfemerides();
 }
 
+// Pantalla completa del grafico (con el modo del navegador o, si no hay,
+// agrandando la seccion sobre la pagina).
+async function efPantallaCompleta(entrar) {
+    const s = $('#efemerides');
+    if (entrar) {
+        evento('pantalla_completa', { vista: 'efemerides' });
+        try {
+            if (!s.requestFullscreen) throw new Error('sin pantalla completa');
+            await s.requestFullscreen({ navigationUI: 'hide' });
+        } catch {
+            s.classList.add('completa');
+            document.body.classList.add('sin-scroll');
+        }
+    } else {
+        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+        s.classList.remove('completa');
+        document.body.classList.remove('sin-scroll');
+    }
+}
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && $('#efemerides').classList.contains('completa')) efPantallaCompleta(false);
+});
+
+async function descargarEfemerides(boton) {
+    const d = estado.datos;
+    const { desde, hasta } = periodoEfemerides();
+    const cs = getComputedStyle(document.body);
+    const color = (v) => cs.getPropertyValue(v).trim();
+    boton.disabled = true;
+    try {
+        const blob = await imagenEfemerides($('#ef-grafico svg'), {
+            titulo: d.nombre ? `Efemérides gráficas de ${d.nombre}` : 'Efemérides gráficas',
+            datos: `Tránsitos geocéntricos · módulo ${ef.modulo}° · del ${fechaCorta(desde)} al ${fechaCorta(hasta)}`,
+            colores: { fondo: color('--bg'), texto: color('--texto'), suave: color('--texto-suave') }
+        });
+        const anio = estado.efemerides.anio;
+        const como = await entregarImagen(blob, `efemerides-${slug(d.nombre || 'natal') || 'natal'}-${anio}-${anio + ef.anios - 1}.png`, 'Efemérides gráficas');
+        if (como !== 'cancelada') evento('imagen_descargada', { vista: 'efemerides', fondo: tema, como });
+    } catch (err) {
+        console.error(err);
+        $('#ef-detalle').textContent = 'No pudimos armar la imagen. Probá de nuevo.';
+    }
+    boton.disabled = false;
+}
+
 $('#efemerides').addEventListener('click', async (e) => {
+    const accion = e.target.closest('[data-ef-accion]')?.dataset.efAccion;
+    if (accion === 'completa') return efPantallaCompleta(true);
+    if (accion === 'salir') return efPantallaCompleta(false);
+    if (accion === 'imprimir') {
+        evento('carta_impresa', { tipo: 'efemerides' });
+        return window.print();
+    }
+    if (accion === 'descargar') return descargarEfemerides(e.target.closest('button'));
     const paso = e.target.closest('[data-ef]')?.dataset.ef;
     const cruce = e.target.closest('[data-cruce]')?.dataset.cruce;
     if (paso) {
