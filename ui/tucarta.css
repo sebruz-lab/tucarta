@@ -1240,6 +1240,8 @@ body.sin-scroll { overflow: hidden; }
 .ef-svg .glifo-aspecto.c-tenso { color: var(--asp-tenso); }
 .ef-svg .glifo-aspecto.c-semisextil { color: var(--asp-semisextil); }
 .ef-svg .glifo-aspecto.c-quincuncio { color: var(--asp-quincuncio); }
+/* La conjuncion, en negro (el color del texto). */
+.ef-svg .glifo-aspecto.c-conjuncion { color: var(--texto); }
 .ef-svg .ef-cursor { stroke: var(--texto-suave); stroke-width: 0.8; pointer-events: none; }
 .ef-svg .ef-lectura { fill: var(--texto); font-size: 12px; pointer-events: none; paint-order: stroke; stroke: var(--bg); stroke-width: 4px; }
 .ef-detalle { font-size: 0.9rem; color: var(--texto-suave); min-height: 1.5em; margin: 10px 0 0; }

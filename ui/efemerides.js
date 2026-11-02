@@ -11,7 +11,7 @@ import { fechaDeJd, jdDeFecha } from './calendario.js';
 const SIGNOS = ['aries', 'tauro', 'geminis', 'cancer', 'leo', 'virgo', 'libra', 'escorpio', 'sagitario', 'capricornio', 'acuario', 'piscis'];
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const COLOR_ASPECTO = {
-    trigono: 'c-armonico', sextil: 'c-armonico', conjuncion: 'c-tenso',
+    trigono: 'c-armonico', sextil: 'c-armonico', conjuncion: 'c-conjuncion',
     cuadratura: 'c-tenso', oposicion: 'c-tenso', semicuadratura: 'c-tenso', sesquicuadratura: 'c-tenso',
     semisextil: 'c-semisextil', quincuncio: 'c-quincuncio'
 };
@@ -87,14 +87,14 @@ export function dibujarEfemerides(e, { hoy = null } = {}) {
     for (const n of rotulos) {
         out.push(`<line class="ef-natal" data-punto="${n.id}" x1="${izq}" x2="${ancho - der}" y1="${f(n.y)}" y2="${f(n.y)}"/>`);
     }
-    for (let i = 1; i < rotulos.length; i++) rotulos[i].ry = Math.max(rotulos[i].y, (rotulos[i - 1].ry ?? rotulos[i - 1].y) + 13);
+    for (let i = 1; i < rotulos.length; i++) rotulos[i].ry = Math.max(rotulos[i].y, (rotulos[i - 1].ry ?? rotulos[i - 1].y) + 15);
     for (const n of rotulos) {
         const ry = n.ry ?? n.y;
         const x = ancho - der + 14;
         if (Math.abs(ry - n.y) > 1) out.push(`<line class="ef-guia" x1="${ancho - der}" x2="${x - 8}" y1="${f(n.y)}" y2="${f(ry)}"/>`);
-        out.push(`<g class="punto" data-punto="${n.id}">${glifoPunto(n.id, x, ry, 13)}</g>`);
+        out.push(`<g class="punto" data-punto="${n.id}">${glifoPunto(n.id, x, ry, 15.6)}</g>`);
         const signo = signoDe(n.lon);
-        out.push(`<g class="ef-signo">${glifo(G_SIGNOS[signo], x + 18, ry, 11, '', `elem-${['fuego', 'tierra', 'aire', 'agua'][SIGNOS.indexOf(signo) % 4]}`)}</g>`);
+        out.push(`<g class="ef-signo">${glifo(G_SIGNOS[signo], x + 20, ry, 11, '', `elem-${['fuego', 'tierra', 'aire', 'agua'][SIGNOS.indexOf(signo) % 4]}`)}</g>`);
     }
 
     // Planetas en transito: una linea por tramo (se corta al pasar de un
@@ -116,8 +116,8 @@ export function dibujarEfemerides(e, { hoy = null } = {}) {
                         const directo = m < prev;
                         const y = directo ? arriba - 8 : alto - abajo + 12;
                         const signo = signoDe(lon);
-                        out.push(`<g class="punto ef-ingreso" data-punto="${l.id}">${glifo(G_PUNTOS[l.id], x, directo ? y - 13 : y, 11)}</g>`);
-                        out.push(`<g class="ef-signo">${glifo(G_SIGNOS[signo], x, directo ? y : y + 13, 10, '', `elem-${['fuego', 'tierra', 'aire', 'agua'][SIGNOS.indexOf(signo) % 4]}`)}</g>`);
+                        out.push(`<g class="punto ef-ingreso" data-punto="${l.id}">${glifo(G_PUNTOS[l.id], x, directo ? y - 14 : y, 13.2)}</g>`);
+                        out.push(`<g class="ef-signo">${glifo(G_SIGNOS[signo], x, directo ? y : y + 14, 10, '', `elem-${['fuego', 'tierra', 'aire', 'agua'][SIGNOS.indexOf(signo) % 4]}`)}</g>`);
                     }
                 }
             }
@@ -129,7 +129,7 @@ export function dibujarEfemerides(e, { hoy = null } = {}) {
         }
         // El glifo del planeta al principio de la linea.
         const m0 = norm(l.lons[0], e.modulo);
-        out.push(`<g class="punto" data-punto="${l.id}">${glifo(G_PUNTOS[l.id], izq - 32, g.y(m0), 12)}</g>`);
+        out.push(`<g class="punto" data-punto="${l.id}">${glifo(G_PUNTOS[l.id], izq - 32, g.y(m0), 14.4)}</g>`);
     }
 
     // Cruces: el glifo del aspecto exacto (con un circulo para tocarlo).
@@ -137,8 +137,8 @@ export function dibujarEfemerides(e, { hoy = null } = {}) {
         const x = g.x(c.jd);
         const y = g.y(c.grado);
         out.push(`<g class="ef-cruce" data-cruce="${i}" tabindex="0" role="button">` +
-            `<circle class="ef-toque" cx="${f(x)}" cy="${f(y)}" r="8"/>` +
-            glifo(G_ASPECTOS[c.aspecto], x, y, 10, '', `glifo-aspecto ${COLOR_ASPECTO[c.aspecto]}`, 1.3) + '</g>');
+            `<circle class="ef-toque" cx="${f(x)}" cy="${f(y)}" r="6.5"/>` +
+            glifo(G_ASPECTOS[c.aspecto], x, y, 8, '', `glifo-aspecto ${COLOR_ASPECTO[c.aspecto]}`, 1.3) + '</g>');
     });
 
     // Cursor: linea y lectura de fecha y grado (las mueve app.js).
