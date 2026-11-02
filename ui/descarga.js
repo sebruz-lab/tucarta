@@ -8,7 +8,7 @@
 const ANCHO = 1080;
 const ALTO = 1350;
 const PROPIEDADES = [
-    'fill', 'stroke', 'stroke-width', 'stroke-dasharray', 'stroke-linecap', 'stroke-linejoin',
+    'fill', 'fill-opacity', 'stroke', 'stroke-opacity', 'stroke-width', 'stroke-dasharray', 'stroke-linecap', 'stroke-linejoin',
     'opacity', 'font-family', 'font-size', 'font-weight', 'letter-spacing',
     'text-anchor', 'dominant-baseline'
 ];

@@ -55,10 +55,12 @@ export function dibujarEfemerides(e, { hoy = null } = {}) {
 
     // Fondo, grilla de grados y rotulos de la izquierda.
     out.push(`<rect class="ef-fondo" x="${izq}" y="${arriba}" width="${ancho - izq - der}" height="${alto - arriba - abajo}"/>`);
+    // Una linea por grado (como las de los meses), apenas mas marcadas cada
+    // 5°; los rotulos, cada 5° (cada 10° en modulo 90).
     const paso = e.modulo === 90 ? 10 : 5;
-    for (let d = 0; d <= e.modulo; d += paso) {
-        out.push(`<line class="ef-grilla" x1="${izq}" x2="${ancho - der}" y1="${f(g.y(d))}" y2="${f(g.y(d))}"/>`);
-        out.push(`<text class="ef-grado" x="${izq - 4}" y="${f(g.y(d))}">${d}°</text>`);
+    for (let d = 0; d <= e.modulo; d++) {
+        out.push(`<line class="ef-grilla${d % 5 === 0 ? ' ef-grilla-5' : ''}" x1="${izq}" x2="${ancho - der}" y1="${f(g.y(d))}" y2="${f(g.y(d))}"/>`);
+        if (d % paso === 0) out.push(`<text class="ef-grado" x="${izq - 4}" y="${f(g.y(d))}">${d}°</text>`);
     }
 
     // Anios y meses arriba.
