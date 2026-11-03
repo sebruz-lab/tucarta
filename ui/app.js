@@ -22,6 +22,7 @@ import { almacenLocal, igualQue } from './miscartas.js';
 import { imagenCarta, imagenEfemerides, entregarImagen } from './descarga.js';
 import { listaCalendario, jdDeFecha, fechaDeJd, fechaCorta, fechaParaVer } from './calendario.js';
 import { dibujarEfemerides, geometria } from './efemerides.js';
+import { normalizarFecha, completarFecha } from './fecha.js';
 import { TRANSITAN_EFEMERIDES } from '../engine/efemerides.js';
 import { conectarCuenta, sesionIniciada, conCuenta, abrirEntrar, esAdmin } from './panelCuenta.js';
 import { leerArchivoCartas, textoDeArchivo, completarLugares } from './importar.js';
@@ -85,25 +86,20 @@ form.elements.hh.innerHTML = opcionesNum(24);
 form.elements.mm.innerHTML = opcionesNum(60);
 
 // Fecha siempre en DD/MM/AAAA (el <input type="date"> sigue el formato del
-// navegador, que puede ser MM/DD). Las barras se agregan solas.
+// navegador, que puede ser MM/DD). Las barras se agregan solas y "-", "."
+// o un espacio valen como barra (ver fecha.js). Al salir del campo, el año
+// de dos cifras se completa a la vista.
 function barrasFecha(e) {
-    const n = e.target.value.replace(/\D/g, '').slice(0, 8);
-    e.target.value = [n.slice(0, 2), n.slice(2, 4), n.slice(4)].filter(Boolean).join('/');
+    e.target.value = normalizarFecha(e.target.value, !e.inputType || e.inputType.startsWith('insert'));
 }
 form.elements.fecha.addEventListener('input', barrasFecha);
-
-// Año de dos cifras: hasta 40 es 20xx, desde 41 es 19xx ("28" -> 2028,
-// "61" -> 1961). Al salir del campo se completa a la vista.
-function anioCompleto(texto) {
-    return texto.replace(/^(\d{1,2}\/\d{1,2}\/)(\d{2})$/, (_, dm, aa) => dm + (+aa <= 40 ? '20' : '19') + aa);
-}
 form.elements.fecha.addEventListener('change', (e) => {
-    e.target.value = anioCompleto(e.target.value.trim());
+    e.target.value = completarFecha(e.target.value.trim());
 });
 
 // "03/01/1984" -> "1984-01-03", o null si no es una fecha valida.
 function fechaIso(texto) {
-    const m = anioCompleto(texto).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    const m = completarFecha(texto).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (!m) return null;
     const [d, mes, a] = [+m[1], +m[2], +m[3]];
     const f = new Date(Date.UTC(a, mes - 1, d));
@@ -157,7 +153,7 @@ function tipoElegido() {
 }
 form.elements.tipo.addEventListener('change', tipoElegido);
 form.elements.fechaT.addEventListener('input', barrasFecha);
-form.elements.fechaT.addEventListener('change', (e) => { e.target.value = anioCompleto(e.target.value.trim()); });
+form.elements.fechaT.addEventListener('change', (e) => { e.target.value = completarFecha(e.target.value.trim()); });
 
 // Fecha del transito pedida en la primera pagina (la de hoy si se borro).
 function transitoDelFormulario() {
@@ -1025,7 +1021,7 @@ formTransito.addEventListener('click', (e) => {
 
 formTransito.addEventListener('change', (e) => {
     const f = formTransito.elements;
-    if (e.target === f.fecha) f.fecha.value = anioCompleto(f.fecha.value.trim());
+    if (e.target === f.fecha) f.fecha.value = completarFecha(f.fecha.value.trim());
     const fecha = fechaIso(f.fecha.value.trim());
     if (!fecha) return; // fecha a medio escribir: se espera
     cambiarTransito({ fecha, hora: `${f.hh.value}:${f.mm.value}` });
