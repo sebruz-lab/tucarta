@@ -1611,35 +1611,54 @@ conectarCuenta({
     }
 });
 
-// ---------- Hoja para el servidor ----------
-// /cartas/#hoja=<datos en base64url>: calcula esa carta natal y la deja
-// lista para imprimir; avisa con window.hojaLista (o window.hojaError). La
-// usa la funcion que manda la carta por mail a cada inscripto: abre esta
-// pagina en un Chrome del servidor y la imprime a PDF, con el mismo diseño
-// de la impresion. No manda eventos.
-async function abrirHoja() {
-    const m = /^#hoja=([A-Za-z0-9_-]+)$/.exec(location.hash);
+// ---------- Cartas por enlace ----------
+// Datos de nacimiento en la direccion, como base64url de
+// { nombre, fecha 'AAAA-MM-DD', hora 'HH:MM', lugar { nombre, provincia,
+// pais, paisNombre, lat, lon, zona } }:
+//   - /cartas/#carta=...: abre esa carta natal, con los textos de Sol, Luna
+//     y Ascendente desplegados. La usa el formulario de otras paginas del
+//     sitio ("si no conocés tu Sol, Luna y Ascendente..."), que la abre en
+//     una pestaña nueva.
+//   - /cartas/#hoja=...: la deja lista para imprimir; avisa con
+//     window.hojaLista (o window.hojaError). La usa la funcion que manda la
+//     carta por mail a cada inscripto (la imprime a PDF en un Chrome del
+//     servidor). No manda eventos.
+function datosDeEnlace(b64url) {
+    const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+    const d = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))));
+    const l = d.lugar || {};
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d.fecha) || !/^\d{2}:\d{2}$/.test(d.hora) ||
+        !Number.isFinite(l.lat) || !Number.isFinite(l.lon) || typeof l.zona !== 'string') throw new Error('datos incompletos');
+    return {
+        nombre: String(d.nombre || '').slice(0, 60), fecha: d.fecha, hora: d.hora,
+        lugar: { nombre: l.nombre, provincia: l.provincia, pais: l.pais, paisNombre: l.paisNombre, lat: l.lat, lon: l.lon, zona: l.zona },
+        correccion: null, eleccion: 0
+    };
+}
+
+async function abrirEnlace() {
+    const m = /^#(hoja|carta)=([A-Za-z0-9_-]+)$/.exec(location.hash);
     if (!m) return;
-    window.gtag = () => {};
+    const hoja = m[1] === 'hoja';
+    if (hoja) window.gtag = () => {};
     try {
-        const b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
-        const d = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))));
-        const l = d.lugar || {};
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(d.fecha) || !/^\d{2}:\d{2}$/.test(d.hora) ||
-            !Number.isFinite(l.lat) || !Number.isFinite(l.lon) || typeof l.zona !== 'string') throw new Error('datos incompletos');
-        estado.datos = {
-            nombre: String(d.nombre || '').slice(0, 60), fecha: d.fecha, hora: d.hora,
-            lugar: { nombre: l.nombre, provincia: l.provincia, pais: l.pais, paisNombre: l.paisNombre, lat: l.lat, lon: l.lon, zona: l.zona },
-            correccion: null, eleccion: 0
-        };
+        estado.datos = datosDeEnlace(m[2]);
+        // La carta queda en la calculadora: la direccion vuelve a ser la de siempre.
+        if (!hoja) history.replaceState(null, '', location.pathname + location.search);
         form.elements.tipo.value = 'natal';
         modoDelFormulario();
         await calcular({ nueva: true });
         if (!estado.carta) throw new Error('no se pudo calcular');
-        await document.fonts.ready;
-        window.hojaLista = true;
+        if (hoja) {
+            await document.fonts.ready;
+            window.hojaLista = true;
+        } else {
+            $('.desplegable-interp').open = true;
+            evento('carta_desde_enlace', {});
+        }
     } catch (err) {
-        window.hojaError = String(err?.message || err);
+        if (hoja) window.hojaError = String(err?.message || err);
+        else console.error(err);
     }
 }
-abrirHoja();
+abrirEnlace();
