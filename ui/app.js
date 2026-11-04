@@ -1726,6 +1726,13 @@ async function abrirEnlace() {
         await calcular({ nueva: true });
         if (!estado.carta) throw new Error('no se pudo calcular');
         if (hoja) {
+            // La hoja que se manda por mail lleva siempre las referencias de
+            // planetas y signos: quien la recibe no conoce los glifos, y sin
+            // la tabla con los nombres la rueda no se puede leer. La grilla de
+            // aspectos no va: es para quien ya sabe mirarla.
+            incluirAnexo = { planetas: true, signos: true, aspectos: false };
+            $('#anexo-impresion').innerHTML = anexoActual();
+            document.body.classList.add('con-anexo');
             await document.fonts.ready;
             window.hojaLista = true;
         } else {
