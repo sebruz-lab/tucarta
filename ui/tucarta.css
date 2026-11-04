@@ -1198,7 +1198,21 @@ body.sin-scroll { overflow: hidden; }
     .esquina { font-size: 0.82rem; }
 }
 
-.pie-impresion, .ficha-impresion { display: none; }
+.pie-impresion, .ficha-impresion, .anexo-impresion { display: none; }
+
+/* Referencias debajo de la rueda (impresion e imagen; ver anexo.js). */
+.anexo text { fill: var(--texto); font-size: 9px; font-family: inherit; dominant-baseline: middle; }
+.anexo .anexo-titulo { fill: var(--texto-suave); font-size: 7.5px; letter-spacing: 0.8px; dominant-baseline: auto; }
+.anexo .anexo-angulo { font-size: 6.5px; text-anchor: middle; }
+.anexo .anexo-celda { fill: none; stroke: var(--linea-fuerte); stroke-width: 0.6; }
+.anexo .anexo-diagonal { fill: var(--superficie); }
+.anexo [data-punto] { color: var(--p, var(--texto)); }
+.anexo .glifo-aspecto.c-armonico { color: var(--asp-armonico); }
+.anexo .glifo-aspecto.c-tenso { color: var(--asp-tenso); }
+.anexo .glifo-aspecto.c-semisextil { color: var(--asp-semisextil); }
+.anexo .glifo-aspecto.c-quincuncio { color: var(--asp-quincuncio); }
+.anexo .glifo-aspecto.c-conjuncion { color: var(--texto); }
+.ventana-anexo .casilla { margin: 4px 0; }
 
 /* ---------- Efemerides graficas ---------- */
 
@@ -1314,6 +1328,11 @@ body.sin-scroll { overflow: hidden; }
     }
     .figura-rueda #rueda { width: 186mm; margin: 0 auto; }
     .figura-rueda .rueda { max-width: none; }
+    /* Con referencias: la rueda (del mismo tamaño) sube y abajo van, en una
+       fila, la grilla de aspectos y las tablas de planetas y signos. */
+    body.con-anexo .figura-rueda, body.con-anexo .figura-rueda.completa { padding-top: 24mm !important; }
+    body.con-anexo .anexo-impresion { display: block; width: 186mm; margin: 1mm auto 0; }
+    .anexo-impresion svg { display: block; width: 100%; height: auto; }
     /* Sin fondo: solo las lineas, los glifos y los numeros. */
     .rueda .fondo-rueda { fill: none !important; }
     /* Fichas como las de Solar Fire, arriba en las esquinas. */

@@ -23,6 +23,8 @@ import { imagenCarta, imagenEfemerides, entregarImagen } from './descarga.js';
 import { listaCalendario, jdDeFecha, fechaDeJd, fechaCorta, fechaParaVer } from './calendario.js';
 import { dibujarEfemerides, geometria } from './efemerides.js';
 import { normalizarFecha, completarFecha } from './fecha.js';
+import { dibujarAnexo } from './anexo.js';
+import { calcularAspectos } from '../engine/aspects.js';
 import { TRANSITAN_EFEMERIDES } from '../engine/efemerides.js';
 import { conectarCuenta, sesionIniciada, conCuenta, abrirEntrar, esAdmin } from './panelCuenta.js';
 import { leerArchivoCartas, textoDeArchivo, completarLugares } from './importar.js';
@@ -1448,22 +1450,95 @@ document.querySelector('.barra-carta').addEventListener('click', async (e) => {
             avisar('No pudimos guardarla. Probá de nuevo en un rato.');
         }
         pintarBotonGuardar();
-    } else if (accion === 'imprimir') {
-        evento('carta_impresa', { tipo: estado.modo });
-        window.print();
+    } else if (accion === 'imprimir' || accion === 'descargar') {
+        // Antes, que referencias van debajo de la rueda (planetas, signos,
+        // grilla de aspectos).
+        abrirAnexo(accion, e.target.closest('button'));
     } else if (accion === 'pantalla-completa') {
         if (!enCompleta()) pantallaCompleta(true);
-    } else if (accion === 'descargar') {
-        const b = e.target.closest('button');
-        b.disabled = true;
+    }
+});
+
+// ---------- Referencias debajo de la rueda (impresion e imagen) ----------
+// Para quien no conoce los simbolos: tabla de planetas, tabla de signos y
+// grilla de aspectos (ver anexo.js). Lo elegido queda en el dispositivo.
+let incluirAnexo = { planetas: false, signos: false, aspectos: false };
+try { incluirAnexo = { ...incluirAnexo, ...JSON.parse(localStorage.getItem('tucarta:anexo') || '{}') }; } catch {}
+let pedidoAnexo = null;
+
+function abrirAnexo(accion, boton) {
+    pedidoAnexo = { accion, boton };
+    const v = $('#ventana-anexo');
+    v.querySelectorAll('[data-incluir]').forEach((c) => { c.checked = Boolean(incluirAnexo[c.dataset.incluir]); });
+    v.querySelector('[data-anexo="seguir"]').textContent = accion === 'imprimir' ? 'Imprimir' : 'Descargar imagen';
+    v.showModal();
+}
+
+$('#ventana-anexo').addEventListener('click', async (e) => {
+    const accion = e.target.closest('[data-anexo]')?.dataset.anexo;
+    if (!accion) return;
+    const v = $('#ventana-anexo');
+    if (accion === 'cerrar') return v.close();
+    v.querySelectorAll('[data-incluir]').forEach((c) => { incluirAnexo[c.dataset.incluir] = c.checked; });
+    try { localStorage.setItem('tucarta:anexo', JSON.stringify(incluirAnexo)); } catch {}
+    v.close();
+    const { accion: que, boton } = pedidoAnexo || {};
+    const referencias = Object.keys(incluirAnexo).filter((k) => incluirAnexo[k]).join(',') || 'ninguna';
+    if (que === 'imprimir') {
+        evento('carta_impresa', { tipo: estado.modo, referencias });
+        imprimirCarta();
+    } else if (que === 'descargar') {
+        if (boton) boton.disabled = true;
         try {
             await descargarImagen();
         } catch (err) {
             console.error(err);
             avisar('No pudimos armar la imagen. Probá de nuevo.');
         }
-        b.disabled = false;
+        if (boton) boton.disabled = false;
     }
+});
+
+// El anexo de la vista actual: en una carta sola, la grilla triangular de
+// sus aspectos; en las dobles, la cuadrada de la de afuera a la natal.
+function anexoActual() {
+    const { sola, externa } = cartasVista();
+    const transitos = estado.modo === 'transitos' ? estado.transitos : null;
+    const base = sola || estado.carta;
+    const pts = (c) => [...c.puntos, ...c.angulos];
+    const ids = (c) => pts(c).map((p) => p.id);
+    let filas, columnas, aspectos, triangular, tituloGrilla = '';
+    if (transitos) {
+        filas = transitos.puntos.map((p) => p.id);
+        columnas = ids(estado.carta);
+        aspectos = transitos.aspectos;
+        triangular = false;
+        tituloGrilla = 'Tránsitos a la natal';
+    } else if (externa) {
+        filas = ids(externa);
+        columnas = ids(estado.carta);
+        aspectos = esPR(estado.modo)
+            ? (estado.progresion?.resultado?.aspectosNatal || [])
+            : calcularAspectos(pts(externa), pts(estado.carta), { orbesPorAspecto: estado.ajustes.orbesTransito, menores: estado.ajustes.menores });
+        triangular = false;
+        tituloGrilla = esPR(estado.modo) ? 'Progresión a la natal' : 'Revolución a la natal';
+    } else {
+        filas = columnas = ids(base);
+        aspectos = base.aspectos || [];
+        triangular = true;
+    }
+    return dibujarAnexo({ incluir: incluirAnexo, puntos: columnas, nombres: NOMBRE_PUNTO, filas, columnas, aspectos, triangular, tituloGrilla });
+}
+
+function imprimirCarta() {
+    const anexo = anexoActual();
+    $('#anexo-impresion').innerHTML = anexo;
+    document.body.classList.toggle('con-anexo', Boolean(anexo));
+    window.print();
+}
+window.addEventListener('afterprint', () => {
+    $('#anexo-impresion').innerHTML = '';
+    document.body.classList.remove('con-anexo');
 });
 
 // ---------- Imagen para descargar ----------
@@ -1478,13 +1553,14 @@ async function descargarImagen() {
     const { sola, externa } = cartasVista();
     const rs = esRS(estado.modo) && (sola || externa);
     const pr = esPR(estado.modo) && (sola || externa);
-    caja.innerHTML = dibujarRueda(sola || estado.carta, { nombres: NOMBRE_PUNTO, clara: tema === 'claro', transitos, revolucion: externa });
+    caja.innerHTML = dibujarRueda(sola || estado.carta, { nombres: NOMBRE_PUNTO, clara: tema === 'claro', transitos, revolucion: externa }) + anexoActual();
     const cs = getComputedStyle(document.body);
     const color = (v) => cs.getPropertyValue(v).trim();
     const d = estado.datos;
     try {
         const fechaT = transitos ? estado.transito.fecha.split('-').reverse().join('/') : '';
-        const blob = await imagenCarta(caja.querySelector('svg'), {
+        const blob = await imagenCarta(caja.querySelector('svg.rueda'), {
+            anexo: caja.querySelector('svg.anexo'),
             titulo: transitos ? `Tránsitos del ${fechaT}`
                 : rs ? `Revolución solar ${estado.revolucion.anio}`
                     : pr ? `Progresiones ${textoProgresion()[0]}` : $('#titulo-carta').textContent,

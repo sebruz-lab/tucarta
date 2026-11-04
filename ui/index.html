@@ -137,6 +137,17 @@
 
     <h2 id="titulo-calcular" class="titulo-calcular" hidden>Calculá una nueva carta</h2>
 
+    <dialog id="ventana-anexo" class="ventana-cuenta ventana-anexo" aria-labelledby="titulo-anexo">
+        <button type="button" class="cerrar" data-anexo="cerrar" aria-label="Cerrar">×</button>
+        <h2 id="titulo-anexo">¿Agregamos referencias?</h2>
+        <p class="nota">Para quien no conoce los símbolos. Van debajo de la rueda.</p>
+        <label class="casilla"><input type="checkbox" data-incluir="planetas"> Planetas y puntos</label>
+        <label class="casilla"><input type="checkbox" data-incluir="signos"> Signos</label>
+        <label class="casilla"><input type="checkbox" data-incluir="aspectos"> Grilla de aspectos</label>
+        <button type="button" class="boton boton-principal" data-anexo="seguir">Imprimir</button>
+        <button type="button" class="boton-texto" data-anexo="cerrar">Cancelar</button>
+    </dialog>
+
     <form id="datos" class="datos" novalidate>
         <label class="campo"><span>¿Qué querés calcular?</span>
             <select name="tipo">
@@ -306,6 +317,7 @@
             <!-- Pie de la hoja impresa (solo se ve al imprimir). -->
             <div id="ficha-izq" class="ficha-impresion ficha-izq" aria-hidden="true"></div>
             <div id="ficha-der" class="ficha-impresion ficha-der" aria-hidden="true"></div>
+            <div id="anexo-impresion" class="anexo-impresion" aria-hidden="true"></div>
             <div class="pie-impresion" aria-hidden="true">Calculadora de Cartas Astrales · Seba Bru · sebabru.com/cartas</div>
         </figure>
 

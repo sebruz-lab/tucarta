@@ -67,17 +67,27 @@ function renglones(ctx, texto, ancho) {
 }
 
 // colores: { fondo, texto, suave } de la pagina en el momento de descargar.
-export async function imagenCarta(svg, { titulo, datos, colores }) {
+// anexo: el <svg> de las referencias (planetas, signos, grilla de aspectos),
+// si se eligieron: va debajo de la rueda y la imagen se alarga.
+export async function imagenCarta(svg, { titulo, datos, colores, anexo = null }) {
     const lado = 940;
     const img = await cargarImagen('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(await svgAutonomo(svg, lado)));
+    let imgAnexo = null;
+    let altoAnexo = 0;
+    if (anexo) {
+        const [, , vw, vh] = anexo.getAttribute('viewBox').split(' ').map(Number);
+        altoAnexo = Math.round(lado * vh / vw);
+        imgAnexo = await cargarImagen('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(await svgAutonomo(anexo, lado, altoAnexo)));
+    }
+    const alto = ALTO + (imgAnexo ? altoAnexo + 30 : 0);
     await document.fonts.load('300 40px Outfit');
 
     const canvas = document.createElement('canvas');
     canvas.width = ANCHO;
-    canvas.height = ALTO;
+    canvas.height = alto;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = colores.fondo;
-    ctx.fillRect(0, 0, ANCHO, ALTO);
+    ctx.fillRect(0, 0, ANCHO, alto);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
 
@@ -90,10 +100,11 @@ export async function imagenCarta(svg, { titulo, datos, colores }) {
 
     // La rueda dibuja los rotulos AC/MC algo por fuera de su caja.
     ctx.drawImage(img, (ANCHO - lado) / 2, 228, lado, lado);
+    if (imgAnexo) ctx.drawImage(imgAnexo, (ANCHO - lado) / 2, 228 + lado + 20, lado, altoAnexo);
 
     ctx.fillStyle = colores.suave;
     ctx.font = '300 26px Outfit, sans-serif';
-    ctx.fillText('sebabru.com/cartas', ANCHO / 2, ALTO - 40);
+    ctx.fillText('sebabru.com/cartas', ANCHO / 2, alto - 40);
 
     return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
 }
