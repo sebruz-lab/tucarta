@@ -134,11 +134,15 @@ function leerFormulario() {
     };
 }
 
-// Vistas que usan la revolucion o la progresion, y las que la muestran sola.
+// Vistas que usan la revolucion, la progresion, la relocalizacion o la
+// draconica, y las que la muestran sola.
 const esRS = (m) => m === 'revolucion' || m === 'revolucion-sola';
 const esPR = (m) => m === 'progresion' || m === 'progresion-sola';
-const esSola = (m) => m === 'revolucion-sola' || m === 'progresion-sola';
-const MODOS = ['natal', 'revolucion-sola', 'revolucion', 'transitos', 'calendario', 'efemerides', 'progresion-sola', 'progresion'];
+const esDR = (m) => m === 'draconica' || m === 'draconica-sola';
+const esRL = (m) => m === 'reubicacion';
+const esSola = (m) => m === 'revolucion-sola' || m === 'progresion-sola' || m === 'draconica-sola' || m === 'reubicacion';
+const MODOS = ['natal', 'revolucion-sola', 'revolucion', 'transitos', 'calendario', 'efemerides', 'progresion-sola', 'progresion',
+    'reubicacion', 'draconica-sola', 'draconica'];
 // Vistas sin rueda: listas y graficos de tiempo.
 const sinRueda = (m) => m === 'calendario' || m === 'efemerides';
 
@@ -147,7 +151,8 @@ const sinRueda = (m) => m === 'calendario' || m === 'efemerides';
 function tipoElegido() {
     const tipo = form.elements.tipo.value;
     $('#campos-transito').hidden = !(tipo === 'transitos' || sinRueda(tipo) || esPR(tipo));
-    $('#campos-revolucion').hidden = !esRS(tipo);
+    $('#campos-revolucion').hidden = !(esRS(tipo) || esRL(tipo));
+    $('#etiqueta-lugar-rs').textContent = esRL(tipo) ? '¿En qué lugar?' : '¿Dónde pasás tu cumpleaños?';
     $('#etiqueta-fechaT').textContent = sinRueda(tipo) ? 'Desde' : esPR(tipo) ? 'Progresar al' : 'Fecha del tránsito';
     $('#hora-transito').hidden = tipo !== 'transitos';
     try { localStorage.setItem('tucarta:tipo', tipo); } catch {}
@@ -172,6 +177,7 @@ function modoDelFormulario() {
     if (estado.modo === 'efemerides') estado.efemerides = { anio: Number(transitoDelFormulario().fecha.slice(0, 4)) };
     if (esRS(estado.modo)) estado.revolucion = { anio: null, lugar: lugarRS };
     if (esPR(estado.modo)) estado.progresion = { fecha: transitoDelFormulario().fecha };
+    if (esRL(estado.modo)) estado.reubicacion = { lugar: lugarRS };
 }
 
 form.addEventListener('submit', async (e) => {
@@ -212,6 +218,8 @@ async function calcular({ nueva = false } = {}) {
     if (estado.modo === 'efemerides') await calcularEfemerides();
     if (esRS(estado.modo)) await calcularRevolucionSolar();
     if (esPR(estado.modo)) await calcularProgresion();
+    if (esRL(estado.modo)) await calcularReubicacion();
+    if (esDR(estado.modo)) await calcularDraconica();
     $('#cargando').hidden = true;
     guardarDatos();
     pintar();
@@ -258,7 +266,9 @@ function pintar() {
         : externa ? tablaPosicionesRevolucion(externa, carta, etiquetaExterna())
             : conTransitos ? tablaPosicionesTransito(estado.transitos) : tablaPosiciones(carta);
     const prANatal = externa && esPR(estado.modo) && estado.progresion?.resultado?.aspectosNatal;
+    const drANatal = externa && esDR(estado.modo) && estado.draconica?.aspectosNatal;
     $('#tabla-aspectos').innerHTML = prANatal ? tablaAspectosANatal(prANatal, 'Progresión')
+        : drANatal ? tablaAspectosANatal(drANatal, 'Dracónica')
         : sola || externa ? tablaAspectos(sola || externa)
         : conTransitos ? tablaAspectosTransito(estado.transitos) : tablaAspectos(carta);
     $('#tabla-casas').innerHTML = tablaCasas(sola || externa || carta);
@@ -314,6 +324,20 @@ function pintarEsquinas(sistema) {
         else poner(revo, [coords(rs.lugar), renglon(sistema), cambiar]);
         return;
     }
+    if (otra && esRL(estado.modo)) {
+        // El mismo instante del nacimiento, en otro lugar: su hora local ahi.
+        const rl = momentoReubicacionLocal();
+        poner([renglon('Carta relocalizada', 'titulo-esquina'), renglon(rl.fecha, 'principal'),
+            renglon(`${rl.hora} h (${utcTexto(rl.huso)})`, 'principal'), ...renglonesLugar(rl.lugar).map((t) => renglon(t))],
+        [coords(rl.lugar), renglon(sistema), '<button type="button" data-accion="cambiar-lugar-rs">Cambiar lugar</button>']);
+        return;
+    }
+    if (otra && esDR(estado.modo)) {
+        const dr = [renglon('Carta dracónica', 'titulo-esquina'), renglon(textoNodoDraconica(), 'principal')];
+        if (externa) poner([renglon('Carta de adentro', 'leyenda'), ...natal()], [renglon('Carta de afuera', 'leyenda'), ...dr]);
+        else poner([...dr, renglon(`${dia}/${m}/${a}`), renglon(`${d.hora} h`), ...renglonesLugar(l).map((t) => renglon(t))], [renglon(sistema)]);
+        return;
+    }
     if (otra && esPR(estado.modo)) {
         const pr = [renglon('Progresiones', 'titulo-esquina'), ...textoProgresion().map((t) => renglon(t, 'principal'))];
         if (externa) poner([renglon('Carta de adentro', 'leyenda'), ...natal()], [renglon('Carta de afuera', 'leyenda'), ...pr]);
@@ -361,6 +385,16 @@ function pintarFichasImpresion(sistema) {
         const pr = [linea('Progresiones secundarias'), linea(al), linea(edad)];
         if (externa) der = pr;
         else izq = [linea(d.nombre, 'nombre'), ...pr, ...lugar(d.lugar).map((t) => linea(t)), linea(coords(d.lugar))];
+    } else if ((sola || externa) && esRL(estado.modo)) {
+        const rl = momentoReubicacionLocal();
+        izq = [linea(d.nombre, 'nombre'), linea('Carta relocalizada'), linea(rl.fecha), linea(`${rl.hora} ${utcTexto(rl.huso)}`),
+            ...lugar(rl.lugar).map((t) => linea(t)), linea(coords(rl.lugar))];
+        der = [linea('Nacimiento'), linea(fecha(d.fecha)), linea(`${d.hora} ${utcTexto(o.total)}`), ...lugar(d.lugar).map((t) => linea(t))];
+    } else if ((sola || externa) && esDR(estado.modo)) {
+        const dr = [linea('Carta dracónica'), linea(textoNodoDraconica())];
+        if (externa) der = dr;
+        else izq = [linea(d.nombre, 'nombre'), ...dr, linea(fecha(d.fecha)), linea(`${d.hora} ${utcTexto(o.total)}`),
+            ...lugar(d.lugar).map((t) => linea(t)), linea(coords(d.lugar))];
     } else if (estado.modo === 'transitos' && estado.transito) {
         der = [linea('Tránsitos'), linea(fecha(estado.transito.fecha)), linea(`${estado.transito.hora} h`)];
     }
@@ -426,22 +460,13 @@ $('.figura-rueda').addEventListener('click', (e) => {
     if (accion === 'salir') pantallaCompleta(false);
     else if (accion === 'entrar') pantallaCompleta(true);
     else if (accion === 'cartas') mostrarCartasCompleta($('.cartas-completa').hidden);
-    const modo = e.target.closest('.modos-completa [data-modo]')?.dataset.modo;
-    if (modo) cambiarModo(modo);
     const id = e.target.closest('[data-abrir-completa]')?.dataset.abrirCompleta;
     if (id) {
         mostrarCartasCompleta(false);
         abrirGuardada(guardadas.find((c) => c.id === id), { mismaVista: true });
     }
 });
-let esperaModo;
-$('.modos-completa').addEventListener('pointerover', (e) => {
-    const modo = e.pointerType === 'mouse' && e.target.closest('[data-modo]')?.dataset.modo;
-    if (!modo) return;
-    clearTimeout(esperaModo);
-    esperaModo = setTimeout(() => cambiarModo(modo), 120);
-});
-$('.modos-completa').addEventListener('pointerleave', () => clearTimeout(esperaModo));
+$('.selector-completa').addEventListener('change', (e) => cambiarModo(e.target.value));
 
 function mostrarCartasCompleta(abrir) {
     $('.cartas-completa').hidden = !abrir;
@@ -482,14 +507,15 @@ $('.figura-rueda').addEventListener('click', (e) => {
     $('#lugar-rs-nuevo').focus();
 });
 conectarBuscador($('#lugar-rs-nuevo'), $('#sugerencias-rs-nuevo'), async (l) => {
-    if (!l || !estado.revolucion) return;
-    estado.revolucion.lugar = l;
+    const rl = esRL(estado.modo);
+    if (!l || (rl ? !estado.reubicacion : !estado.revolucion)) return;
+    (rl ? estado.reubicacion : estado.revolucion).lugar = l;
     lugarRS = l;
     $('#lugar-rs').value = descripcionLugar(l);
     $('#lugar-rs-nuevo').value = '';
     $('#panel-lugar-rs').hidden = true;
     estado.seleccion = null;
-    await calcularRevolucionSolar();
+    await (rl ? calcularReubicacion() : calcularRevolucionSolar());
     pintar();
     $('.figura-rueda').scrollIntoView({ block: 'start', behavior: 'smooth' });
 });
@@ -527,12 +553,15 @@ function pintarAdvertencia() {
 // de la natal.
 function cartasVista() {
     const otra = esRS(estado.modo) ? estado.revolucion?.resultado?.carta
-        : esPR(estado.modo) ? estado.progresion?.resultado?.carta : null;
+        : esPR(estado.modo) ? estado.progresion?.resultado?.carta
+            : esRL(estado.modo) ? estado.reubicacion?.carta
+                : esDR(estado.modo) ? estado.draconica?.carta : null;
     return esSola(estado.modo) ? { sola: otra || null, externa: null } : { sola: null, externa: otra || null };
 }
 const etiquetaExterna = () => (esPR(estado.modo)
     ? { titulo: 'Progresión', sigla: 'PR', de: 'de la progresión' }
-    : { titulo: 'Revolución', sigla: 'RS', de: 'de la revolución' });
+    : esDR(estado.modo) ? { titulo: 'Dracónica', sigla: 'DR', de: 'de la dracónica' }
+        : { titulo: 'Revolución', sigla: 'RS', de: 'de la revolución' });
 
 function pintarRueda() {
     const transitos = estado.modo === 'transitos' ? estado.transitos : null;
@@ -593,7 +622,7 @@ async function calcularTransitos() {
 function pintarControlesTransito() {
     const enTransitos = estado.modo === 'transitos';
     $('#selector-modo').value = estado.modo;
-    document.querySelectorAll('.modos-completa [data-modo]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modo === estado.modo)));
+    $('.selector-completa').value = estado.modo;
     formTransito.hidden = !enTransitos;
     pintarCalendario();
     pintarEfemerides();
@@ -658,6 +687,15 @@ async function aplicarModo(modo) {
         await calcularProgresion();
         evento('progresion_vista', { sola: esSola(modo) });
     }
+    if (esRL(modo)) {
+        estado.reubicacion ||= { lugar: lugarRS };
+        await calcularReubicacion();
+        evento('relocalizada_vista', {});
+    }
+    if (esDR(modo)) {
+        await calcularDraconica();
+        evento('draconica_vista', { sola: esSola(modo) });
+    }
     if (modo === 'calendario') {
         $('#cargando').hidden = false;
         await calcularCalendario();
@@ -672,6 +710,47 @@ async function aplicarModo(modo) {
     }
     pintar();
 }
+
+// ---------- Relocalizacion y draconica ----------
+
+// Relocalizada: el mismo instante del nacimiento en otro lugar (cambian el
+// Ascendente, el Medio Cielo y las casas; los planetas quedan iguales).
+async function calcularReubicacion() {
+    estado.reubicacion ||= { lugar: null };
+    const l = estado.reubicacion.lugar || estado.datos.lugar;
+    const o = estado.tz.opciones[estado.datos.eleccion] || estado.tz.opciones[0];
+    try {
+        estado.reubicacion.carta = await calcularEnWorker({ utc: o.utc, lat: l.lat, lon: l.lon, ajustes: estado.ajustes });
+    } catch (err) {
+        console.error(err);
+        estado.reubicacion.carta = null;
+    }
+}
+
+// La hora del nacimiento en el lugar de la relocalizacion.
+function momentoReubicacionLocal() {
+    const lugar = estado.reubicacion.lugar || estado.datos.lugar;
+    return { ...momentoEn(estado.carta.meta.jd, lugar), lugar };
+}
+
+// Draconica: la natal medida desde el Nodo Norte (real o medio, segun los
+// ajustes), con sus aspectos a la natal.
+async function calcularDraconica() {
+    const nodo = estado.ajustes.nodoDraconica === 'medio' ? 'medio' : 'real';
+    try {
+        const carta = await calcularEnWorker({ tipo: 'draconica', natal: estado.carta, nodo });
+        const pts = (c) => [...c.puntos, ...c.angulos];
+        estado.draconica = {
+            carta,
+            aspectosNatal: calcularAspectos(pts(carta), pts(estado.carta),
+                { orbesPorAspecto: estado.ajustes.orbesTransito, menores: estado.ajustes.menores })
+        };
+    } catch (err) {
+        console.error(err);
+        estado.draconica = null;
+    }
+}
+const textoNodoDraconica = () => (estado.draconica?.carta.meta.draconica.nodo === 'medio' ? 'Desde el Nodo medio' : 'Desde el Nodo real');
 
 // ---------- Revolucion solar ----------
 
@@ -692,22 +771,27 @@ async function calcularRevolucionSolar() {
 
 // Momento de la revolucion en la hora del lugar del cumpleanios.
 function momentoRevolucionLocal() {
-    const r = estado.revolucion.resultado;
     const lugar = estado.revolucion.lugar || estado.datos.lugar;
-    const utcSeg = Math.round((r.jd - 2440587.5) * 86400);
+    return { ...momentoEn(estado.revolucion.resultado.jd, lugar), lugar };
+}
+
+// Fecha y hora de un instante (dia juliano) en la hora local de un lugar.
+function momentoEn(jd, lugar) {
+    const utcSeg = Math.round((jd - 2440587.5) * 86400);
     const { total } = husoEn(lugar.zona, utcSeg);
     const d = new Date((utcSeg + total) * 1000);
     return {
         fecha: `${d.getUTCDate()}/${d.getUTCMonth() + 1}/${d.getUTCFullYear()}`,
         hora: `${dosCifras(d.getUTCHours())}:${dosCifras(d.getUTCMinutes())}`,
-        huso: total, lugar
+        huso: total
     };
 }
 
 function pintarControlesRevolucion() {
     const r = esRS(estado.modo) && estado.revolucion?.resultado;
     $('#controles-rs').hidden = !r;
-    if (!r) $('#panel-lugar-rs').hidden = true;
+    $('#etiqueta-lugar-rs-nuevo').textContent = esRL(estado.modo) ? '¿En qué lugar?' : '¿Dónde pasás tu cumpleaños?';
+    if (!r && !esRL(estado.modo)) $('#panel-lugar-rs').hidden = true;
     if (!r) return;
     const m = momentoRevolucionLocal();
     $('#nota-rs').textContent = `Revolución solar ${r.anio}: ${m.fecha} a las ${m.hora} h (${utcTexto(m.huso)}) ` +
@@ -1158,18 +1242,48 @@ let visibles = []; // las de la lista, con el filtro por tipo
 // carta". Sin sesion: la pregunta y el texto de bienvenida, y "Mis cartas"
 // si hay cartas en el dispositivo.
 
+// Si la ultima vez habia sesion, "Mis cartas" se muestra desde el arranque
+// (en gris, con la ruedita, sin desplegarse) mientras Firebase confirma la
+// sesion y llegan las cartas de la cuenta.
+let esperandoCuenta = (() => { try { return localStorage.getItem('tucarta:sesion') === '1'; } catch { return false; } })();
+let errorCartas = false;
+let porBorrar = null; // la carta que pide confirmar el borrado
+let pedidoCartas = 0;
+
 async function pintarMisCartas() {
-    try { guardadas = await almacen.listar(); } catch (e) { console.error(e); guardadas = []; }
+    const n = ++pedidoCartas;
+    let lista = [];
+    let error = false;
+    if (esperandoCuenta) pintarListaCartas();
+    else {
+        try { lista = await almacen.listar(); } catch (e) { console.error(e); error = true; }
+    }
+    // Si mientras tanto cambio el almacen, manda el pedido mas nuevo.
+    if (n !== pedidoCartas || esperandoCuenta) return;
+    guardadas = lista;
+    errorCartas = error;
+    porBorrar = null;
+    pintarListaCartas();
+}
+
+function pintarListaCartas() {
     // En orden alfabetico por nombre (sin distinguir tildes ni mayusculas);
     // las de un mismo nombre, por fecha.
     guardadas.sort((a, b) => (a.nombre || 'Sin nombre').localeCompare(b.nombre || 'Sin nombre', 'es', { sensitivity: 'base', numeric: true }) ||
         a.fecha.localeCompare(b.fecha));
-    const sesion = sesionIniciada();
+    const sesion = sesionIniciada() || esperandoCuenta;
     $('#pregunta-intro').hidden = sesion;
     $('#texto-intro').hidden = sesion;
     const seccion = $('#mis-cartas');
     $('#titulo-calcular').hidden = !sesion || !$('#resultado').hidden;
     seccion.hidden = !$('#resultado').hidden || (!guardadas.length && !sesion);
+    seccion.classList.toggle('cargando', esperandoCuenta);
+    seccion.setAttribute('aria-busy', String(esperandoCuenta));
+    $('#titulo-mis-cartas').setAttribute('aria-disabled', String(esperandoCuenta));
+    if (esperandoCuenta) {
+        seccion.open = false;
+        return;
+    }
     // Con muchas cartas, un buscador por nombre; si hay de varios tipos, un
     // filtro por tipo.
     $('#buscar-cartas').hidden = guardadas.length <= 8;
@@ -1185,6 +1299,10 @@ async function pintarMisCartas() {
     filtroSelect.value = [...filtroSelect.options].some((o) => o.value === elegido) ? elegido : '';
     filtroSelect.hidden = !grupos.length && guardadas.every((c) => tipoDe(c) === 'natal');
     if (filtroSelect.hidden) filtroSelect.value = '';
+    if (errorCartas) {
+        $('#lista-cartas').innerHTML = '<li class="sin-cartas">No pudimos cargar tus cartas. <button type="button" class="boton-texto en-linea" data-reintentar>Reintentar</button></li>';
+        return;
+    }
     if (!guardadas.length) {
         $('#lista-cartas').innerHTML = '<li class="sin-cartas">Todavía no guardaste ninguna carta.</li>';
         return;
@@ -1198,12 +1316,21 @@ async function pintarMisCartas() {
     $('#lista-cartas').innerHTML = visibles.map((c) => {
         const nombre = c.nombre || 'Sin nombre';
         const lugar = c.lugar.manual ? 'Coordenadas a mano' : c.lugar.nombre;
+        // Antes de borrar, la fila misma pregunta (sin el confirm del
+        // navegador, que algunos navegadores bloquean en silencio).
+        if (c.id === porBorrar) {
+            return `<li class="confirmar-borrado">
+            <span class="pregunta-borrado">¿Borrar la carta de ${escapar(nombre)}?</span>
+            <button type="button" class="boton-texto en-linea" data-borrar-si="${escapar(c.id)}">Borrar</button>
+            <button type="button" class="boton-texto en-linea" data-borrar-no>Cancelar</button>
+        </li>`;
+        }
         return `<li>
             <button type="button" class="carta-guardada" data-abrir="${escapar(c.id)}">
                 <span class="nombre">${escapar(nombre)}${tipoDe(c) !== 'natal' ? ` <span class="tipo-carta">${TIPOS[tipoDe(c)]}</span>` : ''}${c.grupo ? ` <span class="tipo-carta">${escapar(c.grupo)}</span>` : ''}</span>
                 <span class="nota">${c.fecha.split('-').reverse().join('/')} · ${escapar(c.hora)} h · ${escapar(lugar)}</span>
             </button>
-            <button type="button" class="quitar" data-quitar="${escapar(c.id)}" aria-label="Borrar la carta de ${escapar(nombre)}">×</button>
+            <button type="button" class="quitar" data-quitar="${escapar(c.id)}" aria-label="Borrar la carta de ${escapar(nombre)}" title="Borrar"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 3h4M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button>
         </li>`;
     }).join('');
     irABusqueda();
@@ -1233,7 +1360,11 @@ function irABusqueda(enfocar = false) {
 // titulo (y su flecha) lo abre y lo cierra. Tambien se cierra al tocar
 // afuera o con Escape.
 document.addEventListener('click', (e) => {
-    if ($('#mis-cartas').open && !e.target.closest('#mis-cartas, #ventana-importar')) $('#mis-cartas').open = false;
+    if ($('#mis-cartas').open && e.target.isConnected && !e.target.closest('#mis-cartas, #ventana-importar')) $('#mis-cartas').open = false;
+});
+// Mientras cargan, el titulo no despliega el casillero.
+$('#titulo-mis-cartas').addEventListener('click', (e) => {
+    if (esperandoCuenta) e.preventDefault();
 });
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && $('#mis-cartas').open) $('#mis-cartas').open = false;
@@ -1266,7 +1397,7 @@ $('#buscar-cartas').addEventListener('keydown', (e) => {
     e.preventDefault();
     irABusqueda(true);
 });
-$('#filtro-cartas').addEventListener('change', () => pintarMisCartas());
+$('#filtro-cartas').addEventListener('change', () => pintarListaCartas());
 
 // ---------- Importar cartas (de Solar Fire; se lee en el navegador) ----------
 
@@ -1394,13 +1525,35 @@ $('#ventana-importar').addEventListener('click', async (e) => {
 $('#lista-cartas').addEventListener('click', async (e) => {
     const abrir = e.target.closest('[data-abrir]')?.dataset.abrir;
     const quitar = e.target.closest('[data-quitar]')?.dataset.quitar;
+    const si = e.target.closest('[data-borrar-si]')?.dataset.borrarSi;
     if (abrir) {
         await abrirGuardada(guardadas.find((x) => x.id === abrir));
     } else if (quitar) {
-        const c = guardadas.find((x) => x.id === quitar);
-        if (!c || !confirm(`¿Borrar la carta de ${c.nombre || 'Sin nombre'}?`)) return;
-        await almacen.borrar(quitar);
-        pintarMisCartas();
+        porBorrar = quitar;
+        pintarListaCartas();
+        $('#lista-cartas [data-borrar-no]')?.focus();
+    } else if (e.target.closest('[data-borrar-no]')) {
+        porBorrar = null;
+        pintarListaCartas();
+    } else if (si) {
+        // La fila se va enseguida (con muchas cartas en la cuenta, volver a
+        // pedir la lista tarda); si el borrado falla, vuelve con un aviso.
+        const antes = guardadas;
+        porBorrar = null;
+        guardadas = guardadas.filter((x) => x.id !== si);
+        pintarListaCartas();
+        try {
+            await almacen.borrar(si);
+            evento('carta_borrada', {});
+        } catch (err) {
+            console.error(err);
+            guardadas = antes;
+            pintarListaCartas();
+            $('#pista-busqueda').textContent = 'No pudimos borrarla. Probá de nuevo.';
+            $('#pista-busqueda').hidden = false;
+        }
+    } else if (e.target.closest('[data-reintentar]')) {
+        await pintarMisCartas();
     }
 });
 
@@ -1519,9 +1672,10 @@ function anexoActual() {
         columnas = ids(estado.carta);
         aspectos = esPR(estado.modo)
             ? (estado.progresion?.resultado?.aspectosNatal || [])
+            : esDR(estado.modo) ? (estado.draconica?.aspectosNatal || [])
             : calcularAspectos(pts(externa), pts(estado.carta), { orbesPorAspecto: estado.ajustes.orbesTransito, menores: estado.ajustes.menores });
         triangular = false;
-        tituloGrilla = esPR(estado.modo) ? 'Progresión a la natal' : 'Revolución a la natal';
+        tituloGrilla = `${etiquetaExterna().titulo} a la natal`;
     } else {
         filas = columnas = ids(base);
         aspectos = base.aspectos || [];
@@ -1553,6 +1707,8 @@ async function descargarImagen() {
     const { sola, externa } = cartasVista();
     const rs = esRS(estado.modo) && (sola || externa);
     const pr = esPR(estado.modo) && (sola || externa);
+    const rl = esRL(estado.modo) && sola;
+    const dr = esDR(estado.modo) && (sola || externa);
     caja.innerHTML = dibujarRueda(sola || estado.carta, { nombres: NOMBRE_PUNTO, clara: tema === 'claro', transitos, revolucion: externa }) + anexoActual();
     const cs = getComputedStyle(document.body);
     const color = (v) => cs.getPropertyValue(v).trim();
@@ -1563,9 +1719,11 @@ async function descargarImagen() {
             anexo: caja.querySelector('svg.anexo'),
             titulo: transitos ? `Tránsitos del ${fechaT}`
                 : rs ? `Revolución solar ${estado.revolucion.anio}`
-                    : pr ? `Progresiones ${textoProgresion()[0]}` : $('#titulo-carta').textContent,
+                    : pr ? `Progresiones ${textoProgresion()[0]}`
+                        : rl ? `Carta relocalizada en ${descripcionLugar(momentoReubicacionLocal().lugar)}`
+                            : dr ? 'Carta dracónica' : $('#titulo-carta').textContent,
             datos: rs ? $('#nota-rs').textContent.replace(/^Revolución solar \d+: /, '')
-                : transitos || pr ? `${$('#titulo-carta').textContent} · ${$('#resumen-datos').textContent}`
+                : transitos || pr || rl || dr ? `${$('#titulo-carta').textContent} · ${$('#resumen-datos').textContent}`
                     : $('#resumen-datos').textContent,
             colores: { fondo: color('--bg'), texto: color('--texto'), suave: color('--texto-suave') }
         });
@@ -1573,6 +1731,10 @@ async function descargarImagen() {
             ? `revolucion-${slug(d.nombre || 'natal') || 'natal'}-${estado.revolucion.anio}.png`
             : pr
             ? `progresiones-${slug(d.nombre || 'natal') || 'natal'}-${estado.progresion.fecha}.png`
+            : rl
+            ? `relocalizada-${slug(d.nombre || 'natal') || 'natal'}-${slug(momentoReubicacionLocal().lugar.nombre || 'lugar') || 'lugar'}.png`
+            : dr
+            ? `draconica-${slug(d.nombre || 'natal') || 'natal'}-${d.fecha}.png`
             : transitos
             ? `transitos-${slug(d.nombre || 'natal') || 'natal'}-${estado.transito.fecha}.png`
             : `carta-${slug(d.nombre || 'natal') || 'natal'}-${d.fecha}.png`;
@@ -1682,6 +1844,7 @@ form.elements.mmT.innerHTML = opcionesNum(60).replace('<option value="">--</opti
 conectarCuenta({
     alCambiarAlmacen(nuevo) {
         almacen = nuevo;
+        esperandoCuenta = false;
         pintarMisCartas();
         if (estado.carta) pintarBotonGuardar();
     }

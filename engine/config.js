@@ -85,5 +85,6 @@ export const AJUSTES_POR_DEFECTO = {
     menores: MENORES_POR_DEFECTO,
     orbesMenores: ORBES_MENORES,
     orbesTransito: ORBES_TRANSITO,
-    metodoProgresion: 'arco-long'
+    metodoProgresion: 'arco-long',
+    nodoDraconica: 'real'
 };

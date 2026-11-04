@@ -36,10 +36,21 @@ export function conectarCuenta({ alCambiarAlmacen }) {
         console.error(e);
         cuenta.estado = 'fuera';
         pintar();
+        alCambiar(almacenLocal);
     });
 }
 
+// Pista para la proxima visita: habia sesion (asi "Mis cartas" se muestra
+// cargando desde el arranque, sin esperar a Firebase).
+function pistaSesion(hay) {
+    try {
+        if (hay) localStorage.setItem('tucarta:sesion', '1');
+        else localStorage.removeItem('tucarta:sesion');
+    } catch {}
+}
+
 async function sesionCambiada(usuario) {
+    pistaSesion(Boolean(usuario));
     if (!usuario) {
         Object.assign(cuenta, { estado: 'fuera', email: '', datos: null, admin: false });
         pintar();

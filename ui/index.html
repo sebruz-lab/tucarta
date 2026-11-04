@@ -159,6 +159,9 @@
                 <option value="efemerides">Efemérides gráficas</option>
                 <option value="progresion-sola">Progresiones secundarias</option>
                 <option value="progresion">Carta Natal + Progresiones</option>
+                <option value="reubicacion">Carta relocalizada</option>
+                <option value="draconica-sola">Carta dracónica</option>
+                <option value="draconica">Carta Natal + dracónica</option>
             </select>
         </label>
         <label class="campo"><span>Nombre <span class="opcional">(opcional)</span></span>
@@ -210,7 +213,7 @@
         </div>
 
         <div id="campos-revolucion" class="campo lugar" hidden>
-            <label for="lugar-rs">¿Dónde pasás tu cumpleaños?</label>
+            <label for="lugar-rs" id="etiqueta-lugar-rs">¿Dónde pasás tu cumpleaños?</label>
             <input id="lugar-rs" type="text" name="lugarRS" autocomplete="off" placeholder="Si lo dejás vacío, el lugar de nacimiento"
                 role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias-rs">
             <ul id="sugerencias-rs" class="sugerencias" role="listbox" hidden></ul>
@@ -245,6 +248,9 @@
                 <option value="efemerides">Efemérides gráficas</option>
                 <option value="progresion-sola">Progresiones secundarias</option>
                 <option value="progresion">Carta Natal + Progresiones</option>
+                <option value="reubicacion">Carta relocalizada</option>
+                <option value="draconica-sola">Carta dracónica</option>
+                <option value="draconica">Carta Natal + dracónica</option>
             </select>
         </label>
 
@@ -304,14 +310,19 @@
                     <input type="search" class="buscar-completa" placeholder="Buscar por nombre" aria-label="Buscar en tus cartas">
                     <ul class="lista-completa"></ul>
                 </div>
-                <div class="modos-completa" role="group" aria-label="Qué querés ver">
-                    <button type="button" data-modo="natal">Carta Natal</button>
-                    <button type="button" data-modo="revolucion-sola">Revolución Solar</button>
-                    <button type="button" data-modo="revolucion">Carta Natal +<br>Revolución Solar</button>
-                    <button type="button" data-modo="transitos">Carta Natal +<br>tránsitos</button>
-                    <button type="button" data-modo="progresion-sola">Progresiones<br>secundarias</button>
-                    <button type="button" data-modo="progresion">Carta Natal +<br>Progresiones</button>
-                </div>
+                <label class="modos-completa"><span class="visualmente-oculto">Qué querés ver</span>
+                    <select class="selector-completa">
+                        <option value="natal">Carta Natal</option>
+                        <option value="revolucion-sola">Revolución Solar</option>
+                        <option value="revolucion">Carta Natal + Revolución Solar</option>
+                        <option value="transitos">Carta Natal + tránsitos</option>
+                        <option value="progresion-sola">Progresiones secundarias</option>
+                        <option value="progresion">Carta Natal + Progresiones</option>
+                        <option value="reubicacion">Carta relocalizada</option>
+                        <option value="draconica-sola">Carta dracónica</option>
+                        <option value="draconica">Carta Natal + dracónica</option>
+                    </select>
+                </label>
             </div>
             <button type="button" class="salir-completa" data-completa="salir" aria-label="Salir de pantalla completa">×</button>
             <!-- Pie de la hoja impresa (solo se ve al imprimir). -->
@@ -322,7 +333,7 @@
         </figure>
 
         <div id="panel-lugar-rs" class="campo lugar panel-lugar-rs" hidden>
-            <label for="lugar-rs-nuevo">¿Dónde pasás tu cumpleaños?</label>
+            <label for="lugar-rs-nuevo" id="etiqueta-lugar-rs-nuevo">¿Dónde pasás tu cumpleaños?</label>
             <input id="lugar-rs-nuevo" type="text" autocomplete="off" placeholder="Escribí la ciudad o el pueblo"
                 role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias-rs-nuevo">
             <ul id="sugerencias-rs-nuevo" class="sugerencias" role="listbox" hidden></ul>

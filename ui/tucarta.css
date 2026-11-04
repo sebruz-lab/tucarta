@@ -469,8 +469,10 @@ body.sin-scroll { overflow: hidden; }
 }
 .panel-completa button:hover { background: var(--superficie); }
 .panel-completa button[hidden] { display: none; }
-.modos-completa { display: flex; gap: 2px; }
-.modos-completa button[aria-pressed="true"] { background: var(--texto); color: var(--bg); }
+/* Las vistas, en un desplegable (16px en el celular: si no, el iPhone hace
+   zoom al tocarlo). */
+.modos-completa { display: block; flex: 1; min-width: 0; margin: 0; }
+.selector-completa { width: 100%; font-size: 16px; font-weight: 300; padding: 6px 30px 6px 10px; min-height: 0; }
 .panel-completa .cambiar-carta { font-weight: 400; border: 1px solid var(--linea-fuerte); }
 .cartas-completa { display: flex; flex-direction: column; gap: 6px; padding: 6px 4px; }
 .cartas-completa[hidden] { display: none; }
@@ -501,7 +503,7 @@ body.sin-scroll { overflow: hidden; }
         left: auto;
         right: 16px;
         bottom: 56px;
-        width: 152px;
+        width: 232px;
         max-height: calc(100vh - 260px);
         overflow-y: auto;
         overflow-x: hidden;
@@ -525,8 +527,9 @@ body.sin-scroll { overflow: hidden; }
     }
     .figura-rueda:fullscreen .esquina, .figura-rueda.completa .esquina { top: 12px; }
     .lista-completa { max-height: 30vh; }
-    .modos-completa { flex-direction: column; }
-    .figura-rueda:fullscreen #rueda, .figura-rueda.completa #rueda { width: min(100vw - 460px, 100vh - 60px); }
+    .modos-completa { flex: none; padding: 4px 2px 2px; }
+    .selector-completa { font-size: 0.75rem; padding: 6px 24px 6px 8px; }
+    .figura-rueda:fullscreen #rueda, .figura-rueda.completa #rueda { width: min(100vw - 500px, 100vh - 60px); }
 }
 .rueda {
     display: block;
@@ -921,14 +924,33 @@ body.sin-scroll { overflow: hidden; }
 .carta-guardada .nombre { font-size: 1rem; }
 .carta-guardada .nota { font-size: 0.82rem; margin: 0; }
 .lista-cartas .quitar {
-    font: inherit;
-    font-size: 1.4rem;
-    line-height: 1;
+    display: flex;
+    align-items: center;
     background: none;
     border: none;
     color: var(--texto-suave);
     padding: 10px 6px 10px 16px;
     cursor: pointer;
+}
+.lista-cartas .quitar:hover { color: var(--texto); }
+.lista-cartas .confirmar-borrado { gap: 14px; padding: 12px 0; flex-wrap: wrap; }
+.pregunta-borrado { flex: 1; font-size: 0.95rem; }
+
+/* Cargando las cartas de la cuenta: el titulo en gris, con una ruedita en
+   lugar de la flecha, y sin desplegarse. */
+.mis-cartas.cargando > summary { color: var(--texto-suave); border-color: var(--linea); cursor: progress; }
+.mis-cartas.cargando > summary::after {
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid var(--linea-fuerte);
+    border-top-color: var(--texto);
+    border-radius: 50%;
+    transform: none;
+    animation: girar 0.9s linear infinite;
+}
+@keyframes girar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+    .mis-cartas.cargando > summary::after { animation-duration: 2.4s; }
 }
 
 /* ---------- Cuenta ---------- */

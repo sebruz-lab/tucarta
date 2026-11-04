@@ -54,6 +54,12 @@ export function panelAjustes(a) {
             <select name="metodo-progresion">${METODOS_PROGRESION.map((m) =>
                 `<option value="${m.id}" ${m.id === a.metodoProgresion ? 'selected' : ''}>${m.nombre}</option>`).join('')}</select>
         </label>
+        <label class="campo">Carta dracónica: desde qué Nodo
+            <select name="nodo-draconica">
+                <option value="real" ${a.nodoDraconica !== 'medio' ? 'selected' : ''}>Nodo real</option>
+                <option value="medio" ${a.nodoDraconica === 'medio' ? 'selected' : ''}>Nodo medio</option>
+            </select>
+        </label>
         <label class="casilla"><input type="checkbox" name="aspectos-angulos" ${a.aspectosAngulos ? 'checked' : ''}>
             Calcular aspectos al Ascendente y al Medio Cielo</label>
         <fieldset class="orbes"><legend>Aspectos menores</legend>
@@ -105,6 +111,7 @@ export function ajustesDesde(form, previos) {
     return {
         casas: form.elements.casas.value,
         metodoProgresion: form.elements['metodo-progresion'].value,
+        nodoDraconica: form.elements['nodo-draconica'].value,
         aspectosAngulos: form.elements['aspectos-angulos'].checked,
         orbes, menores, orbesMenores, orbesTransito
     };
