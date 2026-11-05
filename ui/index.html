@@ -371,6 +371,11 @@
             <button type="button" class="boton" data-accion="descargar">Descargar imagen</button>
             <button type="button" class="boton" data-accion="imprimir">Imprimir</button>
             <button type="button" class="boton" data-accion="guardar">Guardar en mis cartas</button>
+            <button type="button" class="boton" data-accion="ajustes" aria-expanded="false" aria-controls="ajustes">Ajustes de la carta</button>
+        </div>
+        <!-- Se abre con el boton de la barra, aca arriba. -->
+        <div class="ajustes" id="ajustes" hidden>
+            <form id="form-ajustes"></form>
         </div>
         <p id="aviso-carta" class="nota aviso-carta" role="status" hidden></p>
 
@@ -459,11 +464,6 @@
             <div id="tabla-aspectos" role="tabpanel" aria-labelledby="pestana-aspectos" hidden></div>
             <div id="tabla-casas" role="tabpanel" aria-labelledby="pestana-casas" hidden></div>
         </section>
-
-        <details class="ajustes">
-            <summary>Ajustes de la carta</summary>
-            <form id="form-ajustes"></form>
-        </details>
 
         <div class="acciones">
             <button type="button" class="boton-texto" data-accion="otra-carta">Calcular otra carta</button>

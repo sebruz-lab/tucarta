@@ -346,7 +346,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
     carta.cusps.forEach((c, i) => {
         const angular = i % 3 === 0;
         const clase = i === 0 ? 'eje eje-ac' : angular ? 'eje' : 'cuspide';
-        const largo = angular ? (revolucion ? R.exterior : R.exterior + 6) : R.signos;
+        const largo = angular ? R.exterior : R.signos;
         out.push(cuspide(polar, c.lon, col.paso[i], {
             rAdentro: R.aspectos, rQuiebre: R.casas, codoAbajo: col.codoAbajo, codo: col.codo, rTope: R.signos, rAfuera: largo
         }, clase));
@@ -416,7 +416,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         const borde = R.exterior * ESCALA_DOBLE;
         // Los ejes cruzan tambien el anillo de transitos.
         carta.cusps.forEach((c, i) => {
-            if (i % 3 === 0) doble.push(linea(c.lon, borde, R_DOBLE.exterior + 6, i === 0 ? 'eje eje-ac' : 'eje'));
+            if (i % 3 === 0) doble.push(linea(c.lon, borde, R_DOBLE.exterior, i === 0 ? 'eje eje-ac' : 'eje'));
         });
         const pos = repartir(transitos.puntos.map((p) => p.lon), 6.5);
         transitos.puntos.forEach((p, i) => {
@@ -469,7 +469,7 @@ function anilloRevolucion(rs, natal, { polar, linea, seleccion, nombres }) {
         const clase = i === 0 ? 'eje eje-ac' : angular ? 'eje' : 'cuspide';
         out.push(cuspide(polar, c.lon, col.paso[i], {
             rAdentro: borde, rQuiebre: R2.linea, codoAbajo: col.codoAbajo, codo: col.codo,
-            rTope: R2.signos, rAfuera: angular ? R2.exterior + 6 : R2.signos
+            rTope: R2.signos, rAfuera: angular ? R2.exterior : R2.signos
         }, clase));
         const [x, y] = polar(medioCasa(rs.cusps.map((k) => k.lon), i), R2.casas);
         out.push(`<text class="num-casa" style="font-size:10px" x="${f(x)}" y="${f(y)}">${i + 1}</text>`);

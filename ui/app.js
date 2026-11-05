@@ -1714,6 +1714,11 @@ document.querySelector('.barra-carta').addEventListener('click', async (e) => {
         abrirAnexo(accion, e.target.closest('button'));
     } else if (accion === 'pantalla-completa') {
         if (!enCompleta()) pantallaCompleta(true);
+    } else if (accion === 'ajustes') {
+        const panel = $('#ajustes');
+        panel.hidden = !panel.hidden;
+        e.target.closest('button').setAttribute('aria-expanded', String(!panel.hidden));
+        if (!panel.hidden) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 });
 
