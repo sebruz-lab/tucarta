@@ -7,11 +7,13 @@ import { calcularAspectos } from './aspects.js';
 import { diaJuliano, flagsDe, enSigno, casaDe } from './chart.js';
 
 // natal: el modelo que devuelve calcularCarta.
-export function calcularTransitos(swe, { utc, natal, ajustes = AJUSTES_POR_DEFECTO }) {
+// planetas: los que transitan (por defecto, todos). La vista de la lunacion
+// pide solo el Sol y la Luna.
+export function calcularTransitos(swe, { utc, natal, ajustes = AJUSTES_POR_DEFECTO, planetas = PUNTOS_TRANSITO }) {
     const jd = diaJuliano(swe, utc);
     const cusps = natal.cusps.map((c) => c.lon);
 
-    const puntos = PUNTOS.filter((p) => PUNTOS_TRANSITO.includes(p.id)).map((p) => {
+    const puntos = PUNTOS.filter((p) => planetas.includes(p.id)).map((p) => {
         const r = swe.calc(jd, p.swe, flagsDe(p.swe));
         return {
             id: p.id,

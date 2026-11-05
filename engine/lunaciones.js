@@ -22,6 +22,9 @@ const LUNA = 1;
 // Un mes sinodico son 29,53 dias: 20 a cada lado del momento de referencia
 // alcanza para tener siempre una lunacion antes y otra despues.
 const VENTANA = 20;
+// En la lunacion afuera van solo el Sol y la Luna: es lo que la lunacion es,
+// y asi la rueda se lee de un vistazo.
+export const PUNTOS_LUNACION = ['sol', 'luna'];
 
 const norm = (x) => ((x % 360) + 360) % 360;
 const centrar = (d) => ((d + 90) % 180) - 90;
@@ -87,7 +90,7 @@ export function lunacionMasCercana(swe, { jd }) {
 export function calcularLunacion(swe, { utc, natal, ajustes = AJUSTES_POR_DEFECTO }) {
     const lunacion = lunacionMasCercana(swe, { jd: diaJuliano(swe, utc) });
     if (!lunacion) throw new Error('No se encontró la lunación');
-    const transitos = calcularTransitos(swe, { utc: lunacion.utc, natal, ajustes });
+    const transitos = calcularTransitos(swe, { utc: lunacion.utc, natal, ajustes, planetas: PUNTOS_LUNACION });
     const casa = casaDe(lunacion.lon, natal.cusps.map((c) => c.lon));
     return { ...transitos, lunacion: { ...lunacion, casa } };
 }

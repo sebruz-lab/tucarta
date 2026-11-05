@@ -3,3 +3,6 @@
 // sugerencias. Se publica sin hash en /cartas/buscador-lugares.js; quien lo
 // use lo importa con ?v=<version> para no quedar con uno viejo en cache.
 export { conectarBuscador, descripcionLugar } from './form.js';
+// Y la fecha en DD/MM/AAAA desde lo que venga, para que los formularios
+// del sitio no lleven su propia copia.
+export { normalizarFecha, completarFecha } from './fecha.js';

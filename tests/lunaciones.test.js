@@ -94,6 +94,9 @@ describe('lunaciones', () => {
         expect(r.lunacion.casa).toBeLessThanOrEqual(12);
         // El cielo es el del instante de la lunacion: la Luna y el Sol en
         // tránsito están en el mismo grado, y en la misma casa.
+        // Afuera van solo el Sol y la Luna, nada mas.
+        expect(r.puntos.map((p) => p.id).sort()).toEqual(['luna', 'sol']);
+        for (const a of r.aspectos) expect(['sol', 'luna']).toContain(a.a);
         const luna = r.puntos.find((p) => p.id === 'luna');
         const sol = r.puntos.find((p) => p.id === 'sol');
         expect(luna.casa).toBe(r.lunacion.casa);
