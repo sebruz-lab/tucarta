@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PASOS, pasosDesde, avanzar, momentoLocal, fechaDeMomento, textoMomento, horaValida } from '../ui/animacion.js';
+import { PASOS, avanzar, momentoLocal, fechaDeMomento, textoMomento, horaValida } from '../ui/animacion.js';
 
 const m = (fecha, hora) => ({ fecha, hora });
 
@@ -59,12 +59,6 @@ describe('animacion: utilidades', () => {
 
     it('el texto del momento va en DD/MM/AAAA', () => {
         expect(textoMomento(m('2026-11-05', '12:16'))).toBe('05/11/2026 12:16');
-    });
-
-    it('pasosDesde recorta las unidades mas chicas', () => {
-        expect(pasosDesde('dia').every((p) => ['dia', 'mes', 'anio'].includes(p.unidad))).toBe(true);
-        expect(pasosDesde('anio').map((p) => p.id)).toEqual(['anio-1']);
-        expect(pasosDesde('min')).toHaveLength(PASOS.length);
     });
 });
 

@@ -25,14 +25,6 @@ export const PASOS = [
 
 export const PASO_POR_DEFECTO = 'dia-1';
 
-// Pasos que tienen sentido en las vistas que solo se mueven por fecha
-// (progresiones) o por anio (revolucion solar).
-export const pasosDesde = (unidadMinima) => {
-    const orden = ['min', 'hora', 'dia', 'mes', 'anio'];
-    const desde = orden.indexOf(unidadMinima);
-    return PASOS.filter((p) => orden.indexOf(p.unidad) >= desde);
-};
-
 // Milisegundos entre cuadros cuando la animacion corre sola. No es el
 // tiempo real por cuadro: si calcular y dibujar tarda mas, manda eso.
 export const VELOCIDADES = { lento: 700, normal: 350, rapido: 150 };
