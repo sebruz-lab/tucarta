@@ -16,8 +16,12 @@ export const descripcionLugar = (l) =>
 // Conecta el campo de lugar con su lista de sugerencias. `alElegir(lugar)`
 // recibe el lugar elegido (o null si se borro el texto). sinResultados: el
 // texto cuando no aparece nada (otras paginas no tienen carga manual).
+// respaldo: una funcion async(texto) que devuelve lugares, para cuando el
+// indice local no tiene ninguno. La calculadora no la usa (no consulta a
+// terceros); la pasan los formularios del sitio, que preguntan a GeoNames.
 export function conectarBuscador(input, lista, alElegir, {
-    sinResultados = 'No encontramos ese lugar. Probá con otra forma de escribirlo o cargá las coordenadas a mano.'
+    sinResultados = 'No encontramos ese lugar. Probá con otra forma de escribirlo o cargá las coordenadas a mano.',
+    respaldo = null
 } = {}) {
     let resultados = [];
     let activo = -1;
@@ -60,8 +64,12 @@ export function conectarBuscador(input, lista, alElegir, {
         const texto = input.value;
         espera = setTimeout(async () => {
             const n = ++pedido;
-            const r = await buscar(texto);
+            let r = await buscar(texto);
             if (n !== pedido) return; // llego tarde: ya hay otra busqueda
+            if (!r.length && respaldo) {
+                try { r = await respaldo(texto) || []; } catch { r = []; }
+                if (n !== pedido) return; // el respaldo tarda: puede haber quedado viejo
+            }
             resultados = r;
             activo = -1;
             pintar();
