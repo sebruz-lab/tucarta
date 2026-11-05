@@ -16,7 +16,7 @@ import { bloquesInterpretacion, idsInterpretacion } from './interp.js';
 import { textosInterpretacion, configRemota } from './firestore.js';
 import { CONFIG_POR_DEFECTO } from './config.js';
 import { evento } from './analytics.js';
-import { NOMBRE_PUNTO, NOMBRE_ASPECTO, escapar, utcTexto, duracionTexto, coordTexto } from './textos.js';
+import { NOMBRE_PUNTO, NOMBRE_ASPECTO, NOMBRE_SIGNO, gradoMin, escapar, utcTexto, duracionTexto, coordTexto } from './textos.js';
 import { SISTEMAS_CASAS, PUNTOS, ANGULOS } from '../engine/config.js';
 import { almacenLocal, igualQue } from './miscartas.js';
 import { imagenCarta, imagenEfemerides, entregarImagen } from './descarga.js';
@@ -44,11 +44,12 @@ const estado = {
     seleccion: null,    // punto tocado en la rueda ("t-..." si esta en transito)
     corrigiendoHuso: false,
     // 'natal' | 'revolucion-sola' | 'revolucion' | 'transitos' | 'calendario'
-    // | 'progresion-sola' | 'progresion'
+    // | 'progresion-sola' | 'progresion' | 'lunacion'
     modo: 'natal',
     calendario: null,   // { desde: 'AAAA-MM-DD', lista }
     revolucion: null,   // { anio (null: el cumpleanios mas cercano), lugar (null: el de nacimiento), resultado }
     progresion: null,   // { fecha: 'AAAA-MM-DD' (a la que se progresa), resultado }
+    lunacion: null,     // { referencia: { fecha, hora } }; el resultado va en estado.transitos
     transito: null,     // { fecha: 'AAAA-MM-DD', hora: 'HH:MM' } en la hora del dispositivo
     transitos: null     // resultado de engine/transits.js
 };
@@ -140,9 +141,13 @@ const esRS = (m) => m === 'revolucion' || m === 'revolucion-sola';
 const esPR = (m) => m === 'progresion' || m === 'progresion-sola';
 const esDR = (m) => m === 'draconica' || m === 'draconica-sola';
 const esRL = (m) => m === 'reubicacion';
+const esLN = (m) => m === 'lunacion';
 const esSola = (m) => m === 'revolucion-sola' || m === 'progresion-sola' || m === 'draconica-sola' || m === 'reubicacion';
-const MODOS = ['natal', 'revolucion-sola', 'revolucion', 'transitos', 'calendario', 'efemerides', 'progresion-sola', 'progresion',
-    'reubicacion', 'draconica-sola', 'draconica'];
+const MODOS = ['natal', 'revolucion-sola', 'revolucion', 'transitos', 'lunacion', 'calendario', 'efemerides', 'progresion-sola',
+    'progresion', 'reubicacion', 'draconica-sola', 'draconica'];
+// Los transitos que se dibujan afuera de la natal: en la vista de transitos
+// y en la de la lunacion, que es el cielo del instante de la lunacion.
+const transitosDeLaVista = () => (estado.modo === 'transitos' || esLN(estado.modo) ? estado.transitos : null);
 // Vistas sin rueda: listas y graficos de tiempo.
 const sinRueda = (m) => m === 'calendario' || m === 'efemerides';
 
@@ -150,10 +155,12 @@ const sinRueda = (m) => m === 'calendario' || m === 'efemerides';
 // por defecto); la revolucion, donde se pasa el cumpleanios.
 function tipoElegido() {
     const tipo = form.elements.tipo.value;
-    $('#campos-transito').hidden = !(tipo === 'transitos' || sinRueda(tipo) || esPR(tipo));
+    $('#campos-transito').hidden = !(tipo === 'transitos' || sinRueda(tipo) || esPR(tipo) || esLN(tipo));
     $('#campos-revolucion').hidden = !(esRS(tipo) || esRL(tipo));
     $('#etiqueta-lugar-rs').textContent = esRL(tipo) ? '¿En qué lugar?' : '¿Dónde pasás tu cumpleaños?';
-    $('#etiqueta-fechaT').textContent = sinRueda(tipo) ? 'Desde' : esPR(tipo) ? 'Progresar al' : 'Fecha del tránsito';
+    $('#etiqueta-fechaT').textContent = sinRueda(tipo) ? 'Desde'
+        : esPR(tipo) ? 'Progresar al'
+            : esLN(tipo) ? 'Lunación más cercana a' : 'Fecha del tránsito';
     $('#hora-transito').hidden = tipo !== 'transitos';
     try { localStorage.setItem('tucarta:tipo', tipo); } catch {}
     return tipo;
@@ -178,6 +185,7 @@ function modoDelFormulario() {
     if (esRS(estado.modo)) estado.revolucion = { anio: null, lugar: lugarRS };
     if (esPR(estado.modo)) estado.progresion = { fecha: transitoDelFormulario().fecha };
     if (esRL(estado.modo)) estado.reubicacion = { lugar: lugarRS };
+    if (esLN(estado.modo)) estado.lunacion = { referencia: transitoDelFormulario() };
 }
 
 form.addEventListener('submit', async (e) => {
@@ -220,6 +228,7 @@ async function calcular({ nueva = false } = {}) {
     if (esPR(estado.modo)) await calcularProgresion();
     if (esRL(estado.modo)) await calcularReubicacion();
     if (esDR(estado.modo)) await calcularDraconica();
+    if (esLN(estado.modo)) await calcularLunacion();
     $('#cargando').hidden = true;
     guardarDatos();
     pintar();
@@ -260,7 +269,8 @@ function pintar() {
     pintarFichasImpresion(sistema);
 
     pintarRueda();
-    const conTransitos = estado.modo === 'transitos' && estado.transitos;
+    pintarAvisoLunacion();
+    const conTransitos = transitosDeLaVista();
     const { sola, externa } = cartasVista();
     $('#tabla-posiciones').innerHTML = sola ? tablaPosiciones(sola)
         : externa ? tablaPosicionesRevolucion(externa, carta, etiquetaExterna())
@@ -395,6 +405,9 @@ function pintarFichasImpresion(sistema) {
         if (externa) der = dr;
         else izq = [linea(d.nombre, 'nombre'), ...dr, linea(fecha(d.fecha)), linea(`${d.hora} ${utcTexto(o.total)}`),
             ...lugar(d.lugar).map((t) => linea(t)), linea(coords(d.lugar))];
+    } else if (esLN(estado.modo) && laLunacion()) {
+        const ln = momentoLunacionLocal();
+        der = [linea(tituloLunacion()), linea(fecha(ln.fecha)), linea(`${ln.hora} h`), linea(`En la casa ${laLunacion().casa}`)];
     } else if (estado.modo === 'transitos' && estado.transito) {
         der = [linea('Tránsitos'), linea(fecha(estado.transito.fecha)), linea(`${estado.transito.hora} h`)];
     }
@@ -564,7 +577,7 @@ const etiquetaExterna = () => (esPR(estado.modo)
         : { titulo: 'Revolución', sigla: 'RS', de: 'de la revolución' });
 
 function pintarRueda() {
-    const transitos = estado.modo === 'transitos' ? estado.transitos : null;
+    const transitos = transitosDeLaVista();
     const { sola, externa } = cartasVista();
     const base = sola || estado.carta;
     $('#rueda').innerHTML = dibujarRueda(base, {
@@ -628,6 +641,7 @@ function pintarControlesTransito() {
     pintarEfemerides();
     pintarControlesRevolucion();
     pintarControlesProgresion();
+    pintarControlesLunacion();
     if (!enTransitos || !estado.transito) return;
     const f = formTransito.elements;
     if (document.activeElement !== f.fecha) f.fecha.value = estado.transito.fecha.split('-').reverse().join('/');
@@ -695,6 +709,11 @@ async function aplicarModo(modo) {
     if (esDR(modo)) {
         await calcularDraconica();
         evento('draconica_vista', { sola: esSola(modo) });
+    }
+    if (esLN(modo)) {
+        estado.lunacion ||= { referencia: momentoLocal(new Date()) };
+        await calcularLunacion();
+        evento('lunacion_vista', { tipo: laLunacion()?.tipo || 'ninguna' });
     }
     if (modo === 'calendario') {
         $('#cargando').hidden = false;
@@ -834,25 +853,111 @@ function textoProgresion() {
     return [`al ${fecha}`, `${r.edad.toFixed(1).replace('.', ',')} años`];
 }
 
+const formProgresion = $('#controles-pr');
+formProgresion.elements.fecha.addEventListener('input', barrasFecha);
+
 function pintarControlesProgresion() {
     const r = esPR(estado.modo) && estado.progresion?.resultado;
-    $('#controles-pr').hidden = !r;
+    formProgresion.hidden = !r;
     if (!r) return;
+    const f = formProgresion.elements;
+    if (document.activeElement !== f.fecha) f.fecha.value = estado.progresion.fecha.split('-').reverse().join('/');
     const [al, edad] = textoProgresion();
     $('#nota-pr').textContent = `Progresiones ${al} (${edad}). Ascendente y Medio Cielo por ${NOMBRE_METODO[r.metodo]}; se cambia en Ajustes.`;
 }
 
-$('#controles-pr').addEventListener('click', async (e) => {
-    const paso = e.target.closest('[data-pr]')?.dataset.pr;
-    if (!paso) return;
-    if (paso === 'hoy') {
-        estado.progresion.fecha = momentoLocal(new Date()).fecha;
-    } else {
-        const [a, m, d] = estado.progresion.fecha.split('-').map(Number);
-        estado.progresion.fecha = momentoLocal(new Date(a, m - 1 + Number(paso), d)).fecha;
-    }
+async function cambiarProgresion(fecha) {
+    estado.progresion.fecha = fecha;
     estado.seleccion = null;
     await calcularProgresion();
+    pintar();
+}
+
+// Pasos de un anio, un mes o un dia. El dia sirve para afinar la
+// progresion a una fecha puntual.
+formProgresion.addEventListener('click', (e) => {
+    const paso = e.target.closest('[data-pr]')?.dataset.pr;
+    if (!paso) return;
+    if (paso === 'hoy') return cambiarProgresion(momentoLocal(new Date()).fecha);
+    const [a, m, d] = estado.progresion.fecha.split('-').map(Number);
+    const t = new Date(a, m - 1, d);
+    const signo = paso.startsWith('-') ? -1 : 1;
+    if (paso.endsWith('dia')) t.setDate(t.getDate() + signo);
+    if (paso.endsWith('mes')) t.setMonth(t.getMonth() + signo);
+    if (paso.endsWith('anio')) t.setFullYear(t.getFullYear() + signo);
+    cambiarProgresion(momentoLocal(t).fecha);
+});
+
+formProgresion.addEventListener('change', (e) => {
+    const f = formProgresion.elements;
+    if (e.target !== f.fecha) return;
+    f.fecha.value = completarFecha(f.fecha.value.trim());
+    const fecha = fechaIso(f.fecha.value.trim());
+    if (!fecha) return; // fecha a medio escribir: se espera
+    cambiarProgresion(fecha);
+});
+formProgresion.addEventListener('submit', (e) => e.preventDefault());
+
+// ---------- Lunacion en la carta ----------
+//
+// La luna nueva o la luna llena mas cercana en el tiempo al momento de
+// referencia, dibujada afuera de la natal igual que un transito (que es lo
+// que es: el cielo de ese instante), mas en que casa natal cae.
+
+const laLunacion = () => (esLN(estado.modo) ? estado.transitos?.lunacion || null : null);
+const tituloLunacion = () => (laLunacion()?.tipo === 'llena' ? 'Luna llena' : 'Luna nueva');
+const momentoLunacionLocal = () => momentoLocal(fechaDeJd(laLunacion().jd));
+// Donde Seba cuenta que significa cada lunacion.
+const PAGINA_LUNACION = { nueva: 'https://sebabru.com/lunanueva', llena: 'https://sebabru.com/lunallena' };
+// Medio mes sinodico: alcanza para que la mas cercana sea la de al lado.
+const MEDIO_MES = 14.77;
+
+async function calcularLunacion() {
+    estado.lunacion ||= { referencia: momentoLocal(new Date()) };
+    const t = fechaDeTransito(estado.lunacion.referencia);
+    const utc = {
+        anio: t.getUTCFullYear(), mes: t.getUTCMonth() + 1, dia: t.getUTCDate(),
+        hora: t.getUTCHours(), minuto: t.getUTCMinutes()
+    };
+    try {
+        estado.transitos = await calcularEnWorker({ tipo: 'lunacion', utc, natal: estado.carta, ajustes: estado.ajustes });
+    } catch (err) {
+        console.error(err);
+        estado.transitos = null;
+    }
+}
+
+function pintarControlesLunacion() {
+    const l = laLunacion();
+    $('#controles-ln').hidden = !l;
+    if (!l) return;
+    const ln = momentoLunacionLocal();
+    const offset = -fechaDeJd(l.jd).getTimezoneOffset() * 60;
+    $('#nota-ln').textContent = `${tituloLunacion()} del ${ln.fecha.split('-').reverse().join('/')} a las ${ln.hora} `
+        + `(hora de tu dispositivo, ${utcTexto(offset)}).`;
+}
+
+// La linea de abajo de la rueda: en que casa cae y donde leer que
+// significa. Se ve en pantalla, en pantalla completa y en la hoja impresa.
+function pintarAvisoLunacion() {
+    const caja = $('#aviso-lunacion');
+    const l = laLunacion();
+    caja.hidden = !l;
+    if (!l) return;
+    caja.innerHTML = `<span class="lunacion-casa">Esta ${escapar(tituloLunacion())} cae en tu casa ${l.casa}</span>`
+        + `<span class="lunacion-grado">${gradoMin(l)} de ${escapar(NOMBRE_SIGNO[l.signo])}</span>`
+        + `<a class="lunacion-link" href="${PAGINA_LUNACION[l.tipo]}" target="_blank" rel="noopener">`
+        + 'Acá encontrás más info de qué significa</a>';
+}
+
+$('#controles-ln').addEventListener('click', async (e) => {
+    const paso = e.target.closest('[data-ln]')?.dataset.ln;
+    if (!paso) return;
+    estado.lunacion = paso === 'hoy'
+        ? { referencia: momentoLocal(new Date()) }
+        : { referencia: momentoLocal(fechaDeJd(laLunacion().jd + Number(paso) * MEDIO_MES)) };
+    estado.seleccion = null;
+    await calcularLunacion();
     pintar();
 });
 
@@ -1656,7 +1761,7 @@ $('#ventana-anexo').addEventListener('click', async (e) => {
 // sus aspectos; en las dobles, la cuadrada de la de afuera a la natal.
 function anexoActual() {
     const { sola, externa } = cartasVista();
-    const transitos = estado.modo === 'transitos' ? estado.transitos : null;
+    const transitos = transitosDeLaVista();
     const base = sola || estado.carta;
     const pts = (c) => [...c.puntos, ...c.angulos];
     const ids = (c) => pts(c).map((p) => p.id);
@@ -1666,7 +1771,7 @@ function anexoActual() {
         columnas = ids(estado.carta);
         aspectos = transitos.aspectos;
         triangular = false;
-        tituloGrilla = 'Tránsitos a la natal';
+        tituloGrilla = esLN(estado.modo) ? `${tituloLunacion()} a la natal` : 'Tránsitos a la natal';
     } else if (externa) {
         filas = ids(externa);
         columnas = ids(estado.carta);
@@ -1703,7 +1808,7 @@ const slug = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCa
 async function descargarImagen() {
     // Rueda limpia, sin el planeta tocado, en un contenedor fuera de la vista.
     const caja = $('#para-imagen');
-    const transitos = estado.modo === 'transitos' ? estado.transitos : null;
+    const transitos = transitosDeLaVista();
     const { sola, externa } = cartasVista();
     const rs = esRS(estado.modo) && (sola || externa);
     const pr = esPR(estado.modo) && (sola || externa);
@@ -1714,10 +1819,13 @@ async function descargarImagen() {
     const color = (v) => cs.getPropertyValue(v).trim();
     const d = estado.datos;
     try {
-        const fechaT = transitos ? estado.transito.fecha.split('-').reverse().join('/') : '';
+        const ln = esLN(estado.modo) && laLunacion() ? momentoLunacionLocal() : null;
+        const fechaT = ln ? ln.fecha.split('-').reverse().join('/')
+            : transitos ? estado.transito.fecha.split('-').reverse().join('/') : '';
         const blob = await imagenCarta(caja.querySelector('svg.rueda'), {
             anexo: caja.querySelector('svg.anexo'),
-            titulo: transitos ? `Tránsitos del ${fechaT}`
+            titulo: ln ? `${tituloLunacion()} del ${fechaT} en tu casa ${laLunacion().casa}`
+                : transitos ? `Tránsitos del ${fechaT}`
                 : rs ? `Revolución solar ${estado.revolucion.anio}`
                     : pr ? `Progresiones ${textoProgresion()[0]}`
                         : rl ? `Carta relocalizada en ${descripcionLugar(momentoReubicacionLocal().lugar)}`
@@ -1727,7 +1835,9 @@ async function descargarImagen() {
                     : $('#resumen-datos').textContent,
             colores: { fondo: color('--bg'), texto: color('--texto'), suave: color('--texto-suave') }
         });
-        const archivo = rs
+        const archivo = ln
+            ? `lunacion-${slug(d.nombre || 'natal') || 'natal'}-${ln.fecha}.png`
+            : rs
             ? `revolucion-${slug(d.nombre || 'natal') || 'natal'}-${estado.revolucion.anio}.png`
             : pr
             ? `progresiones-${slug(d.nombre || 'natal') || 'natal'}-${estado.progresion.fecha}.png`
@@ -1875,16 +1985,42 @@ function datosDeEnlace(b64url) {
     };
 }
 
+// La vista con la que abre un enlace: "#vista=lunacion" sola, o
+// "&vista=..." detras de "#carta=". Una vista que no existe se ignora.
+function vistaDelEnlace() {
+    const m = /[#&]vista=([a-z-]+)/.exec(location.hash);
+    return m && MODOS.includes(m[1]) ? m[1] : null;
+}
+
+// "#vista=lunacion" sin datos: desde una pagina del sitio ("mira donde cae
+// en tu carta"). Queda elegida en el formulario y, si la persona ya habia
+// calculado su carta en este navegador, se abre directo en esa vista.
+async function abrirVista(vista) {
+    history.replaceState(null, '', location.pathname + location.search);
+    form.elements.tipo.value = vista;
+    tipoElegido();
+    const datos = leerFormulario();
+    if (typeof datos === 'string') return; // sin carta previa: queda el formulario listo
+    modoDelFormulario();
+    estado.datos = datos;
+    estado.seleccion = null;
+    estado.corrigiendoHuso = false;
+    await calcular({ nueva: true });
+    evento('vista_desde_enlace', { vista });
+}
+
 async function abrirEnlace() {
-    const m = /^#(hoja|carta)=([A-Za-z0-9_-]+)$/.exec(location.hash);
-    if (!m) return;
+    const vista = vistaDelEnlace();
+    const m = /^#(hoja|carta)=([A-Za-z0-9_-]+)/.exec(location.hash);
+    if (!m) return vista ? abrirVista(vista) : undefined;
     const hoja = m[1] === 'hoja';
     if (hoja) window.gtag = () => {};
     try {
         estado.datos = datosDeEnlace(m[2]);
         // La carta queda en la calculadora: la direccion vuelve a ser la de siempre.
         if (!hoja) history.replaceState(null, '', location.pathname + location.search);
-        form.elements.tipo.value = 'natal';
+        // La hoja del mail es siempre la natal.
+        form.elements.tipo.value = hoja ? 'natal' : vista || 'natal';
         modoDelFormulario();
         await calcular({ nueva: true });
         if (!estado.carta) throw new Error('no se pudo calcular');
@@ -1899,8 +2035,8 @@ async function abrirEnlace() {
             await document.fonts.ready;
             window.hojaLista = true;
         } else {
-            $('.desplegable-interp').open = true;
-            evento('carta_desde_enlace', {});
+            if (estado.modo === 'natal') $('.desplegable-interp').open = true;
+            evento('carta_desde_enlace', { vista: estado.modo });
         }
     } catch (err) {
         if (hoja) window.hojaError = String(err?.message || err);

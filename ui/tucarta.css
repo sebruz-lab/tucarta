@@ -603,6 +603,25 @@ body.sin-scroll { overflow: hidden; }
 }
 .detalle-punto strong { color: var(--amarillo); font-weight: 400; }
 
+/* La linea de la lunacion, debajo de la rueda: en que casa cae y donde
+   leer que significa. Tambien sale en la hoja impresa. */
+.aviso-lunacion:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    margin: 14px 0 0;
+    text-align: center;
+}
+.aviso-lunacion .lunacion-casa { font-size: 1.1rem; color: var(--amarillo); }
+.aviso-lunacion .lunacion-grado { font-size: 0.9rem; color: var(--texto-suave); }
+.aviso-lunacion .lunacion-link {
+    margin-top: 4px;
+    font-size: 0.9rem;
+    color: var(--texto-suave);
+    text-underline-offset: 3px;
+}
+
 /* Color de cada planeta, en la rueda y en las tablas. */
 [data-punto="sol"], [data-punto="r-sol"] { --p: var(--p-sol); }
 [data-punto="luna"], [data-punto="r-luna"] { --p: var(--p-luna); }
@@ -1383,6 +1402,11 @@ body.sin-scroll { overflow: hidden; }
         color: #5c5f6b;
     }
     .esquina button { text-decoration: none; }
+    /* La linea de la lunacion, debajo de la rueda y en negro. */
+    .aviso-lunacion:not([hidden]) { margin: 4mm 0 0; color: #15151a; }
+    .aviso-lunacion .lunacion-casa { font-size: 13pt; color: #15151a; }
+    .aviso-lunacion .lunacion-grado { font-size: 10pt; color: #5c5f6b; }
+    .aviso-lunacion .lunacion-link { font-size: 10pt; color: #5c5f6b; }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
     /* Efemerides graficas: A4 apaisada, el grafico a lo ancho con el nombre

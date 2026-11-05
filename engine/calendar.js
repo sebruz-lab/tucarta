@@ -8,27 +8,16 @@
 
 import { PUNTOS, ASPECTOS, AJUSTES_POR_DEFECTO } from './config.js';
 import { flagsDe } from './chart.js';
+import { biseccion } from './raices.js';
 
 export const PUNTOS_CALENDARIO = ['jupiter', 'saturno', 'urano', 'neptuno', 'pluton', 'quiron', 'nodo'];
 const MARGEN = 730;      // dias antes y despues del periodo
-const PRECISION = 1 / 1440; // un minuto, en dias
 
 // Diferencia angular con signo, en (-180, 180].
 const dif = (a, b) => {
     const d = ((a - b) % 360 + 360) % 360;
     return d > 180 ? d - 360 : d;
 };
-
-// Biseccion de f entre a y b (f(a) y f(b) de distinto signo).
-function biseccion(f, a, b) {
-    let fa = f(a);
-    while (b - a > PRECISION) {
-        const m = (a + b) / 2;
-        const fm = f(m);
-        if ((fm <= 0) === (fa <= 0)) { a = m; fa = fm; } else b = m;
-    }
-    return (a + b) / 2;
-}
 
 // natal: modelo de calcularCarta. desde/hasta: dias julianos (UT).
 // Devuelve [{ a, b, aspecto, menor, entra, sale, exactos: [jd] }] de los

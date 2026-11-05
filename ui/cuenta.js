@@ -27,7 +27,21 @@ const auth = getAuth(app);
 auth.languageCode = 'es';
 
 export const alCambiarSesion = (fn) => onAuthStateChanged(auth, fn);
-export const entrarConGoogle = () => signInWithPopup(auth, new GoogleAuthProvider());
+
+// Por defecto Google entra sola con la sesion que ya esta abierta en el
+// navegador, sin preguntar: en una compu compartida, o cuando la persona
+// tiene dos mails, eso termina en la cuenta equivocada. Con
+// prompt=select_account siempre aparece la lista para elegir.
+// Devuelve { usuario, nueva }: `nueva` es true cuando ese mail de Google
+// todavia no tenia cuenta y se acaba de crear.
+export async function entrarConGoogle() {
+    const proveedor = new GoogleAuthProvider();
+    proveedor.setCustomParameters({ prompt: 'select_account' });
+    const r = await signInWithPopup(auth, proveedor);
+    const marcas = r.user.metadata || {};
+    // Recien creada: Firebase pone la misma marca de tiempo en las dos.
+    return { usuario: r.user, nueva: Boolean(marcas.creationTime) && marcas.creationTime === marcas.lastSignInTime };
+}
 export const entrarConMail = (email, pass) => signInWithEmailAndPassword(auth, email, pass);
 export const crearCuenta = (email, pass) => createUserWithEmailAndPassword(auth, email, pass);
 export const recuperarClave = (email) => sendPasswordResetEmail(auth, email);

@@ -9,6 +9,7 @@ import { calcularRevolucion } from '../engine/solarReturn.js';
 import { calcularProgresion } from '../engine/progressions.js';
 import { efemeridesGraficas } from '../engine/efemerides.js';
 import { calcularDraconica } from '../engine/draconica.js';
+import { calcularLunacion } from '../engine/lunaciones.js';
 
 const swe = cargarSwe(() =>
     fetch(import.meta.env.BASE_URL + 'ephe/seas_18.se1').then((r) => {
@@ -19,7 +20,7 @@ const swe = cargarSwe(() =>
 self.onmessage = async ({ data }) => {
     const { id, pedido } = data;
     try {
-        const calculos = { transitos: calcularTransitos, calendario: calendarioTransitos, revolucion: calcularRevolucion, progresion: calcularProgresion, efemerides: efemeridesGraficas, draconica: calcularDraconica };
+        const calculos = { transitos: calcularTransitos, calendario: calendarioTransitos, revolucion: calcularRevolucion, progresion: calcularProgresion, efemerides: efemeridesGraficas, draconica: calcularDraconica, lunacion: calcularLunacion };
         const carta = (calculos[pedido.tipo] || calcularCarta)(await swe, pedido);
         self.postMessage({ id, carta });
     } catch (e) {

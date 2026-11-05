@@ -7,23 +7,12 @@
 
 import { PUNTOS, ASPECTOS } from './config.js';
 import { flagsDe } from './chart.js';
+import { biseccion } from './raices.js';
 
 export const MODULOS = [30, 45, 90];
 // Por defecto: de la Luna Negra en adelante (los lentos).
 export const TRANSITAN_EFEMERIDES = ['lilith', 'nodo', 'jupiter', 'saturno', 'urano', 'neptuno', 'pluton'];
-const PRECISION = 1 / 1440; // un minuto, en dias
-
 const norm = (x, m) => ((x % m) + m) % m;
-
-function biseccion(f, a, b) {
-    let fa = f(a);
-    while (b - a > PRECISION) {
-        const m = (a + b) / 2;
-        const fm = f(m);
-        if ((fm <= 0) === (fa <= 0)) { a = m; fa = fm; } else b = m;
-    }
-    return (a + b) / 2;
-}
 
 // natal: modelo de calcularCarta. desde/hasta: dias julianos (UT).
 // planetas: los que transitan. natales: ids de los puntos natales (null:

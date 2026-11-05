@@ -14,6 +14,7 @@ const cuenta = { estado: 'cargando', email: '', novedades: false, datos: null, a
 let mod = null;           // cuenta.js, cuando termina de cargar
 let alCambiar = () => {};
 let quiereUsarla = false; // entro desde la ventana: seguir al aviso
+let cuentaNueva = false;  // la ultima entrada con Google creo la cuenta
 
 export const conCuenta = () => cuenta.estado === 'adentro';
 export const sesionIniciada = () => cuenta.estado === 'adentro' || cuenta.estado === 'sin-aceptar';
@@ -94,6 +95,14 @@ function mostrarPaso(paso) {
     ventana().querySelectorAll('[data-paso]').forEach((p) => { p.hidden = p.dataset.paso !== paso; });
     error('');
     if (paso === 'aceptar') {
+        // Con que cuenta entro: si se acaba de crear hay que decirlo, porque
+        // si ya tenia otra sus cartas no estan ahi.
+        const aviso = $('#aviso-cuenta');
+        aviso.hidden = !cuenta.email;
+        aviso.textContent = !cuenta.email ? ''
+            : cuentaNueva
+                ? `Creamos una cuenta nueva con ${cuenta.email}. Si ya tenías otra, cerrá esta y volvé a entrar con ese mail.`
+                : `Entraste con ${cuenta.email}.`;
         almacenLocal.listar().then((l) => {
             $('#pasar-locales').hidden = !l.length;
             $('#pasar-locales').textContent = l.length === 1
@@ -138,7 +147,7 @@ function conectarVentana() {
         if (!accion || !mod) return;
         const f = $('#form-cuenta');
         if (accion === 'google') {
-            await intentar(() => mod.entrarConGoogle());
+            await intentar(async () => { cuentaNueva = (await mod.entrarConGoogle()).nueva; });
         } else if (accion === 'modo') {
             modoCrear = !modoCrear;
             pintarModo();

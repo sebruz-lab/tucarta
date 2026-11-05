@@ -79,6 +79,7 @@
     </div>
     <div data-paso="aceptar" hidden>
         <h2>Antes de guardar tus cartas</h2>
+        <p id="aviso-cuenta" class="nota" role="status" hidden></p>
         <p>Las cartas que guardes (nombre, fecha, hora y lugar de nacimiento) quedan en tu cuenta para que las veas desde cualquier dispositivo. Solo vos podés verlas, y podés borrarlas cuando quieras.</p>
         <p id="pasar-locales" class="nota" hidden></p>
         <label class="casilla"><input type="checkbox" id="acepta-novedades">
@@ -155,6 +156,7 @@
                 <option value="revolucion-sola">Revolución Solar</option>
                 <option value="revolucion">Carta Natal + Revolución Solar</option>
                 <option value="transitos">Carta Natal + tránsitos</option>
+                <option value="lunacion">Carta Natal + lunación</option>
                 <option value="calendario">Calendario de tránsitos</option>
                 <option value="efemerides">Efemérides gráficas</option>
                 <option value="progresion-sola">Progresiones secundarias</option>
@@ -244,6 +246,7 @@
                 <option value="revolucion-sola">Revolución Solar</option>
                 <option value="revolucion">Carta Natal + Revolución Solar</option>
                 <option value="transitos">Carta Natal + tránsitos</option>
+                <option value="lunacion">Carta Natal + lunación</option>
                 <option value="calendario">Calendario de tránsitos</option>
                 <option value="efemerides">Efemérides gráficas</option>
                 <option value="progresion-sola">Progresiones secundarias</option>
@@ -286,15 +289,31 @@
             <p class="nota" id="nota-rs"></p>
         </div>
 
-        <div id="controles-pr" class="controles-transito" hidden>
+        <form id="controles-pr" class="controles-transito" novalidate hidden>
+            <div class="fila">
+                <label class="campo"><span>Progresar al <span class="opcional">(DD/MM/AAAA)</span></span>
+                    <input type="text" name="fecha" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="30">
+                </label>
+            </div>
             <div class="pasos-transito">
-                <button type="button" data-pr="-12" aria-label="Un año antes">‹‹ año</button>
-                <button type="button" data-pr="-1" aria-label="Un mes antes">‹ mes</button>
+                <button type="button" data-pr="-anio" aria-label="Un año antes">‹‹ año</button>
+                <button type="button" data-pr="-mes" aria-label="Un mes antes">‹ mes</button>
+                <button type="button" data-pr="-dia" aria-label="Un día antes">‹ día</button>
                 <button type="button" data-pr="hoy">Hoy</button>
-                <button type="button" data-pr="1" aria-label="Un mes después">mes ›</button>
-                <button type="button" data-pr="12" aria-label="Un año después">año ››</button>
+                <button type="button" data-pr="+dia" aria-label="Un día después">día ›</button>
+                <button type="button" data-pr="+mes" aria-label="Un mes después">mes ›</button>
+                <button type="button" data-pr="+anio" aria-label="Un año después">año ››</button>
             </div>
             <p class="nota" id="nota-pr"></p>
+        </form>
+
+        <div id="controles-ln" class="controles-transito" hidden>
+            <div class="pasos-transito">
+                <button type="button" data-ln="-1" aria-label="La lunación anterior">‹ anterior</button>
+                <button type="button" data-ln="hoy">La más cercana a hoy</button>
+                <button type="button" data-ln="1" aria-label="La lunación siguiente">siguiente ›</button>
+            </div>
+            <p class="nota" id="nota-ln"></p>
         </div>
 
         <figure class="figura-rueda">
@@ -302,6 +321,7 @@
             <div id="esquina-izq" class="esquina esquina-izq"></div>
             <div id="esquina-der" class="esquina esquina-der"></div>
             <div id="rueda"></div>
+            <p id="aviso-lunacion" class="aviso-lunacion" hidden></p>
             <figcaption id="detalle-punto" class="detalle-punto" aria-live="polite">Tocá un planeta para ver dónde está y con quién se relaciona.</figcaption>
             <button type="button" class="entrar-completa" data-completa="entrar" aria-label="Ver en pantalla completa" title="Pantalla completa"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
             <div class="panel-completa">
@@ -316,6 +336,7 @@
                         <option value="revolucion-sola">Revolución Solar</option>
                         <option value="revolucion">Carta Natal + Revolución Solar</option>
                         <option value="transitos">Carta Natal + tránsitos</option>
+                        <option value="lunacion">Carta Natal + lunación</option>
                         <option value="progresion-sola">Progresiones secundarias</option>
                         <option value="progresion">Carta Natal + Progresiones</option>
                         <option value="reubicacion">Carta relocalizada</option>
