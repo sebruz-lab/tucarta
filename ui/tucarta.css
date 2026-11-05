@@ -875,6 +875,41 @@ body.sin-scroll { overflow: hidden; }
 .pasos-animacion [data-anim="play"][aria-pressed="true"] { border-color: var(--turquesa); color: var(--turquesa); }
 /* Mientras corre sola, nada de seleccionar texto al clickear rapido. */
 .pasos-animacion button { user-select: none; }
+
+/* En pantalla completa la barra viaja adentro de la figura (que es el
+   elemento que se agranda) y queda flotando abajo, como la de un video.
+   El boton de salir esta abajo a la derecha, asi que le deja lugar. */
+.figura-rueda:fullscreen #controles-animacion, .figura-rueda.completa #controles-animacion {
+    position: absolute;
+    left: 10px;
+    right: 58px;
+    bottom: 8px;
+    z-index: 3;
+    gap: 6px;
+    margin: 0;
+    padding: 8px 10px;
+    background: var(--bg);
+    border: 1px solid var(--linea-fuerte);
+    border-radius: var(--radio);
+}
+.figura-rueda:fullscreen .animacion-momento, .figura-rueda.completa .animacion-momento { font-size: 1rem; }
+.figura-rueda:fullscreen #nota-animacion, .figura-rueda.completa #nota-animacion { display: none; }
+/* Con la barra abierta la rueda se achica para no quedar tapada. */
+.figura-rueda:fullscreen.con-animacion #rueda, .figura-rueda.completa.con-animacion #rueda {
+    width: min(100%, calc(100vh - 250px));
+}
+@media (min-width: 900px) {
+    /* El panel de vistas ocupa la derecha: la barra termina antes. */
+    .figura-rueda:fullscreen #controles-animacion, .figura-rueda.completa #controles-animacion {
+        left: 16px;
+        right: 264px;
+        bottom: 12px;
+        max-width: 620px;
+    }
+    .figura-rueda:fullscreen.con-animacion #rueda, .figura-rueda.completa.con-animacion #rueda {
+        width: min(100vw - 500px, 100vh - 170px);
+    }
+}
 .tabla .en-transito .icono { color: var(--transito); }
 
 /* ---------- Calendario de transitos ---------- */
@@ -1417,7 +1452,8 @@ body.sin-scroll { overflow: hidden; }
     html, body { background: #fff !important; }
     body > :not(main), main > :not(#resultado), #resultado > :not(.figura-rueda),
     .figura-rueda .esquina,
-    .figura-rueda .entrar-completa, .figura-rueda .panel-completa, .figura-rueda .salir-completa, #detalle-punto {
+    .figura-rueda .entrar-completa, .figura-rueda .panel-completa, .figura-rueda .salir-completa,
+    .figura-rueda #controles-animacion, #detalle-punto {
         display: none !important;
     }
     main, #resultado { max-width: none; padding: 0; margin: 0; }

@@ -146,15 +146,20 @@ function leerFormulario() {
 // draconica, y las que la muestran sola.
 const esRS = (m) => m === 'revolucion' || m === 'revolucion-sola';
 const esPR = (m) => m === 'progresion' || m === 'progresion-sola';
-const esDR = (m) => m === 'draconica' || m === 'draconica-sola';
+// draconica-transitos: la draconica adentro y, afuera, el cielo del momento
+// medido desde el Nodo de ESE dia. Cada rueda desde su propio Nodo, asi que
+// los aspectos no son los de natal + transitos.
+const esDRT = (m) => m === 'draconica-transitos';
+const esDR = (m) => m === 'draconica' || m === 'draconica-sola' || esDRT(m);
 const esRL = (m) => m === 'reubicacion';
 const esLN = (m) => m === 'lunacion';
-const esSola = (m) => m === 'revolucion-sola' || m === 'progresion-sola' || m === 'draconica-sola' || m === 'reubicacion';
+const esSola = (m) => m === 'revolucion-sola' || m === 'progresion-sola' || m === 'draconica-sola' || m === 'reubicacion' || esDRT(m);
 const MODOS = ['natal', 'revolucion-sola', 'revolucion', 'transitos', 'lunacion', 'calendario', 'efemerides', 'progresion-sola',
-    'progresion', 'reubicacion', 'draconica-sola', 'draconica'];
+    'progresion', 'reubicacion', 'draconica-sola', 'draconica', 'draconica-transitos'];
 // Los transitos que se dibujan afuera de la natal: en la vista de transitos
 // y en la de la lunacion, que es el cielo del instante de la lunacion.
-const transitosDeLaVista = () => (estado.modo === 'transitos' || esLN(estado.modo) ? estado.transitos : null);
+const adentroDeLaVista = () => (esDRT(estado.modo) ? 'dracónica' : 'natal');
+const transitosDeLaVista = () => (estado.modo === 'transitos' || esLN(estado.modo) || esDRT(estado.modo) ? estado.transitos : null);
 // Vistas sin rueda: listas y graficos de tiempo.
 const sinRueda = (m) => m === 'calendario' || m === 'efemerides';
 
@@ -162,13 +167,13 @@ const sinRueda = (m) => m === 'calendario' || m === 'efemerides';
 // por defecto); la revolucion, donde se pasa el cumpleanios.
 function tipoElegido() {
     const tipo = form.elements.tipo.value;
-    $('#campos-transito').hidden = !(tipo === 'transitos' || sinRueda(tipo) || esPR(tipo) || esLN(tipo));
+    $('#campos-transito').hidden = !(tipo === 'transitos' || sinRueda(tipo) || esPR(tipo) || esLN(tipo) || esDRT(tipo));
     $('#campos-revolucion').hidden = !(esRS(tipo) || esRL(tipo));
     $('#etiqueta-lugar-rs').textContent = esRL(tipo) ? '¿En qué lugar?' : '¿Dónde pasás tu cumpleaños?';
     $('#etiqueta-fechaT').textContent = sinRueda(tipo) ? 'Desde'
         : esPR(tipo) ? 'Progresar al'
             : esLN(tipo) ? 'Lunación más cercana a' : 'Fecha del tránsito';
-    $('#hora-transito').hidden = tipo !== 'transitos';
+    $('#hora-transito').hidden = !(tipo === 'transitos' || esDRT(tipo));
     try { localStorage.setItem('tucarta:tipo', tipo); } catch {}
     return tipo;
 }
@@ -186,7 +191,7 @@ function transitoDelFormulario() {
 // El modo con el que se abre una carta: el elegido en la primera pagina.
 function modoDelFormulario() {
     estado.modo = tipoElegido();
-    if (estado.modo === 'transitos') estado.transito = transitoDelFormulario();
+    if (estado.modo === 'transitos' || esDRT(estado.modo)) estado.transito = transitoDelFormulario();
     if (estado.modo === 'calendario') estado.calendario = { desde: transitoDelFormulario().fecha };
     if (estado.modo === 'efemerides') estado.efemerides = { anio: Number(transitoDelFormulario().fecha.slice(0, 4)) };
     if (esRS(estado.modo)) estado.revolucion = { anio: null, lugar: lugarRS };
@@ -228,13 +233,13 @@ async function calcular({ nueva = false } = {}) {
         console.error(err);
         return;
     }
-    if (estado.modo === 'transitos') await calcularTransitos();
+    if (esDR(estado.modo)) await calcularDraconica();
+    if (estado.modo === 'transitos' || esDRT(estado.modo)) await calcularTransitos();
     if (estado.modo === 'calendario') await calcularCalendario();
     if (estado.modo === 'efemerides') await calcularEfemerides();
     if (esRS(estado.modo)) await calcularRevolucionSolar();
     if (esPR(estado.modo)) await calcularProgresion();
     if (esRL(estado.modo)) await calcularReubicacion();
-    if (esDR(estado.modo)) await calcularDraconica();
     if (esLN(estado.modo)) await calcularLunacion();
     $('#cargando').hidden = true;
     guardarDatos();
@@ -285,15 +290,17 @@ function pintar({ liviano = false } = {}) {
     pintarAvisoLunacion();
     const conTransitos = transitosDeLaVista();
     const { sola, externa } = cartasVista();
-    $('#tabla-posiciones').innerHTML = sola ? tablaPosiciones(sola)
-        : externa ? tablaPosicionesRevolucion(externa, carta, etiquetaExterna())
-            : conTransitos ? tablaPosicionesTransito(estado.transitos) : tablaPosiciones(carta);
+    $('#tabla-posiciones').innerHTML = conTransitos ? tablaPosicionesTransito(estado.transitos, adentroDeLaVista())
+        : sola ? tablaPosiciones(sola)
+            : externa ? tablaPosicionesRevolucion(externa, carta, etiquetaExterna())
+                : tablaPosiciones(carta);
     const prANatal = externa && esPR(estado.modo) && estado.progresion?.resultado?.aspectosNatal;
     const drANatal = externa && esDR(estado.modo) && estado.draconica?.aspectosNatal;
-    $('#tabla-aspectos').innerHTML = prANatal ? tablaAspectosANatal(prANatal, 'Progresión')
+    $('#tabla-aspectos').innerHTML = conTransitos ? tablaAspectosTransito(estado.transitos, adentroDeLaVista())
+        : prANatal ? tablaAspectosANatal(prANatal, 'Progresión')
         : drANatal ? tablaAspectosANatal(drANatal, 'Dracónica')
         : sola || externa ? tablaAspectos(sola || externa)
-        : conTransitos ? tablaAspectosTransito(estado.transitos) : tablaAspectos(carta);
+        : tablaAspectos(carta);
     $('#tabla-casas').innerHTML = tablaCasas(sola || externa || carta);
     if (liviano) return;
     $('#form-ajustes').innerHTML = panelAjustes(estado.ajustes);
@@ -356,6 +363,16 @@ function pintarEsquinas(sistema) {
         [coords(rl.lugar), renglon(sistema), '<button type="button" data-accion="cambiar-lugar-rs">Cambiar lugar</button>']);
         return;
     }
+    if (esDRT(estado.modo) && otra) {
+        const t = estado.transito;
+        poner([renglon('Carta dracónica', 'titulo-esquina'), renglon(textoNodoDraconica(), 'principal'),
+            renglon(`${dia}/${m}/${a}`), renglon(d.hora + ' h'), ...renglonesLugar(l).map((x) => renglon(x))],
+        [renglon('Tránsitos dracónicos', 'titulo-esquina'),
+            renglon(t ? t.fecha.split('-').reverse().join('/') : '', 'principal'),
+            renglon(t ? t.hora + ' h' : '', 'principal'),
+            renglon('Desde el Nodo del día'), renglon(sistema)]);
+        return;
+    }
     if (otra && esDR(estado.modo)) {
         const dr = [renglon('Carta dracónica', 'titulo-esquina'), renglon(textoNodoDraconica(), 'principal')];
         if (externa) poner([renglon('Carta de adentro', 'leyenda'), ...natal()], [renglon('Carta de afuera', 'leyenda'), ...dr]);
@@ -390,7 +407,8 @@ function pintarFichasImpresion(sistema) {
     const lugar = (l) => (l.manual ? ['Coordenadas a mano'] : [[l.nombre, l.provincia, l.paisNombre].filter(Boolean).join(', ')]);
     const coords = (l) => `${coordTexto(l.lat, 'N', 'S')} ${coordTexto(l.lon, 'E', 'O')}`;
     const fecha = (iso) => iso.split('-').reverse().join('/');
-    const calculo = ['Geocéntrica', 'Tropical', sistema, 'Nodo real'].map((t) => linea(t, 'calculo')).join('');
+    const calculo = ['Geocéntrica', esDR(estado.modo) ? 'Dracónica' : 'Tropical', sistema, 'Nodo real']
+        .map((t) => linea(t, 'calculo')).join('');
     const natal = (titulo) => [
         linea(d.nombre, 'nombre'), linea(titulo), linea(fecha(d.fecha)), linea(`${d.hora} ${utcTexto(o.total)}`),
         ...lugar(d.lugar).map((t) => linea(t)), linea(coords(d.lugar))
@@ -414,6 +432,14 @@ function pintarFichasImpresion(sistema) {
         izq = [linea(d.nombre, 'nombre'), linea('Carta relocalizada'), linea(rl.fecha), linea(`${rl.hora} ${utcTexto(rl.huso)}`),
             ...lugar(rl.lugar).map((t) => linea(t)), linea(coords(rl.lugar))];
         der = [linea('Nacimiento'), linea(fecha(d.fecha)), linea(`${d.hora} ${utcTexto(o.total)}`), ...lugar(d.lugar).map((t) => linea(t))];
+    } else if (esDRT(estado.modo) && sola) {
+        izq = [linea(d.nombre, 'nombre'), linea('Carta dracónica'), linea(textoNodoDraconica()),
+            linea(fecha(d.fecha)), linea(`${d.hora} ${utcTexto(o.total)}`),
+            ...lugar(d.lugar).map((t) => linea(t)), linea(coords(d.lugar))];
+        if (estado.transito) {
+            der = [linea('Tránsitos dracónicos'), linea(fecha(estado.transito.fecha)),
+                linea(`${estado.transito.hora} h`), linea('Desde el Nodo del día')];
+        }
     } else if ((sola || externa) && esDR(estado.modo)) {
         const dr = [linea('Carta dracónica'), linea(textoNodoDraconica())];
         if (externa) der = dr;
@@ -476,9 +502,13 @@ async function pantallaCompleta(entrar) {
         fig.classList.remove('completa');
         document.body.classList.remove('sin-scroll');
     }
+    ubicarBarraAnimacion();
     acomodarLuego();
 }
-document.addEventListener('fullscreenchange', acomodarLuego);
+document.addEventListener('fullscreenchange', () => {
+    ubicarBarraAnimacion();
+    acomodarLuego();
+});
 // Panel de pantalla completa: otra carta de "Mis cartas" y las vistas
 // (todas menos el calendario, que no tiene rueda). Con mouse, la vista
 // cambia al pasar por la palabra; tocando, al tocarla.
@@ -611,12 +641,12 @@ function pintarRueda() {
     const s = estado.seleccion;
     const e = etiquetaExterna();
     $('#detalle-punto').innerHTML = !s
-        ? (transitos ? 'Tocá un planeta natal o en tránsito para ver sus aspectos.'
+        ? (transitos ? `Tocá un planeta ${adentroDeLaVista()} o en tránsito para ver sus aspectos.`
             : externa ? `Tocá un planeta ${e.de} (afuera) o natal (adentro).`
                 : 'Tocá un planeta para ver dónde está y con quién se relaciona.')
         : s.startsWith('r-') ? detalleRevolucion(externa, estado.carta, s, e.de)
-        : s.startsWith('t-') ? detalleTransito(transitos, s)
-            : transitos ? detalleNatalConTransitos(estado.carta, transitos, s)
+        : s.startsWith('t-') ? detalleTransito(transitos, s, adentroDeLaVista())
+            : transitos ? detalleNatalConTransitos(base, transitos, s, adentroDeLaVista())
                 : detallePunto(base, s);
 }
 
@@ -637,8 +667,16 @@ async function calcularTransitos() {
         anio: t.getUTCFullYear(), mes: t.getUTCMonth() + 1, dia: t.getUTCDate(),
         hora: t.getUTCHours(), minuto: t.getUTCMinutes()
     };
+    // En la vista draconica, adentro va la draconica y afuera el cielo del
+    // momento medido desde el Nodo de ese dia.
+    const dr = esDRT(estado.modo);
+    const base = dr ? estado.draconica?.carta : estado.carta;
+    if (!base) { estado.transitos = null; return; }
     try {
-        estado.transitos = await calcularEnWorker({ tipo: 'transitos', utc, natal: estado.carta, ajustes: estado.ajustes });
+        estado.transitos = await calcularEnWorker({
+            tipo: 'transitos', utc, natal: base, ajustes: estado.ajustes,
+            draconica: dr ? (estado.ajustes.nodoDraconica === 'medio' ? 'medio' : 'real') : null
+        });
     } catch (err) {
         console.error(err);
         estado.transitos = null;
@@ -646,7 +684,7 @@ async function calcularTransitos() {
 }
 
 function pintarControlesTransito() {
-    const enTransitos = estado.modo === 'transitos';
+    const enTransitos = estado.modo === 'transitos' || esDRT(estado.modo);
     $('#selector-modo').value = estado.modo;
     $('.selector-completa').value = estado.modo;
     formTransito.hidden = !enTransitos;
@@ -711,6 +749,11 @@ async function aplicarModo(modo) {
         await calcularTransitos();
         evento('transitos_vistos', {});
     }
+    if (esDRT(modo)) {
+        await calcularDraconica();
+        await calcularTransitos();
+        evento('draconica_transitos_vista', {});
+    }
     if (esRS(modo)) {
         estado.revolucion ||= { anio: null, lugar: lugarRS };
         await calcularRevolucionSolar();
@@ -725,7 +768,7 @@ async function aplicarModo(modo) {
         await calcularReubicacion();
         evento('relocalizada_vista', {});
     }
-    if (esDR(modo)) {
+    if (esDR(modo) && !esDRT(modo)) {
         await calcularDraconica();
         evento('draconica_vista', { sola: esSola(modo) });
     }
@@ -957,7 +1000,7 @@ function animable(m = estado.modo) {
     if (sinRueda(m) || esLN(m)) return null;
     if (esPR(m)) return 'progresion';
     if (esRS(m)) return 'revolucion';
-    if (m === 'transitos') return 'transito';
+    if (m === 'transitos' || esDRT(m)) return 'transito';
     return 'carta';
 }
 const UNIDAD_MINIMA = { carta: 'min', transito: 'min', progresion: 'dia', revolucion: 'anio' };
@@ -1131,7 +1174,7 @@ function pintarControlesAnimacion() {
     $('.animar-completa').hidden = !k;
     $('.animar-completa').setAttribute('aria-pressed', String(abierta));
     $('#controles-animacion').hidden = !abierta;
-    if (!abierta) return;
+    if (!abierta) return ubicarBarraAnimacion();
 
     const unidad = UNIDAD_MINIMA[k];
     const lista = pasosDesde(unidad);
@@ -1150,6 +1193,7 @@ function pintarControlesAnimacion() {
     play.setAttribute('aria-pressed', String(Boolean(estado.animacion.reproduciendo)));
     $('#guardar-momento').hidden = k !== 'carta';
     $('#nota-animacion').textContent = notaAnimacion(k);
+    ubicarBarraAnimacion();
 }
 
 function notaAnimacion(k) {
@@ -1160,6 +1204,15 @@ function notaAnimacion(k) {
     const aviso = estado.tz?.estado === 'ambigua' || estado.tz?.estado === 'inexistente'
         ? ' Ese momento cae en un cambio de hora: se tomó el primero de los dos.' : '';
     return `La carta se recalcula para cada momento, en el mismo lugar (${utcTexto(o?.total || 0)}).` + aviso;
+}
+
+function ubicarBarraAnimacion() {
+    const fig = $('.figura-rueda');
+    const barra = $('#controles-animacion');
+    const completa = document.fullscreenElement === fig || fig.classList.contains('completa');
+    if (completa && barra.parentElement !== fig) fig.appendChild(barra);
+    if (!completa && barra.parentElement === fig) $('#resultado').insertBefore(barra, fig);
+    fig.classList.toggle('con-animacion', completa && !barra.hidden);
 }
 
 $('#animar').addEventListener('click', () => abrirAnimacion(!estado.animacion?.activa));
@@ -2134,7 +2187,8 @@ async function descargarImagen() {
     const rs = esRS(estado.modo) && (sola || externa);
     const pr = esPR(estado.modo) && (sola || externa);
     const rl = esRL(estado.modo) && sola;
-    const dr = esDR(estado.modo) && (sola || externa);
+    const drt = esDRT(estado.modo) && sola;
+    const dr = esDR(estado.modo) && !drt && (sola || externa);
     caja.innerHTML = dibujarRueda(sola || estado.carta, { nombres: NOMBRE_PUNTO, clara: tema === 'claro', transitos, revolucion: externa }) + anexoActual();
     const cs = getComputedStyle(document.body);
     const color = (v) => cs.getPropertyValue(v).trim();
@@ -2146,6 +2200,7 @@ async function descargarImagen() {
         const blob = await imagenCarta(caja.querySelector('svg.rueda'), {
             anexo: caja.querySelector('svg.anexo'),
             titulo: ln ? `${tituloLunacion()} del ${fechaT} en tu casa ${laLunacion().casa}`
+                : drt ? `Dracónica + tránsitos dracónicos del ${fechaT}`
                 : transitos ? `Tránsitos del ${fechaT}`
                 : rs ? `Revolución solar ${estado.revolucion.anio}`
                     : pr ? `Progresiones ${textoProgresion()[0]}`
@@ -2164,6 +2219,8 @@ async function descargarImagen() {
             ? `progresiones-${slug(d.nombre || 'natal') || 'natal'}-${estado.progresion.fecha}.png`
             : rl
             ? `relocalizada-${slug(d.nombre || 'natal') || 'natal'}-${slug(momentoReubicacionLocal().lugar.nombre || 'lugar') || 'lugar'}.png`
+            : drt
+            ? `draconica-transitos-${slug(d.nombre || 'natal') || 'natal'}-${estado.transito.fecha}.png`
             : dr
             ? `draconica-${slug(d.nombre || 'natal') || 'natal'}-${d.fecha}.png`
             : transitos
