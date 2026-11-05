@@ -32,7 +32,7 @@ import { buscar as buscarLugar } from './form.js';
 import { TIPOS, buscarEnLista } from './miscartas.js';
 import {
     PASOS, PASO_POR_DEFECTO, VELOCIDADES, VELOCIDAD_POR_DEFECTO,
-    momentoLocal, fechaDeMomento as fechaDeTransito, avanzar, textoMomento, pasosDesde
+    momentoLocal, fechaDeMomento as fechaDeTransito, avanzar, textoMomento, pasosDesde, horaValida
 } from './animacion.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -56,6 +56,7 @@ const estado = {
     lunacion: null,     // { referencia: { fecha, hora } }; el resultado va en estado.transitos
     transito: null,     // { fecha: 'AAAA-MM-DD', hora: 'HH:MM' } en la hora del dispositivo
     transitos: null,    // resultado de engine/transits.js
+    transitosDraconicos: null, // { carta } la carta del dia, draconica
     // Animacion: la carta corrida en el tiempo, como la pagina animada de
     // Solar Fire. Los datos de nacimiento (estado.datos) no se tocan.
     animacion: null     // { activa, fecha, hora, paso, velocidad, reproduciendo }
@@ -150,12 +151,15 @@ const esPR = (m) => m === 'progresion' || m === 'progresion-sola';
 // medido desde el Nodo de ESE dia. Cada rueda desde su propio Nodo, asi que
 // los aspectos no son los de natal + transitos.
 const esDRT = (m) => m === 'draconica-transitos';
+// transitos-draconicos: la carta del cielo del dia, entera (con casas y
+// angulos), medida desde el Nodo de ese dia. Sola, sin la natal.
+const esTRD = (m) => m === 'transitos-draconicos';
 const esDR = (m) => m === 'draconica' || m === 'draconica-sola' || esDRT(m);
 const esRL = (m) => m === 'reubicacion';
 const esLN = (m) => m === 'lunacion';
-const esSola = (m) => m === 'revolucion-sola' || m === 'progresion-sola' || m === 'draconica-sola' || m === 'reubicacion' || esDRT(m);
+const esSola = (m) => m === 'revolucion-sola' || m === 'progresion-sola' || m === 'draconica-sola' || m === 'reubicacion' || esDRT(m) || esTRD(m);
 const MODOS = ['natal', 'revolucion-sola', 'revolucion', 'transitos', 'lunacion', 'calendario', 'efemerides', 'progresion-sola',
-    'progresion', 'reubicacion', 'draconica-sola', 'draconica', 'draconica-transitos'];
+    'progresion', 'reubicacion', 'draconica-sola', 'draconica', 'transitos-draconicos', 'draconica-transitos'];
 // Los transitos que se dibujan afuera de la natal: en la vista de transitos
 // y en la de la lunacion, que es el cielo del instante de la lunacion.
 const adentroDeLaVista = () => (esDRT(estado.modo) ? 'dracónica' : 'natal');
@@ -167,13 +171,14 @@ const sinRueda = (m) => m === 'calendario' || m === 'efemerides';
 // por defecto); la revolucion, donde se pasa el cumpleanios.
 function tipoElegido() {
     const tipo = form.elements.tipo.value;
-    $('#campos-transito').hidden = !(tipo === 'transitos' || sinRueda(tipo) || esPR(tipo) || esLN(tipo) || esDRT(tipo));
+    $('#campos-transito').hidden = !(tipo === 'transitos' || sinRueda(tipo) || esPR(tipo) || esLN(tipo) || esDRT(tipo) || esTRD(tipo));
     $('#campos-revolucion').hidden = !(esRS(tipo) || esRL(tipo));
     $('#etiqueta-lugar-rs').textContent = esRL(tipo) ? '¿En qué lugar?' : '¿Dónde pasás tu cumpleaños?';
     $('#etiqueta-fechaT').textContent = sinRueda(tipo) ? 'Desde'
         : esPR(tipo) ? 'Progresar al'
-            : esLN(tipo) ? 'Lunación más cercana a' : 'Fecha del tránsito';
-    $('#hora-transito').hidden = !(tipo === 'transitos' || esDRT(tipo));
+            : esLN(tipo) ? 'Lunación más cercana a'
+                : esTRD(tipo) ? 'Carta del día' : 'Fecha del tránsito';
+    $('#hora-transito').hidden = !(tipo === 'transitos' || esDRT(tipo) || esTRD(tipo));
     try { localStorage.setItem('tucarta:tipo', tipo); } catch {}
     return tipo;
 }
@@ -191,7 +196,7 @@ function transitoDelFormulario() {
 // El modo con el que se abre una carta: el elegido en la primera pagina.
 function modoDelFormulario() {
     estado.modo = tipoElegido();
-    if (estado.modo === 'transitos' || esDRT(estado.modo)) estado.transito = transitoDelFormulario();
+    if (estado.modo === 'transitos' || esDRT(estado.modo) || esTRD(estado.modo)) estado.transito = transitoDelFormulario();
     if (estado.modo === 'calendario') estado.calendario = { desde: transitoDelFormulario().fecha };
     if (estado.modo === 'efemerides') estado.efemerides = { anio: Number(transitoDelFormulario().fecha.slice(0, 4)) };
     if (esRS(estado.modo)) estado.revolucion = { anio: null, lugar: lugarRS };
@@ -235,6 +240,7 @@ async function calcular({ nueva = false } = {}) {
     }
     if (esDR(estado.modo)) await calcularDraconica();
     if (estado.modo === 'transitos' || esDRT(estado.modo)) await calcularTransitos();
+    if (esTRD(estado.modo)) await calcularTransitosDraconicos();
     if (estado.modo === 'calendario') await calcularCalendario();
     if (estado.modo === 'efemerides') await calcularEfemerides();
     if (esRS(estado.modo)) await calcularRevolucionSolar();
@@ -363,6 +369,15 @@ function pintarEsquinas(sistema) {
         [coords(rl.lugar), renglon(sistema), '<button type="button" data-accion="cambiar-lugar-rs">Cambiar lugar</button>']);
         return;
     }
+    if (esTRD(estado.modo) && otra) {
+        const t = estado.transito;
+        poner([renglon('Tránsitos dracónicos', 'titulo-esquina'),
+            renglon(t ? t.fecha.split('-').reverse().join('/') : '', 'principal'),
+            renglon(t ? t.hora + ' h' : '', 'principal'),
+            ...renglonesLugar(l).map((x) => renglon(x))],
+        [renglon('Carta del día', 'leyenda'), renglon(textoNodoDe(otra)), renglon(sistema)]);
+        return;
+    }
     if (esDRT(estado.modo) && otra) {
         const t = estado.transito;
         poner([renglon('Carta dracónica', 'titulo-esquina'), renglon(textoNodoDraconica(), 'principal'),
@@ -407,7 +422,7 @@ function pintarFichasImpresion(sistema) {
     const lugar = (l) => (l.manual ? ['Coordenadas a mano'] : [[l.nombre, l.provincia, l.paisNombre].filter(Boolean).join(', ')]);
     const coords = (l) => `${coordTexto(l.lat, 'N', 'S')} ${coordTexto(l.lon, 'E', 'O')}`;
     const fecha = (iso) => iso.split('-').reverse().join('/');
-    const calculo = ['Geocéntrica', esDR(estado.modo) ? 'Dracónica' : 'Tropical', sistema, 'Nodo real']
+    const calculo = ['Geocéntrica', esDR(estado.modo) || esTRD(estado.modo) ? 'Dracónica' : 'Tropical', sistema, 'Nodo real']
         .map((t) => linea(t, 'calculo')).join('');
     const natal = (titulo) => [
         linea(d.nombre, 'nombre'), linea(titulo), linea(fecha(d.fecha)), linea(`${d.hora} ${utcTexto(o.total)}`),
@@ -432,6 +447,10 @@ function pintarFichasImpresion(sistema) {
         izq = [linea(d.nombre, 'nombre'), linea('Carta relocalizada'), linea(rl.fecha), linea(`${rl.hora} ${utcTexto(rl.huso)}`),
             ...lugar(rl.lugar).map((t) => linea(t)), linea(coords(rl.lugar))];
         der = [linea('Nacimiento'), linea(fecha(d.fecha)), linea(`${d.hora} ${utcTexto(o.total)}`), ...lugar(d.lugar).map((t) => linea(t))];
+    } else if (esTRD(estado.modo) && sola && estado.transito) {
+        izq = [linea(d.nombre, 'nombre'), linea('Tránsitos dracónicos'), linea(textoNodoDe(sola)),
+            linea(fecha(estado.transito.fecha)), linea(estado.transito.hora + ' h'),
+            ...lugar(d.lugar).map((t) => linea(t)), linea(coords(d.lugar))];
     } else if (esDRT(estado.modo) && sola) {
         izq = [linea(d.nombre, 'nombre'), linea('Carta dracónica'), linea(textoNodoDraconica()),
             linea(fecha(d.fecha)), linea(`${d.hora} ${utcTexto(o.total)}`),
@@ -621,9 +640,15 @@ function cartasVista() {
     const otra = esRS(estado.modo) ? estado.revolucion?.resultado?.carta
         : esPR(estado.modo) ? estado.progresion?.resultado?.carta
             : esRL(estado.modo) ? estado.reubicacion?.carta
-                : esDR(estado.modo) ? estado.draconica?.carta : null;
+                : esTRD(estado.modo) ? estado.transitosDraconicos?.carta
+                    : esDR(estado.modo) ? estado.draconica?.carta : null;
     return esSola(estado.modo) ? { sola: otra || null, externa: null } : { sola: null, externa: otra || null };
 }
+// Los aspectos que la carta de afuera le hace a la natal: la revolucion,
+// la progresion y la draconica los traen cada una por su lado.
+const aspectosExternaANatal = () => (esPR(estado.modo) ? estado.progresion?.resultado?.aspectosNatal || null
+    : esDR(estado.modo) ? estado.draconica?.aspectosNatal || null
+        : esRS(estado.modo) ? estado.revolucion?.resultado?.aspectosNatal || null : null);
 const etiquetaExterna = () => (esPR(estado.modo)
     ? { titulo: 'Progresión', sigla: 'PR', de: 'de la progresión' }
     : esDR(estado.modo) ? { titulo: 'Dracónica', sigla: 'DR', de: 'de la dracónica' }
@@ -644,7 +669,7 @@ function pintarRueda() {
         ? (transitos ? `Tocá un planeta ${adentroDeLaVista()} o en tránsito para ver sus aspectos.`
             : externa ? `Tocá un planeta ${e.de} (afuera) o natal (adentro).`
                 : 'Tocá un planeta para ver dónde está y con quién se relaciona.')
-        : s.startsWith('r-') ? detalleRevolucion(externa, estado.carta, s, e.de)
+        : s.startsWith('r-') ? detalleRevolucion(externa, estado.carta, s, e.de, externa ? aspectosExternaANatal() : null)
         : s.startsWith('t-') ? detalleTransito(transitos, s, adentroDeLaVista())
             : transitos ? detalleNatalConTransitos(base, transitos, s, adentroDeLaVista())
                 : detallePunto(base, s);
@@ -684,7 +709,7 @@ async function calcularTransitos() {
 }
 
 function pintarControlesTransito() {
-    const enTransitos = estado.modo === 'transitos' || esDRT(estado.modo);
+    const enTransitos = estado.modo === 'transitos' || esDRT(estado.modo) || esTRD(estado.modo);
     $('#selector-modo').value = estado.modo;
     $('.selector-completa').value = estado.modo;
     formTransito.hidden = !enTransitos;
@@ -702,9 +727,12 @@ function pintarControlesTransito() {
     $('#nota-transito').textContent = `Fecha y hora de tu dispositivo (${utcTexto(offset)}).`;
 }
 
+const recalcularTransitoDeLaVista = () =>
+    (esTRD(estado.modo) ? calcularTransitosDraconicos() : calcularTransitos());
+
 async function cambiarTransito(nuevo) {
     estado.transito = nuevo;
-    await calcularTransitos();
+    await recalcularTransitoDeLaVista();
     pintar();
 }
 
@@ -753,6 +781,10 @@ async function aplicarModo(modo) {
         await calcularDraconica();
         await calcularTransitos();
         evento('draconica_transitos_vista', {});
+    }
+    if (esTRD(modo)) {
+        await calcularTransitosDraconicos();
+        evento('transitos_draconicos_vista', {});
     }
     if (esRS(modo)) {
         estado.revolucion ||= { anio: null, lugar: lugarRS };
@@ -814,6 +846,27 @@ function momentoReubicacionLocal() {
     return { ...momentoEn(estado.carta.meta.jd, lugar), lugar };
 }
 
+// La carta del cielo de un dia, entera (con casas y angulos en el lugar de
+// la persona), medida desde el Nodo de ESE dia: es la Transits Chart con
+// zodiaco Draconic de Solar Fire. El Nodo queda en 0° Aries.
+async function calcularTransitosDraconicos() {
+    estado.transito ||= momentoLocal(new Date());
+    const t = fechaDeTransito(estado.transito);
+    const utc = {
+        anio: t.getUTCFullYear(), mes: t.getUTCMonth() + 1, dia: t.getUTCDate(),
+        hora: t.getUTCHours(), minuto: t.getUTCMinutes()
+    };
+    const l = estado.datos.lugar;
+    const nodo = estado.ajustes.nodoDraconica === 'medio' ? 'medio' : 'real';
+    try {
+        const delDia = await calcularEnWorker({ utc, lat: l.lat, lon: l.lon, ajustes: estado.ajustes });
+        estado.transitosDraconicos = { carta: await calcularEnWorker({ tipo: 'draconica', natal: delDia, nodo }) };
+    } catch (err) {
+        console.error(err);
+        estado.transitosDraconicos = null;
+    }
+}
+
 // Draconica: la natal medida desde el Nodo Norte (real o medio, segun los
 // ajustes), con sus aspectos a la natal.
 async function calcularDraconica() {
@@ -831,6 +884,7 @@ async function calcularDraconica() {
         estado.draconica = null;
     }
 }
+const textoNodoDe = (c) => (c?.meta?.draconica?.nodo === 'medio' ? 'Desde el Nodo medio' : 'Desde el Nodo real');
 const textoNodoDraconica = () => (estado.draconica?.carta.meta.draconica.nodo === 'medio' ? 'Desde el Nodo medio' : 'Desde el Nodo real');
 
 // ---------- Revolucion solar ----------
@@ -844,6 +898,10 @@ async function calcularRevolucionSolar() {
             ahora: jdDeFecha(new Date()), lat: l.lat, lon: l.lon, ajustes: estado.ajustes
         });
         estado.revolucion.anio = estado.revolucion.resultado.anio;
+        const pts = (c) => [...c.puntos, ...c.angulos];
+        estado.revolucion.resultado.aspectosNatal = calcularAspectos(
+            pts(estado.revolucion.resultado.carta), pts(estado.carta),
+            { orbesPorAspecto: estado.ajustes.orbesTransito, menores: estado.ajustes.menores });
     } catch (err) {
         console.error(err);
         estado.revolucion.resultado = null;
@@ -1000,7 +1058,7 @@ function animable(m = estado.modo) {
     if (sinRueda(m) || esLN(m)) return null;
     if (esPR(m)) return 'progresion';
     if (esRS(m)) return 'revolucion';
-    if (m === 'transitos' || esDRT(m)) return 'transito';
+    if (m === 'transitos' || esDRT(m) || esTRD(m)) return 'transito';
     return 'carta';
 }
 const UNIDAD_MINIMA = { carta: 'min', transito: 'min', progresion: 'dia', revolucion: 'anio' };
@@ -1054,7 +1112,7 @@ async function moverMomento(signo, veces = 1, liviano = false) {
     }
     if (k === 'transito') {
         estado.transito = nuevo;
-        await calcularTransitos();
+        await recalcularTransitoDeLaVista();
         return pintar({ liviano });
     }
     estado.animacion.fecha = nuevo.fecha;
@@ -1123,7 +1181,7 @@ async function volverAlOriginal() {
     const k = animable();
     if (k === 'transito') {
         estado.transito = momentoLocal(new Date());
-        await calcularTransitos();
+        await recalcularTransitoDeLaVista();
         return pintar();
     }
     if (k === 'progresion') {
@@ -1185,9 +1243,15 @@ function pintarControlesAnimacion() {
     }
     $('#paso-animacion').value = estado.animacion.paso;
     $('#velocidad-animacion').value = estado.animacion.velocidad;
-    $('#momento-animacion').textContent = k === 'revolucion'
-        ? `Revolución solar ${estado.revolucion?.anio ?? ''}`
-        : textoMomento(momentoAnimado());
+    const m = k === 'revolucion' ? null : momentoAnimado();
+    $('#momento-editable').hidden = !m;
+    $('#momento-animacion').classList.toggle('visualmente-oculto', Boolean(m));
+    if (m) {
+        // No pisar lo que se esta escribiendo.
+        if (document.activeElement !== $('#fecha-animacion')) $('#fecha-animacion').value = m.fecha.split('-').reverse().join('/');
+        if (document.activeElement !== $('#hora-animacion')) $('#hora-animacion').value = m.hora;
+    }
+    $('#momento-animacion').textContent = m ? textoMomento(m) : `Revolución solar ${estado.revolucion?.anio ?? ''}`;
     const play = $('#play-animacion');
     play.innerHTML = estado.animacion.reproduciendo ? '&#9208; Pausa' : '&#9654; Play';
     play.setAttribute('aria-pressed', String(Boolean(estado.animacion.reproduciendo)));
@@ -1215,9 +1279,73 @@ function ubicarBarraAnimacion() {
     fig.classList.toggle('con-animacion', completa && !barra.hidden);
 }
 
+// ---- El momento, escrito a mano
+
+// Va directo a un momento, sin pasos. Lo usan los campos de la barra.
+async function irAlMomento(nuevo) {
+    pararAnimacion();
+    const k = animable();
+    if (!k || k === 'revolucion') return;
+    estado.seleccion = null;
+    if (k === 'progresion') {
+        estado.progresion.fecha = nuevo.fecha;
+        estado.progresion.hora = nuevo.hora;
+        await calcularProgresion();
+        return pintar();
+    }
+    if (k === 'transito') {
+        estado.transito = nuevo;
+        await recalcularTransitoDeLaVista();
+        return pintar();
+    }
+    estado.animacion.fecha = nuevo.fecha;
+    estado.animacion.hora = nuevo.hora;
+    return recalcularMomento();
+}
+
+$('#fecha-animacion').addEventListener('input', barrasFecha);
+$('#fecha-animacion').addEventListener('change', (e) => {
+    e.target.value = completarFecha(e.target.value.trim());
+    const fecha = fechaIso(e.target.value.trim());
+    // Fecha que no se entiende: vuelve a la que estaba.
+    if (!fecha) return pintarControlesAnimacion();
+    irAlMomento({ fecha, hora: momentoAnimado().hora });
+});
+
+// Los dos puntos se ponen solos mientras se escribe, como las barras de la
+// fecha; al borrar no vuelven a aparecer.
+$('#hora-animacion').addEventListener('input', (e) => {
+    const d = e.target.value.replace(/\D/g, '').slice(0, 4);
+    const escribiendo = !e.inputType || e.inputType.startsWith('insert');
+    e.target.value = d.length > 2 || (escribiendo && d.length === 2) ? d.slice(0, 2) + ':' + d.slice(2) : d;
+});
+$('#hora-animacion').addEventListener('change', (e) => {
+    const hora = horaValida(e.target.value);
+    if (!hora) return pintarControlesAnimacion();
+    irAlMomento({ fecha: momentoAnimado().fecha, hora });
+});
+
+// Las flechitas suben y bajan la hora; si el cursor esta parado en los
+// minutos, suben y bajan los minutos. Cada parte da la vuelta sola.
+async function moverHoraAnimacion(signo) {
+    const inp = $('#hora-animacion');
+    const enMinutos = (inp.selectionStart ?? 0) > 2;
+    const m = momentoAnimado();
+    const [hh, mm] = m.hora.split(':').map(Number);
+    const hora = enMinutos
+        ? `${dosCifras(hh)}:${dosCifras((mm + signo + 60) % 60)}`
+        : `${dosCifras((hh + signo + 24) % 24)}:${dosCifras(mm)}`;
+    await irAlMomento({ fecha: m.fecha, hora });
+    // El cursor queda donde estaba, para poder seguir tocando la flecha.
+    inp.focus();
+    inp.setSelectionRange(enMinutos ? 3 : 0, enMinutos ? 5 : 2);
+}
+
 $('#animar').addEventListener('click', () => abrirAnimacion(!estado.animacion?.activa));
 
 $('#controles-animacion').addEventListener('click', (e) => {
+    const h = e.target.closest('[data-anim-hora]')?.dataset.animHora;
+    if (h) return moverHoraAnimacion(Number(h));
     const v = e.target.closest('[data-anim]')?.dataset.anim;
     if (!v) return;
     if (sostenido.hubo) { sostenido.hubo = false; return; } // ya se movio sola
@@ -2187,6 +2315,7 @@ async function descargarImagen() {
     const rs = esRS(estado.modo) && (sola || externa);
     const pr = esPR(estado.modo) && (sola || externa);
     const rl = esRL(estado.modo) && sola;
+    const trd = esTRD(estado.modo) && sola;
     const drt = esDRT(estado.modo) && sola;
     const dr = esDR(estado.modo) && !drt && (sola || externa);
     caja.innerHTML = dibujarRueda(sola || estado.carta, { nombres: NOMBRE_PUNTO, clara: tema === 'claro', transitos, revolucion: externa }) + anexoActual();
@@ -2196,10 +2325,11 @@ async function descargarImagen() {
     try {
         const ln = esLN(estado.modo) && laLunacion() ? momentoLunacionLocal() : null;
         const fechaT = ln ? ln.fecha.split('-').reverse().join('/')
-            : transitos ? estado.transito.fecha.split('-').reverse().join('/') : '';
+            : transitos || trd ? estado.transito.fecha.split('-').reverse().join('/') : '';
         const blob = await imagenCarta(caja.querySelector('svg.rueda'), {
             anexo: caja.querySelector('svg.anexo'),
             titulo: ln ? `${tituloLunacion()} del ${fechaT} en tu casa ${laLunacion().casa}`
+                : trd ? `Tránsitos dracónicos del ${fechaT}`
                 : drt ? `Dracónica + tránsitos dracónicos del ${fechaT}`
                 : transitos ? `Tránsitos del ${fechaT}`
                 : rs ? `Revolución solar ${estado.revolucion.anio}`
@@ -2207,7 +2337,7 @@ async function descargarImagen() {
                         : rl ? `Carta relocalizada en ${descripcionLugar(momentoReubicacionLocal().lugar)}`
                             : dr ? 'Carta dracónica' : $('#titulo-carta').textContent,
             datos: rs ? $('#nota-rs').textContent.replace(/^Revolución solar \d+: /, '')
-                : transitos || pr || rl || dr ? `${$('#titulo-carta').textContent} · ${$('#resumen-datos').textContent}`
+                : transitos || pr || rl || dr || trd ? `${$('#titulo-carta').textContent} · ${$('#resumen-datos').textContent}`
                     : $('#resumen-datos').textContent,
             colores: { fondo: color('--bg'), texto: color('--texto'), suave: color('--texto-suave') }
         });
@@ -2219,6 +2349,8 @@ async function descargarImagen() {
             ? `progresiones-${slug(d.nombre || 'natal') || 'natal'}-${estado.progresion.fecha}.png`
             : rl
             ? `relocalizada-${slug(d.nombre || 'natal') || 'natal'}-${slug(momentoReubicacionLocal().lugar.nombre || 'lugar') || 'lugar'}.png`
+            : trd
+            ? `transitos-draconicos-${estado.transito.fecha}.png`
             : drt
             ? `draconica-transitos-${slug(d.nombre || 'natal') || 'natal'}-${estado.transito.fecha}.png`
             : dr

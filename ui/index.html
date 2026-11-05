@@ -164,7 +164,8 @@
                 <option value="reubicacion">Carta relocalizada</option>
                 <option value="draconica-sola">Carta dracónica</option>
                 <option value="draconica">Carta Natal + dracónica</option>
-                <option value="draconica-transitos">Carta dracónica + tránsitos dracónicos</option>
+                <option value="transitos-draconicos">Tránsitos dracónicos del día</option>
+<option value="draconica-transitos">Carta dracónica + tránsitos dracónicos</option>
             </select>
         </label>
         <label class="campo"><span>Nombre <span class="opcional">(opcional)</span></span>
@@ -256,7 +257,8 @@
                 <option value="reubicacion">Carta relocalizada</option>
                 <option value="draconica-sola">Carta dracónica</option>
                 <option value="draconica">Carta Natal + dracónica</option>
-                <option value="draconica-transitos">Carta dracónica + tránsitos dracónicos</option>
+                <option value="transitos-draconicos">Tránsitos dracónicos del día</option>
+<option value="draconica-transitos">Carta dracónica + tránsitos dracónicos</option>
             </select>
         </label>
         <button type="button" class="boton-animar" id="animar" aria-expanded="false"
@@ -342,6 +344,18 @@
 
         <div id="controles-animacion" class="controles-transito controles-animacion" hidden>
             <div class="fila-animacion">
+                <div class="momento-editable" id="momento-editable">
+                    <input type="text" id="fecha-animacion" inputmode="numeric" placeholder="DD/MM/AAAA"
+                        maxlength="30" aria-label="Fecha del momento">
+                    <div class="hora-animacion">
+                        <input type="text" id="hora-animacion" inputmode="numeric" maxlength="5"
+                            aria-label="Hora y minutos del momento">
+                        <div class="hora24-flechas">
+                            <button type="button" data-anim-hora="1" aria-label="Subir">&#9650;</button>
+                            <button type="button" data-anim-hora="-1" aria-label="Bajar">&#9660;</button>
+                        </div>
+                    </div>
+                </div>
                 <output id="momento-animacion" class="animacion-momento" aria-live="polite"></output>
                 <label class="campo campo-animacion"><span>Paso</span>
                     <select id="paso-animacion"></select>
@@ -394,7 +408,8 @@
                         <option value="reubicacion">Carta relocalizada</option>
                         <option value="draconica-sola">Carta dracónica</option>
                         <option value="draconica">Carta Natal + dracónica</option>
-                        <option value="draconica-transitos">Carta dracónica + tránsitos dracónicos</option>
+                        <option value="transitos-draconicos">Tránsitos dracónicos del día</option>
+<option value="draconica-transitos">Carta dracónica + tránsitos dracónicos</option>
                     </select>
                 </label>
                 <button type="button" class="boton-animar animar-completa" data-completa="animar"

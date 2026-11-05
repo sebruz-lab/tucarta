@@ -574,7 +574,7 @@ body.sin-scroll { overflow: hidden; }
 .rueda .rotulo-eje {
     fill: var(--texto);
     font-size: 18px;
-    font-weight: 400;
+    font-weight: 300;
     text-anchor: middle;
     dominant-baseline: central;
     letter-spacing: 1px;
@@ -587,9 +587,9 @@ body.sin-scroll { overflow: hidden; }
 .rueda .asp-tenso { stroke: var(--asp-tenso); }
 .rueda .asp-semisextil { stroke: var(--asp-semisextil); }
 .rueda .asp-quincuncio { stroke: var(--asp-quincuncio); }
-/* Todas las lineas de aspecto con el mismo grosor, un 20% mas finas. */
+/* Todas las lineas de aspecto con el mismo grosor y finitas. */
 .rueda .asp-armonico, .rueda .asp-tenso,
-.rueda .asp-semisextil, .rueda .asp-quincuncio { stroke-width: 1.5; }
+.rueda .asp-semisextil, .rueda .asp-quincuncio { stroke-width: 1.35; }
 .rueda .asp-menor { stroke-dasharray: 14 5; }
 .rueda .glifo-aspecto.c-armonico { color: var(--asp-armonico); }
 .rueda .glifo-aspecto.c-tenso { color: var(--asp-tenso); }
@@ -868,6 +868,20 @@ body.sin-scroll { overflow: hidden; }
     font-variant-numeric: tabular-nums;
     color: var(--turquesa);
 }
+/* El momento, editable: se puede escribir la fecha y la hora. Las flechas
+   suben y bajan la hora, o los minutos si el cursor esta en los minutos. */
+.momento-editable { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 190px; }
+.momento-editable[hidden] { display: none; }
+.momento-editable input {
+    font-size: 16px;
+    padding: 7px 6px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.5px;
+}
+#fecha-animacion { flex: 1; min-width: 110px; }
+.hora-animacion { display: flex; align-items: center; gap: 3px; flex: none; }
+#hora-animacion { width: 64px; }
 .campo-animacion { flex: none; width: 118px; margin: 0; }
 .campo-animacion span { font-size: 0.72rem; }
 .campo-animacion select { font-size: 16px; padding: 6px 26px 6px 8px; min-height: 0; }

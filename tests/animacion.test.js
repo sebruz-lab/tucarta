@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PASOS, pasosDesde, avanzar, momentoLocal, fechaDeMomento, textoMomento } from '../ui/animacion.js';
+import { PASOS, pasosDesde, avanzar, momentoLocal, fechaDeMomento, textoMomento, horaValida } from '../ui/animacion.js';
 
 const m = (fecha, hora) => ({ fecha, hora });
 
@@ -65,5 +65,25 @@ describe('animacion: utilidades', () => {
         expect(pasosDesde('dia').every((p) => ['dia', 'mes', 'anio'].includes(p.unidad))).toBe(true);
         expect(pasosDesde('anio').map((p) => p.id)).toEqual(['anio-1']);
         expect(pasosDesde('min')).toHaveLength(PASOS.length);
+    });
+});
+
+describe('animacion: hora escrita a mano', () => {
+    it('entiende la hora con y sin los dos puntos', () => {
+        expect(horaValida('12:16')).toBe('12:16');
+        expect(horaValida('1216')).toBe('12:16');
+        expect(horaValida('905')).toBe('09:05');
+        expect(horaValida('9:5')).toBe('09:05');
+        expect(horaValida('00:00')).toBe('00:00');
+        expect(horaValida('23:59')).toBe('23:59');
+    });
+
+    it('la hora que no existe o que está a medio escribir no vale', () => {
+        expect(horaValida('24:00')).toBe(null);
+        expect(horaValida('12:60')).toBe(null);
+        expect(horaValida('99:99')).toBe(null);
+        expect(horaValida('12')).toBe(null);
+        expect(horaValida('')).toBe(null);
+        expect(horaValida('hola')).toBe(null);
     });
 });

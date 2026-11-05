@@ -197,9 +197,13 @@ function ubicarColumnas(puntos, cusps, minimo) {
     return res;
 }
 
-// Grado y minutos de cada cuspide a radio `r` (junto al borde del zodiaco):
-// el grado del lado de la casa que empieza y los minutos del otro lado de
-// la linea.
+// Grado y minutos de cada cuspide a radio `r` (junto al borde del zodiaco),
+// a los dos lados de la linea. Cual va de cada lado no se decide por la
+// longitud sino por donde cae en la pantalla, para que siempre se lean en
+// el orden occidental: el grado a la izquierda y el minuto a la derecha
+// cuando quedan uno al lado del otro; el grado arriba y el minuto abajo
+// cuando quedan apilados (pedido de Seba: antes las casas 1 a 6, que caen
+// en la mitad de abajo, salian al reves).
 const junto = (rTope, escala, fC) => rTope - (fC * 0.55 + 3) / escala;
 function rotulosCuspides(polar, cusps, r, escala, fC) {
     const sep = (ancho) => (ancho / 2 + 2.5 / escala) / r * 180 / Math.PI;
@@ -208,10 +212,15 @@ function rotulosCuspides(polar, cusps, r, escala, fC) {
         const grado = `${String(c.grado).padStart(2, '0')}°`;
         const minuto = `${String(c.minuto).padStart(2, '0')}'`;
         const ancho = 0.6 * fC * 3 / escala;
-        const [gx, gy] = polar(c.lon + sep(ancho), r);
-        const [mx, my] = polar(c.lon - sep(ancho), r);
-        return `<text class="rotulo-cuspide"${letra} x="${f(gx)}" y="${f(gy)}">${grado}</text>` +
-            `<text class="rotulo-cuspide"${letra} x="${f(mx)}" y="${f(my)}">${minuto}</text>`;
+        const p1 = polar(c.lon + sep(ancho), r);
+        const p2 = polar(c.lon - sep(ancho), r);
+        // Si la diferencia es mas horizontal que vertical, primero el de la
+        // izquierda; si no, primero el de arriba.
+        const horizontal = Math.abs(p1[0] - p2[0]) >= Math.abs(p1[1] - p2[1]);
+        const eje = horizontal ? 0 : 1;
+        const [primero, segundo] = p1[eje] <= p2[eje] ? [p1, p2] : [p2, p1];
+        return `<text class="rotulo-cuspide"${letra} x="${f(primero[0])}" y="${f(primero[1])}">${grado}</text>` +
+            `<text class="rotulo-cuspide"${letra} x="${f(segundo[0])}" y="${f(segundo[1])}">${minuto}</text>`;
     }).join('');
 }
 

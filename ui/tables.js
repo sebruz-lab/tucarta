@@ -96,7 +96,10 @@ export function tablaPosicionesRevolucion(rs, natal, e = { titulo: 'Revolución'
     </table>`;
 }
 
-export function detalleRevolucion(rs, natal, idR, de = 'de la revolución') {
+// aspectosNatal: los que ese punto le hace a la carta natal (a = el punto
+// de afuera, b = el natal). Se muestran las dos cosas: lo que hace adentro
+// de su propia carta y lo que le toca a la natal.
+export function detalleRevolucion(rs, natal, idR, de = 'de la revolución', aspectosNatal = null) {
     const id = idR.slice(2);
     const p = rs.puntos.find((x) => x.id === id);
     if (!p) return '';
@@ -104,9 +107,15 @@ export function detalleRevolucion(rs, natal, idR, de = 'de la revolución') {
         const otro = a.a === id ? a.b : a.a;
         return `${NOMBRE_ASPECTO[a.aspecto].toLowerCase()} a ${NOMBRE_PUNTO[otro]} (${orbeTexto(a.orbe)})`;
     });
+    const aNatal = (aspectosNatal || []).filter((a) => a.a === id).map((a) =>
+        `${NOMBRE_ASPECTO[a.aspecto].toLowerCase()} a ${NOMBRE_PUNTO[a.b]} natal (${orbeTexto(a.orbe)})`);
+    const renglon = (titulo, lista) => `<br><span class="nota"><strong>${titulo}:</strong> ${lista.join(' · ')}</span>`;
     return `<strong>${NOMBRE_PUNTO[id]} ${de}</strong> en ${gradoMin(p)} de ${NOMBRE_SIGNO[p.signo]}, ` +
         `casa ${p.casa} ${de} y casa ${casaDe(p.lon, natal.cusps.map((c) => c.lon))} natal${p.retro ? ', retrógrado' : ''}.` +
-        (asp.length ? `<br><span class="nota">${asp.join(' · ')}</span>` : '');
+        (asp.length || aspectosNatal
+            ? (asp.length ? renglon(`Adentro ${de}`, asp) : '') +
+              (aspectosNatal ? renglon('A la natal', aNatal.length ? aNatal : ['sin aspectos con los orbes elegidos']) : '')
+            : '');
 }
 
 // ---------- Transitos ----------

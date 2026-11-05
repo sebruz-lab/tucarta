@@ -79,6 +79,20 @@ export function avanzar(momento, pasoId, signo = 1, veces = 1) {
     return momentoLocal(t);
 }
 
+// Hora escrita a mano: "1216", "12:16", "9:5" -> "12:16" / "09:05".
+// null si no se entiende o si no existe (25:70).
+export function horaValida(texto) {
+    const t = String(texto).trim();
+    const partido = t.match(/^(\d{1,2})\s*:\s*(\d{1,2})$/);
+    if (partido) return armarHora(Number(partido[1]), Number(partido[2]));
+    // Sin los dos puntos: tres o cuatro digitos ("905", "1216"). Con dos o
+    // menos no se sabe si es la hora o si esta a medio escribir.
+    const d = t.replace(/\D/g, '');
+    if (d.length < 3 || d.length > 4) return null;
+    return armarHora(Number(d.slice(0, d.length - 2)), Number(d.slice(-2)));
+}
+const armarHora = (hh, mm) => (hh > 23 || mm > 59 ? null : `${dos(hh)}:${dos(mm)}`);
+
 // Texto del momento para mostrarlo: "05/11/2026 12:16".
 export const textoMomento = ({ fecha, hora }) =>
     `${fecha.split('-').reverse().join('/')} ${hora}`;
