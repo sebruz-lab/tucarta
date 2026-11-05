@@ -1733,6 +1733,14 @@ function abrirAnexo(accion, boton) {
     pedidoAnexo = { accion, boton };
     const v = $('#ventana-anexo');
     v.querySelectorAll('[data-incluir]').forEach((c) => { c.checked = Boolean(incluirAnexo[c.dataset.incluir]); });
+    // En la lunacion afuera estan solo el Sol y la Luna: las tablas de
+    // planetas y de signos (con los nombres de los aspectos) no entran en la
+    // hoja y tampoco hacen falta. Queda la grilla de los aspectos que hace.
+    // Las casillas se esconden, no se destildan: la eleccion para las otras
+    // vistas queda como estaba.
+    for (const cual of ['planetas', 'signos']) {
+        v.querySelector(`[data-incluir="${cual}"]`).closest('.casilla').hidden = esLN(estado.modo);
+    }
     v.querySelector('[data-anexo="seguir"]').textContent = accion === 'imprimir' ? 'Imprimir' : 'Descargar imagen';
     v.showModal();
 }
@@ -1791,7 +1799,10 @@ function anexoActual() {
         aspectos = base.aspectos || [];
         triangular = true;
     }
-    return dibujarAnexo({ incluir: incluirAnexo, puntos: columnas, nombres: NOMBRE_PUNTO, filas, columnas, aspectos, triangular, tituloGrilla });
+    const incluir = esLN(estado.modo)
+        ? { planetas: false, signos: false, aspectos: incluirAnexo.aspectos }
+        : incluirAnexo;
+    return dibujarAnexo({ incluir, puntos: columnas, nombres: NOMBRE_PUNTO, filas, columnas, aspectos, triangular, tituloGrilla });
 }
 
 function imprimirCarta() {
