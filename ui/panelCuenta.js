@@ -13,6 +13,7 @@ const $ = (sel) => document.querySelector(sel);
 const cuenta = { estado: 'cargando', email: '', novedades: false, datos: null, admin: false };
 let mod = null;           // cuenta.js, cuando termina de cargar
 let alCambiar = () => {};
+let pedirAjustes = null;  // lo pone app.js: abre la ventana de ajustes
 let quiereUsarla = false; // entro desde la ventana: seguir al aviso
 let cuentaNueva = false;  // la ultima entrada con Google creo la cuenta
 
@@ -26,8 +27,9 @@ export const esAdmin = () => conCuenta() && cuenta.admin === true;
 
 // alCambiarAlmacen(almacen): se llama cada vez que cambia donde se guardan
 // las cartas.
-export function conectarCuenta({ alCambiarAlmacen }) {
+export function conectarCuenta({ alCambiarAlmacen, alPedirAjustes }) {
     alCambiar = alCambiarAlmacen;
+    pedirAjustes = alPedirAjustes;
     pintar();
     // Firebase Auth pesa: se baja despues de mostrar la calculadora.
     import('./cuenta.js').then((m) => {
@@ -256,6 +258,7 @@ function conectarPanel() {
         if (!accion) return;
         abrirOpciones(false);
         if (accion === 'administrar') abrirMiCuenta();
+        else if (accion === 'ajustes') pedirAjustes?.();
         else if (accion === 'salir') await mod?.salir();
     });
     document.addEventListener('click', (e) => {

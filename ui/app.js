@@ -315,7 +315,7 @@ function pintar({ liviano = false } = {}) {
         : tablaAspectos(carta);
     $('#tabla-casas').innerHTML = tablaCasas(sola || externa || carta);
     if (liviano) return;
-    $('#form-ajustes').innerHTML = panelAjustes(estado.ajustes);
+    if (ajustesAbiertos()) $('#form-ajustes').innerHTML = panelAjustes(estado.ajustes);
     pintarInterpretaciones();
 }
 
@@ -341,9 +341,12 @@ function pintarEsquinas(sistema) {
     // unico que dice de quien es la carta).
     const nombre = renglon(d.nombre, 'nombre-esquina');
     $('.cambiar-carta').hidden = !guardadas.length;
+    // El acceso a los ajustes va en todas las vistas, al pie de la esquina
+    // de la derecha (debajo del huso, las coordenadas y las casas).
+    const enlaceAjustes = '<button type="button" data-accion="abrir-ajustes">Ajustes del cálculo</button>';
     const poner = (izq, der) => {
         $('#esquina-izq').innerHTML = [nombre, ...izq].join('');
-        $('#esquina-der').innerHTML = der.join('');
+        $('#esquina-der').innerHTML = [...der, enlaceAjustes].join('');
     };
     // La natal: el huso se edita tocando el UTC (o desde la Carta Natal).
     const natal = (titulo = 'Carta Natal') => [
@@ -416,7 +419,8 @@ function pintarEsquinas(sistema) {
         renglon([utcTexto(o.total), d.correccion ? 'corregido a mano' : verano].filter(Boolean).join(' · '), 'principal'),
         renglon(`${coordTexto(l.lat, 'N', 'S')} ${coordTexto(l.lon, 'E', 'O')}`),
         renglon(sistema),
-        botonHuso
+        botonHuso,
+        enlaceAjustes
     ].join('');
 }
 
@@ -615,6 +619,7 @@ conectarBuscador($('#lugar-rs-nuevo'), $('#sugerencias-rs-nuevo'), async (l) => 
 });
 
 $('.figura-rueda').addEventListener('click', (e) => {
+    if (e.target.closest('[data-accion="abrir-ajustes"]')) return abrirAjustes();
     if (!e.target.closest('[data-accion="editar-huso"]')) return;
     $('#huso').open = true;
     $('#huso').scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -1807,17 +1812,40 @@ $('#huso-contenido').addEventListener('change', (e) => {
     }
 });
 
-// Ajustes.
+// ---------- Ajustes del calculo ----------
+//
+// En una ventana, como Mi cuenta: se abre desde la esquina de la rueda y
+// desde el menu de la cuenta, con o sin carta en pantalla. Valen para
+// todas las cartas y se guardan en el dispositivo.
+
+const ventanaAjustes = $('#ventana-ajustes');
+const ajustesAbiertos = () => ventanaAjustes.open;
+
+function abrirAjustes() {
+    $('#form-ajustes').innerHTML = panelAjustes(estado.ajustes);
+    if (!ventanaAjustes.open) ventanaAjustes.showModal();
+}
+ventanaAjustes.addEventListener('click', (e) => {
+    if (e.target.closest('[data-ajustes="cerrar"]')) ventanaAjustes.close();
+});
+
+// Cambiar un ajuste recalcula la carta que se este mirando; sin carta
+// abierta, solo se guarda y vale para la proxima.
+function ajusteCambiado() {
+    guardarAjustes(estado.ajustes);
+    if (estado.datos) calcular();
+    else $('#form-ajustes').innerHTML = panelAjustes(estado.ajustes);
+}
+
 $('#form-ajustes').addEventListener('change', () => {
     estado.ajustes = ajustesDesde($('#form-ajustes'), estado.ajustes);
-    guardarAjustes(estado.ajustes);
-    calcular();
+    ajusteCambiado();
 });
 $('#form-ajustes').addEventListener('click', (e) => {
     if (e.target.closest('[data-accion="ajustes-defecto"]')) {
         try { localStorage.removeItem('tucarta:ajustes'); } catch {}
         estado.ajustes = leerAjustes();
-        calcular();
+        ajusteCambiado();
     }
 });
 
@@ -2235,11 +2263,6 @@ document.querySelector('.barra-carta').addEventListener('click', async (e) => {
         abrirAnexo(accion, e.target.closest('button'));
     } else if (accion === 'pantalla-completa') {
         if (!enCompleta()) pantallaCompleta(true);
-    } else if (accion === 'ajustes') {
-        const panel = $('#ajustes');
-        panel.hidden = !panel.hidden;
-        e.target.closest('button').setAttribute('aria-expanded', String(!panel.hidden));
-        if (!panel.hidden) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 });
 
@@ -2501,6 +2524,7 @@ form.elements.mmT.innerHTML = opcionesNum(60).replace('<option value="">--</opti
 
 // Cuenta: al entrar o salir cambia donde se guardan las cartas.
 conectarCuenta({
+    alPedirAjustes: abrirAjustes,
     alCambiarAlmacen(nuevo) {
         almacen = nuevo;
         esperandoCuenta = false;

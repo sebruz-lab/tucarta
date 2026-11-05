@@ -36,6 +36,7 @@
             <button type="button" id="boton-cuenta" class="boton-cuenta" aria-haspopup="true" hidden>Entrar</button>
             <ul id="opciones-cuenta" class="opciones-cuenta" hidden>
                 <li><button type="button" data-cuenta-menu="administrar">Administrar mi cuenta</button></li>
+                <li><button type="button" data-cuenta-menu="ajustes">Ajustes de cálculos</button></li>
                 <li><button type="button" data-cuenta-menu="salir">Salir</button></li>
             </ul>
         </div>
@@ -87,6 +88,13 @@
         <button type="button" class="boton boton-principal" data-cuenta="aceptar">Aceptar y seguir</button>
         <button type="button" class="boton-texto" data-cuenta="no-aceptar">Ahora no</button>
     </div>
+</dialog>
+
+<dialog id="ventana-ajustes" class="ventana-cuenta ventana-ajustes" aria-labelledby="titulo-ajustes">
+    <button type="button" class="cerrar" data-ajustes="cerrar" aria-label="Cerrar">×</button>
+    <h2 id="titulo-ajustes">Ajustes del cálculo</h2>
+    <p class="nota">Valen para todas tus cartas y quedan guardados en este dispositivo.</p>
+    <form id="form-ajustes"></form>
 </dialog>
 
 <dialog id="ventana-mi-cuenta" class="ventana-cuenta" aria-labelledby="titulo-mi-cuenta">
@@ -448,11 +456,6 @@
             <button type="button" class="boton" data-accion="descargar">Descargar imagen</button>
             <button type="button" class="boton" data-accion="imprimir">Imprimir</button>
             <button type="button" class="boton" data-accion="guardar">Guardar en mis cartas</button>
-            <button type="button" class="boton" data-accion="ajustes" aria-expanded="false" aria-controls="ajustes">Ajustes de la carta</button>
-        </div>
-        <!-- Se abre con el boton de la barra, aca arriba. -->
-        <div class="ajustes" id="ajustes" hidden>
-            <form id="form-ajustes"></form>
         </div>
         <p id="aviso-carta" class="nota aviso-carta" role="status" hidden></p>
 

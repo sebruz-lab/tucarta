@@ -1212,13 +1212,10 @@ body.sin-scroll { overflow: hidden; }
 
 /* ---------- Ajustes ---------- */
 
-.ajustes {
-    border: 1px solid var(--linea);
-    border-radius: var(--radio);
-    padding: 4px 16px 16px;
-    margin-top: 12px;
-}
-.ajustes[hidden] { display: none; }
+/* Los ajustes viven en una ventana, como Mi cuenta, pero mas ancha: la
+   grilla de orbes necesita lugar. */
+.ventana-ajustes { width: min(520px, calc(100vw - 32px)); overflow-y: auto; }
+.ventana-ajustes h2 { margin-bottom: 4px; }
 #form-ajustes {
     display: flex;
     flex-direction: column;
