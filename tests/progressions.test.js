@@ -32,6 +32,22 @@ describe('progresiones secundarias', () => {
         expect(distancia(lonDe(p.carta, 'sol'), lonDe(natal, 'sol'))).toBeLessThan(44);
     });
 
+    // La interfaz deja elegir la hora de la fecha a la que se progresa. Como
+    // un anio de vida es un dia de efemerides, un dia entero de diferencia en
+    // el objetivo son unos 4 minutos de efemerides: mueve la Luna progresada
+    // un par de minutos de arco y practicamente nada al resto. Es precision,
+    // no un cambio de carta.
+    it('la hora de la fecha objetivo afina la Luna progresada y casi nada mas', () => {
+        const jd = (h) => swe.julday(2026, 11, 1, h);
+        const a = calcularProgresion(swe, { natal, jdObjetivo: jd(0) });
+        const b = calcularProgresion(swe, { natal, jdObjetivo: jd(23.983) });
+        expect(b.edad).toBeGreaterThan(a.edad);
+        const mueve = (id) => Math.abs(lonDe(b.carta, id) - lonDe(a.carta, id)) * 60; // minutos de arco
+        expect(mueve('luna')).toBeGreaterThan(1);
+        expect(mueve('luna')).toBeLessThan(4);
+        for (const id of ['sol', 'asc', 'mc']) expect(mueve(id)).toBeLessThan(0.5);
+    });
+
     it('arco solar en longitud: el Medio Cielo avanza exactamente el arco solar', () => {
         const p = calcularProgresion(swe, { natal, jdObjetivo: natal.meta.jd + 30 * ANIO_TROPICO });
         const avance = ((lonDe(p.carta, 'mc') - lonDe(natal, 'mc')) % 360 + 360) % 360;

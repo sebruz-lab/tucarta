@@ -240,6 +240,7 @@
             <p id="resumen-datos" class="nota visualmente-oculto"></p>
         </header>
 
+        <div class="fila-vista">
         <label class="campo modo-carta"><span class="visualmente-oculto">Qué querés ver</span>
             <select id="selector-modo">
                 <option value="natal">Carta Natal</option>
@@ -256,6 +257,11 @@
                 <option value="draconica">Carta Natal + dracónica</option>
             </select>
         </label>
+        <button type="button" class="boton-animar" id="animar" aria-expanded="false"
+            aria-controls="controles-animacion" title="Animar la carta en el tiempo">
+            <span class="tri" aria-hidden="true">&#9654;</span> Animar
+        </button>
+        </div>
 
         <form id="form-transito" class="controles-transito" novalidate hidden>
             <div class="fila">
@@ -294,6 +300,22 @@
                 <label class="campo"><span>Progresar al <span class="opcional">(DD/MM/AAAA)</span></span>
                     <input type="text" name="fecha" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="30">
                 </label>
+                <fieldset class="campo hora24 hora-con-flechas">
+                    <legend>Hora (24 h)</legend>
+                    <div class="hora24-selects">
+                        <select name="hh" aria-label="Hora"></select>
+                        <div class="hora24-flechas">
+                            <button type="button" data-hora="+hh" aria-label="Una hora más">&#9650;</button>
+                            <button type="button" data-hora="-hh" aria-label="Una hora menos">&#9660;</button>
+                        </div>
+                        <span aria-hidden="true">:</span>
+                        <select name="mm" aria-label="Minutos"></select>
+                        <div class="hora24-flechas">
+                            <button type="button" data-hora="+mm" aria-label="Un minuto más">&#9650;</button>
+                            <button type="button" data-hora="-mm" aria-label="Un minuto menos">&#9660;</button>
+                        </div>
+                    </div>
+                </fieldset>
             </div>
             <div class="pasos-transito">
                 <button type="button" data-pr="-anio" aria-label="Un año antes">‹‹ año</button>
@@ -314,6 +336,34 @@
                 <button type="button" data-ln="1" aria-label="La lunación siguiente">siguiente ›</button>
             </div>
             <p class="nota" id="nota-ln"></p>
+        </div>
+
+        <div id="controles-animacion" class="controles-transito controles-animacion" hidden>
+            <div class="fila-animacion">
+                <output id="momento-animacion" class="animacion-momento" aria-live="polite"></output>
+                <label class="campo campo-animacion"><span>Paso</span>
+                    <select id="paso-animacion"></select>
+                </label>
+                <label class="campo campo-animacion"><span>Velocidad</span>
+                    <select id="velocidad-animacion">
+                        <option value="lento">Lenta</option>
+                        <option value="normal">Normal</option>
+                        <option value="rapido">Rápida</option>
+                    </select>
+                </label>
+            </div>
+            <div class="pasos-transito pasos-animacion">
+                <button type="button" data-anim="-10" aria-label="Diez pasos atrás">&#9664;&#9664;</button>
+                <button type="button" data-anim="-1" aria-label="Un paso atrás">&#9664;</button>
+                <button type="button" data-anim="play" id="play-animacion" aria-pressed="false">&#9654; Play</button>
+                <button type="button" data-anim="1" aria-label="Un paso adelante">&#9654;</button>
+                <button type="button" data-anim="10" aria-label="Diez pasos adelante">&#9654;&#9654;</button>
+            </div>
+            <div class="pasos-transito pasos-animacion">
+                <button type="button" data-anim="original">Volver al original</button>
+                <button type="button" data-anim="guardar" id="guardar-momento">Guardar este momento</button>
+            </div>
+            <p class="nota" id="nota-animacion"></p>
         </div>
 
         <figure class="figura-rueda">
@@ -344,6 +394,10 @@
                         <option value="draconica">Carta Natal + dracónica</option>
                     </select>
                 </label>
+                <button type="button" class="boton-animar animar-completa" data-completa="animar"
+                    aria-pressed="false" title="Animar la carta en el tiempo" aria-label="Animar la carta en el tiempo">
+                    <span class="tri" aria-hidden="true">&#9654;</span> Animar
+                </button>
             </div>
             <button type="button" class="salir-completa" data-completa="salir" aria-label="Salir de pantalla completa">×</button>
             <!-- Pie de la hoja impresa (solo se ve al imprimir). -->

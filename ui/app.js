@@ -30,6 +30,10 @@ import { conectarCuenta, sesionIniciada, conCuenta, abrirEntrar, esAdmin } from 
 import { leerArchivoCartas, textoDeArchivo, completarLugares } from './importar.js';
 import { buscar as buscarLugar } from './form.js';
 import { TIPOS, buscarEnLista } from './miscartas.js';
+import {
+    PASOS, PASO_POR_DEFECTO, VELOCIDADES, VELOCIDAD_POR_DEFECTO,
+    momentoLocal, fechaDeMomento as fechaDeTransito, avanzar, textoMomento, pasosDesde
+} from './animacion.js';
 
 const $ = (sel) => document.querySelector(sel);
 const CLAVE_DATOS = 'tucarta:ultima';
@@ -51,7 +55,10 @@ const estado = {
     progresion: null,   // { fecha: 'AAAA-MM-DD' (a la que se progresa), resultado }
     lunacion: null,     // { referencia: { fecha, hora } }; el resultado va en estado.transitos
     transito: null,     // { fecha: 'AAAA-MM-DD', hora: 'HH:MM' } en la hora del dispositivo
-    transitos: null     // resultado de engine/transits.js
+    transitos: null,    // resultado de engine/transits.js
+    // Animacion: la carta corrida en el tiempo, como la pagina animada de
+    // Solar Fire. Los datos de nacimiento (estado.datos) no se tocan.
+    animacion: null     // { activa, fecha, hora, paso, velocidad, reproduciendo }
 };
 
 // ---------- Worker de calculo ----------
@@ -183,7 +190,7 @@ function modoDelFormulario() {
     if (estado.modo === 'calendario') estado.calendario = { desde: transitoDelFormulario().fecha };
     if (estado.modo === 'efemerides') estado.efemerides = { anio: Number(transitoDelFormulario().fecha.slice(0, 4)) };
     if (esRS(estado.modo)) estado.revolucion = { anio: null, lugar: lugarRS };
-    if (esPR(estado.modo)) estado.progresion = { fecha: transitoDelFormulario().fecha };
+    if (esPR(estado.modo)) estado.progresion = { fecha: transitoDelFormulario().fecha, hora: HORA_PR_POR_DEFECTO };
     if (esRL(estado.modo)) estado.reubicacion = { lugar: lugarRS };
     if (esLN(estado.modo)) estado.lunacion = { referencia: transitoDelFormulario() };
 }
@@ -206,7 +213,7 @@ form.addEventListener('submit', async (e) => {
 // ---------- Calculo ----------
 
 async function calcular({ nueva = false } = {}) {
-    const d = estado.datos;
+    const d = datosVista();
     estado.tz = localAUtc({ fecha: d.fecha, hora: d.hora }, d.lugar.zona, d.correccion);
     const opcion = estado.tz.opciones[d.eleccion] || estado.tz.opciones[0];
 
@@ -253,9 +260,15 @@ async function calcular({ nueva = false } = {}) {
 
 // ---------- Pintado ----------
 
-function pintar() {
-    const { datos: d, carta } = estado;
-    $('#titulo-carta').textContent = d.nombre ? `Carta de ${d.nombre}` : 'Tu carta';
+// liviano: durante la animacion se saltean las partes caras o que piden
+// red (interpretaciones, panel de ajustes, panel del huso). Al parar se
+// hace un pintar() completo.
+function pintar({ liviano = false } = {}) {
+    const d = datosVista();
+    const carta = estado.carta;
+    const corrida = animando() && (d.fecha !== estado.datos.fecha || d.hora !== estado.datos.hora);
+    $('#titulo-carta').textContent = (d.nombre ? `Carta de ${d.nombre}` : 'Tu carta') +
+        (corrida ? ' · momento animado' : '');
     const [a, m, dia] = d.fecha.split('-');
     const sistema = SISTEMAS_CASAS.find((s) => s.id === estado.ajustes.casas)?.nombre;
     $('#resumen-datos').innerHTML = `${dia}/${m}/${a}, ${escapar(d.hora)} h · ` +
@@ -263,7 +276,7 @@ function pintar() {
         ` · Casas ${sistema}`;
 
     pintarControlesTransito();
-    $('#huso-contenido').innerHTML = panelHuso(estado.tz, d.eleccion, estado.corrigiendoHuso);
+    if (!liviano) $('#huso-contenido').innerHTML = panelHuso(estado.tz, d.eleccion, estado.corrigiendoHuso);
     pintarAdvertencia();
     pintarEsquinas(sistema);
     pintarFichasImpresion(sistema);
@@ -282,6 +295,7 @@ function pintar() {
         : sola || externa ? tablaAspectos(sola || externa)
         : conTransitos ? tablaAspectosTransito(estado.transitos) : tablaAspectos(carta);
     $('#tabla-casas').innerHTML = tablaCasas(sola || externa || carta);
+    if (liviano) return;
     $('#form-ajustes').innerHTML = panelAjustes(estado.ajustes);
     pintarInterpretaciones();
 }
@@ -290,7 +304,7 @@ function pintar() {
 // izquierda; huso, coordenadas y casas a la derecha, con el acceso al
 // panel del huso (y el aviso, si hay que revisarlo).
 function pintarEsquinas(sistema) {
-    const d = estado.datos;
+    const d = datosVista();
     const o = estado.tz.opciones[d.eleccion] || estado.tz.opciones[0];
     const [a, m, dia] = d.fecha.split('-');
     const l = d.lugar;
@@ -370,7 +384,7 @@ function pintarEsquinas(sistema) {
 // calculo (geocentrica, tropical, sistema de casas, nodo real). Con
 // otra carta (revolucion, progresiones, transitos), su ficha a la derecha.
 function pintarFichasImpresion(sistema) {
-    const d = estado.datos;
+    const d = datosVista();
     const o = estado.tz.opciones[d.eleccion] || estado.tz.opciones[0];
     const linea = (t, clase = '') => (t ? `<span${clase ? ` class="${clase}"` : ''}>${escapar(t)}</span>` : '');
     const lugar = (l) => (l.manual ? ['Coordenadas a mano'] : [[l.nombre, l.provincia, l.paisNombre].filter(Boolean).join(', ')]);
@@ -473,6 +487,7 @@ $('.figura-rueda').addEventListener('click', (e) => {
     if (accion === 'salir') pantallaCompleta(false);
     else if (accion === 'entrar') pantallaCompleta(true);
     else if (accion === 'cartas') mostrarCartasCompleta($('.cartas-completa').hidden);
+    else if (accion === 'animar') abrirAnimacion(!estado.animacion?.activa);
     const id = e.target.closest('[data-abrir-completa]')?.dataset.abrirCompleta;
     if (id) {
         mostrarCartasCompleta(false);
@@ -562,6 +577,14 @@ function pintarAdvertencia() {
     caja.innerHTML = motivo ? `<strong>ADVERTENCIA:</strong> ${motivo}` : '';
 }
 
+// Los datos del momento que se esta mirando: los del nacimiento, o los de
+// la animacion si esta corriendo. estado.datos siempre guarda el original:
+// es lo que se guarda en "Mis cartas" y en el dispositivo.
+const animando = () => Boolean(estado.animacion?.activa);
+const datosVista = () => (animando()
+    ? { ...estado.datos, fecha: estado.animacion.fecha, hora: estado.animacion.hora }
+    : estado.datos);
+
 // Que se dibuja: la otra carta (revolucion o progresion) sola, o afuera
 // de la natal.
 function cartasVista() {
@@ -604,18 +627,8 @@ formTransito.elements.hh.innerHTML = opcionesNum(24).replace('<option value="">-
 formTransito.elements.mm.innerHTML = opcionesNum(60).replace('<option value="">--</option>', '');
 formTransito.elements.fecha.addEventListener('input', barrasFecha);
 
-// Momento del transito en la hora del dispositivo.
-function momentoLocal(d) {
-    return {
-        fecha: `${d.getFullYear()}-${dosCifras(d.getMonth() + 1)}-${dosCifras(d.getDate())}`,
-        hora: `${dosCifras(d.getHours())}:${dosCifras(d.getMinutes())}`
-    };
-}
-function fechaDeTransito({ fecha, hora }) {
-    const [a, m, d] = fecha.split('-').map(Number);
-    const [h, mi] = hora.split(':').map(Number);
-    return new Date(a, m - 1, d, h, mi);
-}
+// momentoLocal (Date -> { fecha, hora } del dispositivo) y fechaDeTransito
+// (la vuelta) viven en animacion.js, que tambien los usa para los pasos.
 
 async function calcularTransitos() {
     estado.transito ||= momentoLocal(new Date());
@@ -642,6 +655,7 @@ function pintarControlesTransito() {
     pintarControlesRevolucion();
     pintarControlesProgresion();
     pintarControlesLunacion();
+    pintarControlesAnimacion();
     if (!enTransitos || !estado.transito) return;
     const f = formTransito.elements;
     if (document.activeElement !== f.fecha) f.fecha.value = estado.transito.fecha.split('-').reverse().join('/');
@@ -684,6 +698,11 @@ $('#selector-modo').addEventListener('change', (e) => cambiarModo(e.target.value
 async function aplicarModo(modo) {
     $('#selector-modo').value = modo;
     if (modo === estado.modo) return;
+    pararAnimacion();
+    if (animando() && animable(modo) !== animable()) {
+        if (animable() === 'carta') await cerrarYRestaurar();
+        else estado.animacion.activa = false;
+    }
     estado.modo = modo;
     form.elements.tipo.value = modo;
     tipoElegido();
@@ -832,13 +851,19 @@ const NOMBRE_METODO = {
     'arco-long': 'arco solar en longitud', 'arco-ra': 'arco solar en ascensión recta', naibod: 'Naibod en ascensión recta'
 };
 
+// Si no se dice otra cosa, se progresa al mediodia: a esa hora la fecha
+// manda y el Ascendente progresado queda en el medio del dia.
+const HORA_PR_POR_DEFECTO = '12:00';
+
 async function calcularProgresion() {
     estado.progresion ||= { fecha: momentoLocal(new Date()).fecha };
+    estado.progresion.hora ||= HORA_PR_POR_DEFECTO;
     const [a, m, d] = estado.progresion.fecha.split('-').map(Number);
+    const [hh, mm] = estado.progresion.hora.split(':').map(Number);
     try {
         estado.progresion.resultado = await calcularEnWorker({
             tipo: 'progresion', natal: estado.carta,
-            jdObjetivo: jdDeFecha(new Date(a, m - 1, d, 12, 0)), ajustes: estado.ajustes
+            jdObjetivo: jdDeFecha(new Date(a, m - 1, d, hh, mm)), ajustes: estado.ajustes
         });
     } catch (err) {
         console.error(err);
@@ -846,15 +871,17 @@ async function calcularProgresion() {
     }
 }
 
-// ['al 1/11/2026', '42,7 años']
+// ['al 1/11/2026 a las 12:00', '42,7 años']
 function textoProgresion() {
     const r = estado.progresion.resultado;
     const fecha = estado.progresion.fecha.split('-').reverse().map(Number).join('/');
-    return [`al ${fecha}`, `${r.edad.toFixed(1).replace('.', ',')} años`];
+    return [`al ${fecha} a las ${estado.progresion.hora || HORA_PR_POR_DEFECTO}`, `${r.edad.toFixed(1).replace('.', ',')} años`];
 }
 
 const formProgresion = $('#controles-pr');
 formProgresion.elements.fecha.addEventListener('input', barrasFecha);
+formProgresion.elements.hh.innerHTML = opcionesNum(24).replace('<option value="">--</option>', '');
+formProgresion.elements.mm.innerHTML = opcionesNum(60).replace('<option value="">--</option>', '');
 
 function pintarControlesProgresion() {
     const r = esPR(estado.modo) && estado.progresion?.resultado;
@@ -862,20 +889,35 @@ function pintarControlesProgresion() {
     if (!r) return;
     const f = formProgresion.elements;
     if (document.activeElement !== f.fecha) f.fecha.value = estado.progresion.fecha.split('-').reverse().join('/');
+    [f.hh.value, f.mm.value] = (estado.progresion.hora || HORA_PR_POR_DEFECTO).split(':');
     const [al, edad] = textoProgresion();
     $('#nota-pr').textContent = `Progresiones ${al} (${edad}). Ascendente y Medio Cielo por ${NOMBRE_METODO[r.metodo]}; se cambia en Ajustes.`;
 }
 
-async function cambiarProgresion(fecha) {
+async function cambiarProgresion(fecha, hora = null) {
     estado.progresion.fecha = fecha;
+    if (hora) estado.progresion.hora = hora;
     estado.seleccion = null;
     await calcularProgresion();
     pintar();
 }
 
+// Las flechitas al lado de la hora: suben y bajan hora o minutos de a uno.
+// Los minutos dan la vuelta sin arrastrar la hora, como un reloj a mano.
+function moverHoraPr(que) {
+    const f = formProgresion.elements;
+    const signo = que.startsWith('-') ? -1 : 1;
+    const campo = que.endsWith('hh') ? f.hh : f.mm;
+    const tope = que.endsWith('hh') ? 24 : 60;
+    campo.value = dosCifras((Number(campo.value) + signo + tope) % tope);
+    cambiarProgresion(estado.progresion.fecha, `${f.hh.value}:${f.mm.value}`);
+}
+
 // Pasos de un anio, un mes o un dia. El dia sirve para afinar la
 // progresion a una fecha puntual.
 formProgresion.addEventListener('click', (e) => {
+    const hora = e.target.closest('[data-hora]')?.dataset.hora;
+    if (hora) return moverHoraPr(hora);
     const paso = e.target.closest('[data-pr]')?.dataset.pr;
     if (!paso) return;
     if (paso === 'hoy') return cambiarProgresion(momentoLocal(new Date()).fecha);
@@ -890,13 +932,273 @@ formProgresion.addEventListener('click', (e) => {
 
 formProgresion.addEventListener('change', (e) => {
     const f = formProgresion.elements;
-    if (e.target !== f.fecha) return;
+    if (e.target !== f.fecha && e.target !== f.hh && e.target !== f.mm) return;
     f.fecha.value = completarFecha(f.fecha.value.trim());
     const fecha = fechaIso(f.fecha.value.trim());
     if (!fecha) return; // fecha a medio escribir: se espera
-    cambiarProgresion(fecha);
+    cambiarProgresion(fecha, `${f.hh.value}:${f.mm.value}`);
 });
 formProgresion.addEventListener('submit', (e) => e.preventDefault());
+
+// ---------- Animar la carta en el tiempo ----------
+//
+// Como la pagina animada de Solar Fire: se elige un paso y la carta se
+// recalcula para cada momento, de a un paso o sola. En la natal, la
+// draconica y la relocalizada se mueve la carta misma (pasa a ser la carta
+// del cielo de ese instante, en el mismo lugar); en las otras vistas se
+// mueve lo que ya se movia: el cielo de los transitos, la fecha de la
+// progresion o el anio de la revolucion.
+//
+// estado.datos nunca se toca: sigue siendo el nacimiento, y es lo que se
+// guarda. El momento animado se puede guardar aparte, como carta de evento.
+
+// Que mueve la animacion en cada vista (null: esa vista no se anima).
+function animable(m = estado.modo) {
+    if (sinRueda(m) || esLN(m)) return null;
+    if (esPR(m)) return 'progresion';
+    if (esRS(m)) return 'revolucion';
+    if (m === 'transitos') return 'transito';
+    return 'carta';
+}
+const UNIDAD_MINIMA = { carta: 'min', transito: 'min', progresion: 'dia', revolucion: 'anio' };
+
+// El momento que mueve la animacion en la vista actual.
+function momentoAnimado() {
+    const k = animable();
+    if (k === 'progresion') return { fecha: estado.progresion.fecha, hora: estado.progresion.hora || HORA_PR_POR_DEFECTO };
+    if (k === 'transito') return estado.transito || momentoLocal(new Date());
+    const d = datosVista();
+    return { fecha: d.fecha, hora: d.hora };
+}
+
+// Recalcula la carta para el momento animado, en el mismo lugar. Es el
+// camino corto de calcular(): no guarda nada ni toca el boton de guardar.
+async function recalcularMomento({ liviano = false } = {}) {
+    const d = datosVista();
+    estado.tz = localAUtc({ fecha: d.fecha, hora: d.hora }, d.lugar.zona, d.correccion);
+    const opcion = estado.tz.opciones[d.eleccion] || estado.tz.opciones[0];
+    try {
+        estado.carta = await calcularEnWorker({
+            utc: opcion.utc, lat: d.lugar.lat, lon: d.lugar.lon, ajustes: estado.ajustes
+        });
+    } catch (err) {
+        console.error(err);
+        pararAnimacion();
+        return;
+    }
+    if (esRL(estado.modo)) await calcularReubicacion();
+    if (esDR(estado.modo)) await calcularDraconica();
+    estado.seleccion = null;
+    pintar({ liviano });
+}
+
+// Mueve la vista signo * veces pasos.
+async function moverMomento(signo, veces = 1, liviano = false) {
+    const k = animable();
+    if (!k) return;
+    estado.seleccion = null;
+    if (k === 'revolucion') {
+        estado.revolucion.anio += signo * veces;
+        await calcularRevolucionSolar();
+        return pintar({ liviano });
+    }
+    const nuevo = avanzar(momentoAnimado(), estado.animacion.paso, signo, veces);
+    if (k === 'progresion') {
+        estado.progresion.fecha = nuevo.fecha;
+        estado.progresion.hora = nuevo.hora;
+        await calcularProgresion();
+        return pintar({ liviano });
+    }
+    if (k === 'transito') {
+        estado.transito = nuevo;
+        await calcularTransitos();
+        return pintar({ liviano });
+    }
+    estado.animacion.fecha = nuevo.fecha;
+    estado.animacion.hora = nuevo.hora;
+    return recalcularMomento({ liviano });
+}
+
+// El lazo: cada cuadro espera al anterior, asi nunca se encolan pedidos al
+// worker. La velocidad elegida es el minimo entre cuadros, no el real.
+async function reproducir(signo) {
+    const a = estado.animacion;
+    if (!a || a.reproduciendo) return;
+    a.reproduciendo = true;
+    a.signo = signo;
+    evento('animacion_play', { vista: estado.modo, paso: a.paso, velocidad: a.velocidad });
+    pintarControlesAnimacion();
+    while (estado.animacion?.reproduciendo) {
+        const t0 = performance.now();
+        await moverMomento(estado.animacion?.signo ?? signo, 1, true);
+        if (!estado.animacion?.reproduciendo) break;
+        const resto = VELOCIDADES[estado.animacion.velocidad] - (performance.now() - t0);
+        if (resto > 0) await new Promise((r) => setTimeout(r, resto));
+    }
+    if (estado.datos) pintar();
+}
+
+function pararAnimacion() {
+    if (estado.animacion) estado.animacion.reproduciendo = false;
+}
+
+// Abre o cierra la barra.
+function abrirAnimacion(abrir) {
+    const k = animable();
+    if (abrir && !k) return;
+    if (!abrir) {
+        pararAnimacion();
+        if (k === 'carta') return cerrarYRestaurar();
+        if (estado.animacion) estado.animacion.activa = false;
+        return pintar();
+    }
+    estado.animacion ||= { paso: PASO_POR_DEFECTO, velocidad: VELOCIDAD_POR_DEFECTO };
+    estado.animacion.activa = true;
+    estado.animacion.reproduciendo = false;
+    estado.animacion.signo = 1;
+    estado.animacion.fecha ||= estado.datos.fecha;
+    estado.animacion.hora ||= estado.datos.hora;
+    evento('animacion_abierta', { vista: estado.modo });
+    pintarControlesAnimacion();
+}
+
+async function cerrarYRestaurar() {
+    const a = estado.animacion;
+    if (!a) return pintar();
+    const movida = a.fecha !== estado.datos.fecha || a.hora !== estado.datos.hora;
+    a.fecha = estado.datos.fecha;
+    a.hora = estado.datos.hora;
+    a.activa = false;
+    if (movida) return recalcularMomento();
+    pintar();
+}
+
+// Vuelve al punto de partida de la vista: el nacimiento, hoy, o el
+// cumpleanios mas cercano. La barra queda abierta.
+async function volverAlOriginal() {
+    pararAnimacion();
+    const k = animable();
+    if (k === 'transito') {
+        estado.transito = momentoLocal(new Date());
+        await calcularTransitos();
+        return pintar();
+    }
+    if (k === 'progresion') {
+        estado.progresion.fecha = momentoLocal(new Date()).fecha;
+        estado.progresion.hora = HORA_PR_POR_DEFECTO;
+        await calcularProgresion();
+        return pintar();
+    }
+    if (k === 'revolucion') {
+        estado.revolucion.anio = null;
+        await calcularRevolucionSolar();
+        return pintar();
+    }
+    const movida = estado.animacion &&
+        (estado.animacion.fecha !== estado.datos.fecha || estado.animacion.hora !== estado.datos.hora);
+    if (estado.animacion) {
+        estado.animacion.fecha = estado.datos.fecha;
+        estado.animacion.hora = estado.datos.hora;
+    }
+    if (movida) return recalcularMomento();
+    pintar();
+}
+
+// Guarda el momento que se esta mirando como carta de evento, aparte de la
+// natal (que se sigue guardando con el boton de la barra de abajo).
+async function guardarMomento() {
+    const d = datosVista();
+    const nombre = `${estado.datos.nombre || 'Momento'} ${textoMomento({ fecha: d.fecha, hora: d.hora })}`;
+    try {
+        await almacen.guardar({ ...d, nombre, tipo: 'evento' });
+        evento('momento_guardado', { vista: estado.modo });
+        avisar(`Guardado como "${nombre}" en Mis cartas, con el tipo Evento.`);
+    } catch (err) {
+        console.error(err);
+        avisar('No pudimos guardarlo. Probá de nuevo en un rato.');
+    }
+    pintarBotonGuardar();
+}
+
+// ---- Controles de la barra
+
+let unidadPintada = null;
+function pintarControlesAnimacion() {
+    const k = animable();
+    const abierta = Boolean(k && estado.animacion?.activa);
+    $('#animar').hidden = !k;
+    $('#animar').setAttribute('aria-expanded', String(abierta));
+    $('.animar-completa').hidden = !k;
+    $('.animar-completa').setAttribute('aria-pressed', String(abierta));
+    $('#controles-animacion').hidden = !abierta;
+    if (!abierta) return;
+
+    const unidad = UNIDAD_MINIMA[k];
+    const lista = pasosDesde(unidad);
+    if (!lista.some((p) => p.id === estado.animacion.paso)) estado.animacion.paso = lista[0].id;
+    if (unidad !== unidadPintada) {
+        $('#paso-animacion').innerHTML = lista.map((p) => `<option value="${p.id}">${escapar(p.nombre)}</option>`).join('');
+        unidadPintada = unidad;
+    }
+    $('#paso-animacion').value = estado.animacion.paso;
+    $('#velocidad-animacion').value = estado.animacion.velocidad;
+    $('#momento-animacion').textContent = k === 'revolucion'
+        ? `Revolución solar ${estado.revolucion?.anio ?? ''}`
+        : textoMomento(momentoAnimado());
+    const play = $('#play-animacion');
+    play.innerHTML = estado.animacion.reproduciendo ? '&#9208; Pausa' : '&#9654; Play';
+    play.setAttribute('aria-pressed', String(Boolean(estado.animacion.reproduciendo)));
+    $('#guardar-momento').hidden = k !== 'carta';
+    $('#nota-animacion').textContent = notaAnimacion(k);
+}
+
+function notaAnimacion(k) {
+    if (k === 'revolucion') return 'La animación pasa de una revolución solar a la siguiente.';
+    if (k === 'progresion') return 'La animación mueve la fecha a la que se progresa.';
+    if (k === 'transito') return 'La animación mueve el cielo que se dibuja afuera de la natal.';
+    const o = estado.tz?.opciones[datosVista().eleccion] || estado.tz?.opciones[0];
+    const aviso = estado.tz?.estado === 'ambigua' || estado.tz?.estado === 'inexistente'
+        ? ' Ese momento cae en un cambio de hora: se tomó el primero de los dos.' : '';
+    return `La carta se recalcula para cada momento, en el mismo lugar (${utcTexto(o?.total || 0)}).` + aviso;
+}
+
+$('#animar').addEventListener('click', () => abrirAnimacion(!estado.animacion?.activa));
+
+$('#controles-animacion').addEventListener('click', (e) => {
+    const v = e.target.closest('[data-anim]')?.dataset.anim;
+    if (!v) return;
+    if (sostenido.hubo) { sostenido.hubo = false; return; } // ya se movio sola
+    if (v === 'play') return estado.animacion.reproduciendo ? pararAnimacion() : reproducir(estado.animacion.signo || 1);
+    if (v === 'original') return volverAlOriginal();
+    if (v === 'guardar') return guardarMomento();
+    pararAnimacion();
+    const n = Number(v);
+    moverMomento(Math.sign(n), Math.abs(n));
+});
+
+// Dejar apretada una flecha la hace correr: es el mismo play, con el signo
+// de la flecha, mientras el dedo o el mouse siguen abajo.
+const sostenido = { timer: null, activo: false, hubo: false };
+$('#controles-animacion').addEventListener('pointerdown', (e) => {
+    const v = e.target.closest('[data-anim]')?.dataset.anim;
+    if (v !== '1' && v !== '-1') return;
+    sostenido.timer = setTimeout(() => {
+        sostenido.timer = null;
+        sostenido.activo = true;
+        reproducir(Number(v));
+    }, 450);
+});
+function soltarFlecha() {
+    if (sostenido.timer) { clearTimeout(sostenido.timer); sostenido.timer = null; }
+    if (sostenido.activo) { sostenido.activo = false; sostenido.hubo = true; pararAnimacion(); }
+}
+window.addEventListener('pointerup', soltarFlecha);
+window.addEventListener('pointercancel', soltarFlecha);
+
+$('#paso-animacion').addEventListener('change', (e) => { estado.animacion.paso = e.target.value; });
+$('#velocidad-animacion').addEventListener('change', (e) => { estado.animacion.velocidad = e.target.value; });
+// Si la pestana se va a segundo plano, la animacion para sola.
+document.addEventListener('visibilitychange', () => { if (document.hidden) pararAnimacion(); });
 
 // ---------- Lunacion en la carta ----------
 //
@@ -1329,6 +1631,8 @@ $('#resultado').addEventListener('click', (e) => {
 });
 
 function mostrarFormulario() {
+    pararAnimacion();
+    estado.animacion = null;
     $('#resultado').hidden = true;
     form.hidden = false;
     $('.intro').hidden = false;
@@ -1672,6 +1976,7 @@ async function abrirGuardada(c, { mismaVista = false } = {}) {
     };
     estado.seleccion = null;
     estado.corrigiendoHuso = false;
+    estado.animacion = null;
     if (mismaVista) {
         form.elements.tipo.value = estado.modo;
         estado.revolucion = null;
@@ -1833,7 +2138,7 @@ async function descargarImagen() {
     caja.innerHTML = dibujarRueda(sola || estado.carta, { nombres: NOMBRE_PUNTO, clara: tema === 'claro', transitos, revolucion: externa }) + anexoActual();
     const cs = getComputedStyle(document.body);
     const color = (v) => cs.getPropertyValue(v).trim();
-    const d = estado.datos;
+    const d = datosVista();
     try {
         const ln = esLN(estado.modo) && laLunacion() ? momentoLunacionLocal() : null;
         const fechaT = ln ? ln.fecha.split('-').reverse().join('/')
@@ -2021,6 +2326,7 @@ async function abrirVista(vista) {
     estado.datos = datos;
     estado.seleccion = null;
     estado.corrigiendoHuso = false;
+    estado.animacion = null;
     await calcular({ nueva: true });
     evento('vista_desde_enlace', { vista });
 }
@@ -2033,6 +2339,7 @@ async function abrirEnlace() {
     if (hoja) window.gtag = () => {};
     try {
         estado.datos = datosDeEnlace(m[2]);
+        estado.animacion = null;
         // La carta queda en la calculadora: la direccion vuelve a ser la de siempre.
         if (!hoja) history.replaceState(null, '', location.pathname + location.search);
         // La hoja del mail es siempre la natal.
