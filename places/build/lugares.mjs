@@ -137,6 +137,9 @@ for (const [k, lista] of Object.entries(fragmentos)) {
     writeFileSync(new URL(k + '.json', DESTINO), json);
 }
 writeFileSync(new URL('partidos.json', DESTINO), JSON.stringify(partidos.sort()));
+// La lista de todos los fragmentos, para que la app pueda bajarlos de
+// una y quedarse con el indice entero para usar sin internet.
+writeFileSync(new URL('todos.json', DESTINO), JSON.stringify(Object.keys(fragmentos).sort()));
 console.log(`${lugares.size} lugares, ${Object.keys(fragmentos).length} fragmentos ` +
     `(${partidos.length} partidos), ${(bytes / 1e6).toFixed(1)} MB; ` +
     `el mayor: ${mayor[0]} (${(mayor[1] / 1e3).toFixed(0)} KB)`);

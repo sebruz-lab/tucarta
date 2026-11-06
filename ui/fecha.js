@@ -11,6 +11,9 @@
 // DD/MM/AAAA: "1 de marzo de 1984", "1 mar 84", "1984-03-01", "01031984",
 // "010384"; el año de dos cifras se completa (hasta 40 es 20xx).
 //
+// Y la hora (completarHora), al salir del campo: "9", "930", "9.30",
+// "9:30 pm", "21,15", "9 y media" -> HH:MM de 24 horas.
+//
 // El formulario de inscripcion del sitio lleva una copia de estas
 // funciones (no puede importar el JS de la calculadora): si cambian aca,
 // cambiarlas alla tambien.
@@ -77,4 +80,50 @@ export function completarFecha(texto) {
     if (!elegido) return normalizarFecha(texto, false);
     const [d, m, a] = elegido;
     return anioCompleto(`${dos(d)}/${dos(m)}/${a}`);
+}
+
+// Hora escrita a mano, al salir del campo: lo que se entienda, como HH:MM
+// de 24 horas; si no, el texto como vino (cada formulario avisa).
+//
+//   "9" -> 09:00        "930" -> 09:30       "0930" -> 09:30
+//   "9:30" "9.30" "9,30" "9 30" "9h30" -> 09:30
+//   "2115" -> 21:15     "9 pm" -> 21:00      "12 am" -> 00:00
+//   "9 y media" -> 09:30    "9 de la noche" -> 21:00
+export function completarHora(texto) {
+    const t = sinTildes(String(texto)).trim();
+    if (!t) return '';
+
+    // Mediodia y medianoche, que no traen numero.
+    if (/mediodia/.test(t)) return '12:00';
+    if (/medianoche/.test(t)) return '00:00';
+
+    const tarde = /(^|[^a-z])(pm|p\.m|tarde|noche)/.test(t);
+    const manana = /(^|[^a-z])(am|a\.m|manana|madrugada)/.test(t);
+    const media = /(y\s*)?media/.test(t) && !/mediodia|medianoche/.test(t);
+    const cuarto = /(y\s*)?cuarto/.test(t);
+
+    const nums = t.match(/\d+/g) || [];
+    if (!nums.length) return texto.trim();
+
+    let h;
+    let m = 0;
+    if (nums.length >= 2) {
+        h = +nums[0];
+        m = +nums[1];
+    } else {
+        const d = nums[0];
+        // Pegado: 4 digitos son HHMM y 3 son HMM ("2115", "930").
+        if (d.length === 4) { h = +d.slice(0, 2); m = +d.slice(2); }
+        else if (d.length === 3) { h = +d.slice(0, 1); m = +d.slice(1); }
+        else { h = +d; }
+    }
+    if (media && !m) m = 30;
+    if (cuarto && !m) m = 15;
+
+    if (!Number.isFinite(h) || !Number.isFinite(m) || m > 59) return texto.trim();
+    if (tarde && h < 12) h += 12;
+    if (manana && h === 12) h = 0;
+    if (h > 23) return texto.trim();
+
+    return `${dos(h)}:${dos(m)}`;
 }

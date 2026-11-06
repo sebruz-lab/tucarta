@@ -22,7 +22,7 @@ import { almacenLocal, igualQue } from './miscartas.js';
 import { imagenCarta, imagenEfemerides, entregarImagen } from './descarga.js';
 import { listaCalendario, jdDeFecha, fechaDeJd, fechaCorta, fechaParaVer } from './calendario.js';
 import { dibujarEfemerides, geometria } from './efemerides.js';
-import { normalizarFecha, completarFecha } from './fecha.js';
+import { normalizarFecha, completarFecha, completarHora } from './fecha.js';
 import { dibujarAnexo } from './anexo.js';
 import { calcularAspectos } from '../engine/aspects.js';
 import { TRANSITAN_EFEMERIDES } from '../engine/efemerides.js';
@@ -94,8 +94,39 @@ form.elements.zona.innerHTML = opcionesZonas('America/Argentina/Buenos_Aires');
 const dosCifras = (n) => String(n).padStart(2, '0');
 const opcionesNum = (n) => '<option value="">--</option>' +
     Array.from({ length: n }, (_, i) => `<option value="${dosCifras(i)}">${dosCifras(i)}</option>`).join('');
-form.elements.hh.innerHTML = opcionesNum(24);
-form.elements.mm.innerHTML = opcionesNum(60);
+
+// La hora de nacimiento se escribe como salga ("9", "930", "9.30", "9 pm") y
+// se normaliza al salir del campo. Como de 1 a 12 no se sabe si es manana o
+// tarde, se avisa lo que se entendio y se ofrece la otra lectura: en una
+// carta natal, errarle por 12 horas cambia el Ascendente de signo.
+const campoHora = form.elements.hora;
+const avisoHora = $('#aviso-hora');
+
+function mostrarAvisoHora() {
+    const h = campoHora.value.trim();
+    const m = /^([01][0-9]|2[0-3]):([0-5][0-9])$/.exec(h);
+    if (!m) { avisoHora.hidden = true; return; }
+    const hora = +m[1];
+    avisoHora.hidden = false;
+    avisoHora.textContent = `Lo tomamos como las ${h}. `;
+    if (hora >= 1 && hora <= 11) {
+        const otra = `${dosCifras(hora + 12)}:${m[2]}`;
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'enlace-huso';
+        boton.textContent = `¿Eran las ${otra}?`;
+        boton.addEventListener('click', () => {
+            campoHora.value = otra;
+            mostrarAvisoHora();
+        });
+        avisoHora.append(boton);
+    }
+}
+
+campoHora.addEventListener('change', () => {
+    campoHora.value = completarHora(campoHora.value);
+    mostrarAvisoHora();
+});
 
 // Fecha siempre en DD/MM/AAAA (el <input type="date"> sigue el formato del
 // navegador, que puede ser MM/DD). Las barras se agregan solas y "-", "."
@@ -129,7 +160,8 @@ function leerFormulario() {
     const f = form.elements;
     const fecha = fechaIso(f.fecha.value.trim());
     if (!fecha) return 'Revisá la fecha: tiene que ser día, mes y año, por ejemplo 03/01/1984.';
-    if (!f.hh.value || !f.mm.value) return 'Falta la hora de nacimiento. Si no la sabés, poné la más aproximada.';
+    const hora = completarHora(f.hora.value);
+    if (!/^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(hora)) return 'Revisá la hora de nacimiento: escribila como 09:30 (o 9, 930, 9.30, 9 pm).';
     let lugar = lugarElegido;
     if (!lugar && $('#manual').open) {
         const lat = parsearCoordenada(f.lat.value, 'N', 'S');
@@ -139,7 +171,7 @@ function leerFormulario() {
     }
     if (!lugar) return 'Elegí el lugar de la lista que aparece al escribir, o cargá las coordenadas a mano.';
     return {
-        nombre: f.nombre.value.trim(), fecha, hora: `${f.hh.value}:${f.mm.value}`,
+        nombre: f.nombre.value.trim(), fecha, hora,
         lugar, correccion: null, eleccion: 0
     };
 }
@@ -1921,8 +1953,57 @@ document.querySelector('.acciones').addEventListener('click', (e) => {
         form.reset();
         lugarElegido = null;
         mostrarFormulario();
+    } else if (accion === 'sin-internet') {
+        descargarLugares(e.target.closest('button'));
     }
 });
+
+// ---------- Los lugares, para usar sin internet ----------
+// El indice son 6.751 archivos (33 MB) y no entra en el precache del service
+// worker: se bajan aca, de a tandas, y quedan en el cache 'lugares'. Se puede
+// cortar y seguir despues: lo ya bajado no se vuelve a pedir.
+async function descargarLugares(boton) {
+    const aviso = $('#aviso-sin-internet');
+    const decir = (txt) => { aviso.hidden = false; aviso.textContent = txt; };
+    if (!navigator.onLine) return decir('Para guardarlos hace falta internet. Probá cuando tengas conexión.');
+
+    boton.disabled = true;
+    const textoOriginal = boton.textContent;
+    boton.textContent = 'Guardando...';
+    try {
+        const base = import.meta.env.BASE_URL + 'lugares/';
+        const claves = await (await fetch(base + 'todos.json')).json();
+        const cache = await caches.open('lugares');
+        let listos = 0;
+        let fallaron = 0;
+        const TANDA = 24;
+        for (let i = 0; i < claves.length; i += TANDA) {
+            await Promise.all(claves.slice(i, i + TANDA).map(async (k) => {
+                const url = base + k + '.json';
+                try {
+                    // Lo que ya esta guardado no se vuelve a pedir.
+                    if (await cache.match(url)) return;
+                    const r = await fetch(url);
+                    if (r.ok) await cache.put(url, r.clone());
+                    else fallaron++;
+                } catch {
+                    fallaron++;
+                }
+            }));
+            listos = Math.min(i + TANDA, claves.length);
+            decir(`Guardando los lugares: ${Math.round(listos / claves.length * 100)}%`);
+        }
+        decir(fallaron
+            ? `Listo, con ${fallaron} archivos que no se pudieron bajar. Volvé a tocar el botón para completarlos.`
+            : 'Listo: ya podés buscar lugares sin internet.');
+        evento('lugares_sin_internet', {});
+    } catch (err) {
+        decir('No se pudieron guardar. Probá de nuevo en un rato.');
+    } finally {
+        boton.disabled = false;
+        boton.textContent = textoOriginal;
+    }
+}
 
 $('#resultado').addEventListener('click', (e) => {
     if (e.target.closest('[data-accion="volver"]')) mostrarFormulario();
@@ -2560,7 +2641,7 @@ function restaurar() {
     const f = form.elements;
     f.nombre.value = d.nombre || '';
     f.fecha.value = d.fecha.split('-').reverse().join('/');
-    [f.hh.value, f.mm.value] = d.hora.split(':');
+    f.hora.value = d.hora;
     if (d.lugar.manual) {
         $('#manual').open = true;
         f.lat.value = d.lugar.lat;
@@ -2588,6 +2669,9 @@ form.elements.mmT.innerHTML = opcionesNum(60).replace('<option value="">--</opti
     } catch {}
     tipoElegido();
 }
+
+// Cuando la sincronizacion trae novedades de la nube, la lista se repinta.
+document.addEventListener('tucarta:cartas-al-dia', () => { pintarMisCartas(); });
 
 // Cuenta: al entrar o salir cambia donde se guardan las cartas.
 conectarCuenta({

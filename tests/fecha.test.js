@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizarFecha, anioCompleto, completarFecha } from '../ui/fecha.js';
+import { normalizarFecha, anioCompleto, completarFecha, completarHora } from '../ui/fecha.js';
 
 // Simula escribir de a una tecla, como en el celular.
 const escribir = (texto) => [...texto].reduce((v, c) => normalizarFecha(v + c, true), '');
@@ -73,5 +73,55 @@ describe('al salir del campo, cualquier cascotazo a DD/MM/AAAA', () => {
         expect(completarFecha('0103')).toBe('01/03');
         expect(completarFecha('45/13/1984')).toBe('45/13/1984');
         expect(completarFecha('marzo')).toBe('marzo');
+    });
+});
+
+describe('hora escrita a mano', () => {
+    it('toma la hora sola y la completa con minutos en cero', () => {
+        expect(completarHora('9')).toBe('09:00');
+        expect(completarHora('7')).toBe('07:00');
+        expect(completarHora('23')).toBe('23:00');
+    });
+
+    it('acepta cualquier separador', () => {
+        for (const t of ['9:30', '9.30', '9,30', '9 30', '9h30', '9 h 30']) {
+            expect(completarHora(t)).toBe('09:30');
+        }
+    });
+
+    it('entiende los digitos pegados', () => {
+        expect(completarHora('930')).toBe('09:30');   // tres: H MM
+        expect(completarHora('0930')).toBe('09:30');  // cuatro: HH MM
+        expect(completarHora('2115')).toBe('21:15');
+    });
+
+    it('pasa la tarde a 24 horas', () => {
+        expect(completarHora('9 pm')).toBe('21:00');
+        expect(completarHora('9pm')).toBe('21:00');
+        expect(completarHora('9 de la noche')).toBe('21:00');
+        expect(completarHora('4 de la tarde')).toBe('16:00');
+        expect(completarHora('9 am')).toBe('09:00');
+        expect(completarHora('12 am')).toBe('00:00');
+        expect(completarHora('12 pm')).toBe('12:00');
+    });
+
+    it('entiende las formas de decirlo', () => {
+        expect(completarHora('9 y media')).toBe('09:30');
+        expect(completarHora('10 y cuarto')).toBe('10:15');
+        expect(completarHora('mediodía')).toBe('12:00');
+        expect(completarHora('medianoche')).toBe('00:00');
+    });
+
+    it('lo que ya esta bien no se toca', () => {
+        expect(completarHora('00:00')).toBe('00:00');
+        expect(completarHora('23:59')).toBe('23:59');
+        expect(completarHora('14:05')).toBe('14:05');
+    });
+
+    it('lo que no se entiende vuelve como vino, para que el formulario avise', () => {
+        expect(completarHora('no me acuerdo')).toBe('no me acuerdo');
+        expect(completarHora('25:00')).toBe('25:00');
+        expect(completarHora('9:75')).toBe('9:75');
+        expect(completarHora('')).toBe('');
     });
 });

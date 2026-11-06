@@ -15,6 +15,7 @@ import {
 } from 'firebase/auth';
 import { firestoreConSesion } from './firestore.js';
 import { datosDeCarta, mismaCarta } from './miscartas.js';
+import { conSincro } from './sincro.js';
 
 // La configuracion web del sitio (es publica: va en todas las paginas).
 const app = initializeApp({
@@ -101,6 +102,11 @@ export function datosDeCuenta(usuario) {
             await fs.escribir(`${raiz}/cartas/${id}`, carta);
             return { ...carta, id };
         },
+        // Guardar en un id ya decidido: lo usa la sincronizacion para subir
+        // lo que se guardo sin internet.
+        async escribirId(id, carta) {
+            await fs.escribir(`${raiz}/cartas/${id}`, carta);
+        },
         async borrar(id) {
             await fs.borrar(`${raiz}/cartas/${id}`);
         },
@@ -132,8 +138,14 @@ export function datosDeCuenta(usuario) {
         }
     };
 
+    // Las cartas se leen de una copia en este dispositivo y se suben cuando
+    // hay internet: asi la app sirve igual sin conexion.
+    const almacenSincronizado = conSincro(almacen, usuario.uid, {
+        alCambiar: () => document.dispatchEvent(new CustomEvent('tucarta:cartas-al-dia')),
+    });
+
     return {
-        almacen,
+        almacen: almacenSincronizado,
         // null si todavia no acepto el aviso.
         perfil: () => fs.leer(raiz),
         aceptar: (novedades) => fs.escribir(raiz, {

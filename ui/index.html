@@ -184,16 +184,12 @@
             <label class="campo"><span>Fecha <span class="opcional">(DD/MM/AAAA)</span></span>
                 <input type="text" name="fecha" required inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="30" autocomplete="bday">
             </label>
-            <fieldset class="campo hora24">
-                <legend>Hora (24 h)</legend>
-                <div class="hora24-selects">
-                    <select name="hh" aria-label="Hora" required></select>
-                    <span aria-hidden="true">:</span>
-                    <select name="mm" aria-label="Minutos" required></select>
-                </div>
-            </fieldset>
+            <label class="campo">Hora de nacimiento
+                <input type="text" name="hora" required inputmode="numeric" placeholder="HH:MM" maxlength="20" autocomplete="off">
+            </label>
         </div>
         <p class="nota">Si no sabés la hora exacta, poné la más aproximada: el Ascendente y las casas cambian bastante con pocos minutos.</p>
+        <p class="nota aviso-hora" id="aviso-hora" role="status" hidden></p>
 
         <div class="campo lugar">
             <label for="lugar">¿Dónde naciste?</label>
@@ -555,6 +551,8 @@
         <div class="acciones">
             <button type="button" class="boton-texto" data-accion="otra-carta">Calcular otra carta</button>
             <button type="button" class="boton-texto" data-accion="borrar">Borrar mis datos de este dispositivo</button>
+            <button type="button" class="boton-texto" data-accion="sin-internet">Guardar los lugares para usar sin internet</button>
+            <p class="nota" id="aviso-sin-internet" role="status" hidden></p>
         </div>
     </section>
 
