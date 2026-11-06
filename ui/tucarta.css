@@ -292,6 +292,47 @@ details > summary {
 }
 .resultado-cabecera h2 { font-size: clamp(1.8rem, 7vw, 2.6rem); margin-bottom: 4px; }
 
+/* Cambiar la carta sin volver a la primera pagina (solo con mas de una
+   carta guardada). El menu se abre sobre lo que sigue. */
+.resultado-cabecera { position: relative; }
+.cambiar-carta-caja { position: relative; display: inline-block; }
+.cambiar-carta-caja[hidden] { display: none; }
+.menu-cambiar {
+    position: absolute;
+    z-index: 5;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: min(320px, 90vw);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    background: var(--superficie);
+    border: 1px solid var(--linea-fuerte);
+    border-radius: var(--radio);
+    box-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+}
+.menu-cambiar[hidden] { display: none; }
+.buscar-cambiar { font-size: 0.85rem; padding: 6px 10px; min-height: 0; }
+.lista-cambiar { list-style: none; margin: 0; padding: 0; max-height: 46vh; overflow-y: auto; position: relative; }
+.lista-cambiar button {
+    font: inherit;
+    font-size: 0.85rem;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    gap: 2px;
+    padding: 7px 9px;
+    background: none;
+    border: 0;
+    border-radius: 8px;
+    color: var(--texto);
+    cursor: pointer;
+}
+.lista-cambiar button:hover, .lista-cambiar li.coincide button { background: var(--superficie-2); }
+.lista-cambiar .nota { font-size: 0.75rem; margin: 0; }
+
 .advertencia {
     border: 1px solid var(--amarillo);
     border-radius: var(--radio);

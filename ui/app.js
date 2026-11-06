@@ -556,7 +556,7 @@ $('.figura-rueda').addEventListener('click', (e) => {
     const id = e.target.closest('[data-abrir-completa]')?.dataset.abrirCompleta;
     if (id) {
         mostrarCartasCompleta(false);
-        abrirGuardada(guardadas.find((c) => c.id === id), { mismaVista: true });
+        abrirGuardada(guardadas.find((c) => c.id === id), { mismaVista: true, origen: 'pantalla-completa' });
     }
 });
 $('.selector-completa').addEventListener('change', (e) => cambiarModo(e.target.value));
@@ -571,14 +571,68 @@ function mostrarCartasCompleta(abrir) {
     }
 }
 function pintarCartasCompleta() {
-    const r = buscarEnLista(guardadas.map((c) => c.nombre), $('.buscar-completa').value);
-    const marcadas = new Set(r.coinciden);
-    $('.lista-completa').innerHTML = guardadas.map((c, i) => `<li${marcadas.has(i) ? ' class="coincide"' : ''}>
-        <button type="button" data-abrir-completa="${escapar(c.id)}">${escapar(c.nombre || 'Sin nombre')}
-        <span class="nota">${c.fecha.split('-').reverse().join('/')}${c.tipo && c.tipo !== 'natal' ? ' · ' + TIPOS[c.tipo] : ''}</span></button></li>`).join('');
-    const li = $('.lista-completa').children[r.indice];
-    $('.lista-completa').scrollTop = li ? li.offsetTop : 0;
+    pintarSaltoCartas($('.buscar-completa'), $('.lista-completa'), 'data-abrir-completa');
 }
+
+// La lista para saltar a otra carta guardada. La usan el panel de pantalla
+// completa y el menu de la cabecera del resultado; `attr` es el data- que
+// lleva el id en cada boton. Lo que coincide con la busqueda se marca y la
+// lista se corre hasta ahi (no se filtra: asi no se pierde el contexto).
+function pintarSaltoCartas(buscar, lista, attr) {
+    const r = buscarEnLista(guardadas.map((c) => c.nombre), buscar.value);
+    const marcadas = new Set(r.coinciden);
+    lista.innerHTML = guardadas.map((c, i) => `<li${marcadas.has(i) ? ' class="coincide"' : ''}>
+        <button type="button" ${attr}="${escapar(c.id)}">${escapar(c.nombre || 'Sin nombre')}
+        <span class="nota">${c.fecha.split('-').reverse().join('/')}${c.tipo && c.tipo !== 'natal' ? ' · ' + TIPOS[c.tipo] : ''}</span></button></li>`).join('');
+    const li = lista.children[r.indice];
+    lista.scrollTop = li ? li.offsetTop : 0;
+}
+
+// ---- Cambiar la carta desde la cabecera del resultado
+// Aparece solo si hay mas de una carta guardada: cambia la carta sin volver
+// a la primera pagina y se queda en la vista que estaba.
+function actualizarCambiarCarta() {
+    const caja = $('#cambiar-carta');
+    if (!caja) return;
+    caja.hidden = guardadas.length < 2;
+    if (caja.hidden) abrirCambiarCarta(false);
+}
+
+function abrirCambiarCarta(abrir) {
+    $('#menu-cambiar-carta').hidden = !abrir;
+    $('.abrir-cambiar').setAttribute('aria-expanded', String(abrir));
+    if (abrir) {
+        $('.buscar-cambiar').value = '';
+        pintarSaltoCartas($('.buscar-cambiar'), $('.lista-cambiar'), 'data-abrir-cabecera');
+        $('.buscar-cambiar').focus();
+    }
+}
+
+$('#cambiar-carta').addEventListener('click', (e) => {
+    if (e.target.closest('.abrir-cambiar')) {
+        abrirCambiarCarta($('#menu-cambiar-carta').hidden);
+        return;
+    }
+    const id = e.target.closest('[data-abrir-cabecera]')?.dataset.abrirCabecera;
+    if (id) {
+        abrirCambiarCarta(false);
+        abrirGuardada(guardadas.find((c) => c.id === id), { mismaVista: true, origen: 'cabecera' });
+    }
+});
+$('.buscar-cambiar').addEventListener('input', () =>
+    pintarSaltoCartas($('.buscar-cambiar'), $('.lista-cambiar'), 'data-abrir-cabecera'));
+$('.buscar-cambiar').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    $('.lista-cambiar .coincide button')?.click();
+});
+// Se cierra al tocar afuera o con Escape.
+document.addEventListener('click', (e) => {
+    if (!$('#menu-cambiar-carta').hidden && !e.target.closest('#cambiar-carta')) abrirCambiarCarta(false);
+});
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('#menu-cambiar-carta').hidden) abrirCambiarCarta(false);
+});
 $('.buscar-completa').addEventListener('input', pintarCartasCompleta);
 $('.buscar-completa').addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
@@ -1905,25 +1959,36 @@ let pedidoCartas = 0;
 
 async function pintarMisCartas() {
     const n = ++pedidoCartas;
+    if (esperandoCuenta) { pintarListaCartas(); return; }
+    // Si ya tenemos la lista en memoria (viene de la carta que se estaba
+    // viendo), se muestra al toque y el pedido a la cuenta la refresca por
+    // detras: si no, al volver del resultado la lista tarda en aparecer.
+    if (guardadas.length) { porBorrar = null; errorCartas = false; pintarListaCartas(); }
     let lista = [];
     let error = false;
-    if (esperandoCuenta) pintarListaCartas();
-    else {
-        try { lista = await almacen.listar(); } catch (e) { console.error(e); error = true; }
-    }
+    try { lista = await almacen.listar(); } catch (e) { console.error(e); error = true; }
     // Si mientras tanto cambio el almacen, manda el pedido mas nuevo.
     if (n !== pedidoCartas || esperandoCuenta) return;
+    // Si el pedido fallo pero ya habia cartas a la vista, se dejan: mejor la
+    // lista de hace un rato que un cartel de error.
+    if (error && guardadas.length) return;
     guardadas = lista;
+    ordenarCartas();
     errorCartas = error;
     porBorrar = null;
     pintarListaCartas();
 }
 
-function pintarListaCartas() {
-    // En orden alfabetico por nombre (sin distinguir tildes ni mayusculas);
-    // las de un mismo nombre, por fecha.
+// En orden alfabetico por nombre (sin distinguir tildes ni mayusculas); las
+// de un mismo nombre, por fecha. Va aca y no en el dibujo de la lista porque
+// las cartas se muestran en tres lados (la primera pagina, el menu de la
+// cabecera y el de pantalla completa) y los tres tienen que coincidir.
+function ordenarCartas() {
     guardadas.sort((a, b) => (a.nombre || 'Sin nombre').localeCompare(b.nombre || 'Sin nombre', 'es', { sensitivity: 'base', numeric: true }) ||
         a.fecha.localeCompare(b.fecha));
+}
+
+function pintarListaCartas() {
     const sesion = sesionIniciada() || esperandoCuenta;
     $('#pregunta-intro').hidden = sesion;
     $('#texto-intro').hidden = sesion;
@@ -2212,7 +2277,7 @@ $('#lista-cartas').addEventListener('click', async (e) => {
 
 // Abre una carta guardada. mismaVista: en la vista que se esta mirando
 // (desde la pantalla completa); si no, en la elegida en el formulario.
-async function abrirGuardada(c, { mismaVista = false } = {}) {
+async function abrirGuardada(c, { mismaVista = false, origen = 'lista' } = {}) {
     if (!c) return;
     estado.datos = {
         nombre: c.nombre || '', fecha: c.fecha, hora: c.hora, lugar: c.lugar,
@@ -2226,7 +2291,7 @@ async function abrirGuardada(c, { mismaVista = false } = {}) {
         estado.revolucion = null;
     }
     modoDelFormulario();
-    evento('carta_abierta', { pantalla_completa: mismaVista });
+    evento('carta_abierta', { origen, pantalla_completa: origen === 'pantalla-completa' });
     await calcular({ nueva: !mismaVista });
 }
 
@@ -2236,7 +2301,9 @@ function avisar(texto) {
 }
 
 async function pintarBotonGuardar() {
-    try { guardadas = await almacen.listar(); } catch { guardadas = []; }
+    // Si falla, se queda con la lista que ya tenia.
+    try { guardadas = await almacen.listar(); ordenarCartas(); } catch { /* nada */ }
+    actualizarCambiarCarta();
     const ya = guardadas.some((c) => igualQue(c, estado.datos));
     const b = document.querySelector('[data-accion="guardar"]');
     b.textContent = ya ? 'Guardada en mis cartas ✓' : 'Guardar en mis cartas';

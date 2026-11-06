@@ -249,6 +249,13 @@
         <header class="resultado-cabecera">
             <h2 id="titulo-carta">Tu carta</h2>
             <p id="resumen-datos" class="nota visualmente-oculto"></p>
+            <div id="cambiar-carta" class="cambiar-carta-caja" hidden>
+                <button type="button" class="boton-texto abrir-cambiar" aria-expanded="false" aria-controls="menu-cambiar-carta">Cambiar la carta visualizada</button>
+                <div id="menu-cambiar-carta" class="menu-cambiar" hidden>
+                    <input type="search" class="buscar-cambiar" placeholder="Buscar por nombre" aria-label="Buscar en tus cartas" enterkeyhint="go">
+                    <ul class="lista-cambiar"></ul>
+                </div>
+            </div>
         </header>
 
         <div class="fila-vista">
