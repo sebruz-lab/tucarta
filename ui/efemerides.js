@@ -102,7 +102,7 @@ export function dibujarEfemerides(e, { hoy = null } = {}) {
         if (Math.abs(ry - n.y) > 1) out.push(`<line class="ef-guia" x1="${ancho - der}" x2="${x - 8}" y1="${f(n.y)}" y2="${f(ry)}"/>`);
         out.push(`<g class="punto" data-punto="${n.id}">${glifoPunto(n.id, x, ry, 18.7)}</g>`);
         const signo = signoDe(n.lon);
-        out.push(`<g class="ef-signo">${glifo(G_SIGNOS[signo], x + 24, ry, 12, '', `elem-${['fuego', 'tierra', 'aire', 'agua'][SIGNOS.indexOf(signo) % 4]}`)}</g>`);
+        out.push(`<g class="ef-signo">${glifo(G_SIGNOS[signo], x + 24, ry, 14.4, '', `elem-${['fuego', 'tierra', 'aire', 'agua'][SIGNOS.indexOf(signo) % 4]}`)}</g>`);
     }
 
     // Planetas en transito: una linea por tramo (se corta al pasar de un
@@ -125,7 +125,7 @@ export function dibujarEfemerides(e, { hoy = null } = {}) {
                         const y = directo ? arriba - 8 : alto - abajo + 12;
                         const signo = signoDe(lon);
                         out.push(`<g class="punto ef-ingreso" data-punto="${l.id}">${glifo(G_PUNTOS[l.id], x, directo ? y - 17 : y, 15.8)}</g>`);
-                        out.push(`<g class="ef-signo">${glifo(G_SIGNOS[signo], x, directo ? y : y + 17, 11, '', `elem-${['fuego', 'tierra', 'aire', 'agua'][SIGNOS.indexOf(signo) % 4]}`)}</g>`);
+                        out.push(`<g class="ef-signo">${glifo(G_SIGNOS[signo], x, directo ? y : y + 17, 13.2, '', `elem-${['fuego', 'tierra', 'aire', 'agua'][SIGNOS.indexOf(signo) % 4]}`)}</g>`);
                     }
                 }
             }
@@ -146,7 +146,7 @@ export function dibujarEfemerides(e, { hoy = null } = {}) {
         if (Math.abs(ry - p.y) > 1) out.push(`<line class="ef-guia" x1="${izq - 4}" x2="${izq - 12}" y1="${f(p.y)}" y2="${f(ry)}"/>`);
         out.push(`<g class="punto" data-punto="${p.id}">${glifo(G_PUNTOS[p.id], izq - 64, ry, 17.3)}</g>`);
         const signo = signoDe(p.lon);
-        out.push(`<g class="ef-signo">${glifo(G_SIGNOS[signo], izq - 42, ry, 12, '', `elem-${['fuego', 'tierra', 'aire', 'agua'][SIGNOS.indexOf(signo) % 4]}`)}</g>`);
+        out.push(`<g class="ef-signo">${glifo(G_SIGNOS[signo], izq - 42, ry, 14.4, '', `elem-${['fuego', 'tierra', 'aire', 'agua'][SIGNOS.indexOf(signo) % 4]}`)}</g>`);
     }
 
     // Cruces: el glifo del aspecto exacto (con un circulo para tocarlo).

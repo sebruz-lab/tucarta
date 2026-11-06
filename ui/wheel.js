@@ -278,7 +278,7 @@ function columnas(puntos, cusps, { polar, linea, rTope, marca, escala = 1, m, pr
         out.push(`<text class="grado-punto"${letra(m.fG)} x="${f(gx)}" y="${f(gy)}">${dos(p.grado)}°</text>`);
         const [sx, sy] = polar(a, rS);
         const iSigno = SIGNOS.indexOf(p.signo);
-        out.push(glifo(G_SIGNOS[p.signo], sx, sy, m.tS / escala, '', `signo-columna elem-${ELEMENTOS[iSigno % 4]}`, 0.75));
+        out.push(glifo(G_SIGNOS[p.signo], sx, sy, m.tS / escala, '', `signo-columna elem-${ELEMENTOS[iSigno % 4]}`));
         const [mx, my] = polar(a, rM);
         out.push(`<text class="grado-punto minuto"${letra(m.fM)} x="${f(mx)}" y="${f(my)}">${dos(p.minuto)}'${p.retro ? `<tspan class="retro"${letra(m.retro)}>r</tspan>` : ''}</text>`);
         out.push('</g>');
@@ -338,7 +338,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
     SIGNOS.forEach((s, i) => {
         out.push(linea(i * 30, R.signos, R.exterior, 'borde'));
         const [x, y] = polar(i * 30 + 15, (R.exterior + R.signos) / 2);
-        out.push(glifo(G_SIGNOS[s], x, y, 28, `data-signo="${s}"`, `elem-${ELEMENTOS[i % 4]}`, 1.45));
+        out.push(glifo(G_SIGNOS[s], x, y, 28, `data-signo="${s}"`, `elem-${ELEMENTOS[i % 4]}`));
     });
     for (let g = 0; g < 360; g++) {
         if (g % 30 === 0) continue;
@@ -460,7 +460,7 @@ function anilloRevolucion(rs, natal, { polar, linea, seleccion, nombres }) {
     SIGNOS.forEach((s, i) => {
         out.push(linea(i * 30, R2.signos, R2.exterior, 'borde'));
         const [x, y] = polar(i * 30 + 15, (R2.exterior + R2.signos) / 2);
-        out.push(glifo(G_SIGNOS[s], x, y, 17, `data-signo="${s}"`, `elem-${ELEMENTOS[i % 4]}`, 1.45));
+        out.push(glifo(G_SIGNOS[s], x, y, 17, `data-signo="${s}"`, `elem-${ELEMENTOS[i % 4]}`));
     });
     for (let g = 0; g < 360; g++) {
         if (g % 30 === 0) continue;

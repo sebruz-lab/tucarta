@@ -5,7 +5,7 @@ import { NOMBRE_SIGNO, NOMBRE_PUNTO, NOMBRE_ASPECTO, gradoMin, orbeTexto } from 
 import { SIGNOS, casaDe } from '../engine/chart.js';
 
 const ELEMENTOS = ['fuego', 'tierra', 'aire', 'agua'];
-const iconoSigno = (s) => iconoSvg(G_SIGNOS[s], 16, NOMBRE_SIGNO[s], 'elem-' + ELEMENTOS[SIGNOS.indexOf(s) % 4], 1.35);
+const iconoSigno = (s) => iconoSvg(G_SIGNOS[s], 16, NOMBRE_SIGNO[s], 'elem-' + ELEMENTOS[SIGNOS.indexOf(s) % 4]);
 
 function filaPunto(p, glifoPunto) {
     return `<tr data-punto="${p.id}">
