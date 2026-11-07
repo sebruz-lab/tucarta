@@ -27,13 +27,13 @@ export default defineConfig({
                 start_url: '/cartas/',
                 scope: '/cartas/',
                 display: 'standalone',
-                background_color: '#07070a',
-                theme_color: '#07070a',
+                background_color: '#f6f9f6',
+                theme_color: '#f6f9f6',
                 lang: 'es',
                 icons: [
                     { src: 'icono-192.png', sizes: '192x192', type: 'image/png' },
                     { src: 'icono-512.png', sizes: '512x512', type: 'image/png' },
-                    { src: 'icono-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+                    { src: 'icono-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
                 ],
             },
             workbox: {
