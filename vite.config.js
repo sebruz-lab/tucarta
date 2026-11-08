@@ -39,7 +39,9 @@ export default defineConfig({
             workbox: {
                 // El WASM y las efemerides son el motor: sin eso no calcula nada.
                 globPatterns: ['**/*.{js,css,html,woff2,wasm,se1,png,svg}'],
-                globIgnores: ['lugares/**'],
+                // Sedna y Eris traen su propia efemeride: no van en la
+                // precarga, se bajan recien cuando alguien las prende.
+                globIgnores: ['lugares/**', 'ephe/se90377.se1', 'ephe/s136199.se1'],
                 // El .wasm pasa los 2 MB que Workbox permite por defecto.
                 maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
                 navigateFallback: '/cartas/index.html',
@@ -52,6 +54,17 @@ export default defineConfig({
                         options: {
                             cacheName: 'lugares',
                             expiration: { maxEntries: 8000, maxAgeSeconds: 180 * 24 * 60 * 60 },
+                            cacheableResponse: { statuses: [0, 200] },
+                        },
+                    },
+                    {
+                        // Las efemerides de Sedna y Eris: una vez bajadas no
+                        // cambian, y quedan guardadas para andar sin internet.
+                        urlPattern: ({ url }) => url.pathname.startsWith('/cartas/ephe/'),
+                        handler: 'CacheFirst',
+                        options: {
+                            cacheName: 'efemerides',
+                            expiration: { maxEntries: 10, maxAgeSeconds: 365 * 24 * 60 * 60 },
                             cacheableResponse: { statuses: [0, 200] },
                         },
                     },

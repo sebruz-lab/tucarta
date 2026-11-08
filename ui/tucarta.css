@@ -218,6 +218,20 @@ input:focus, select:focus, button:focus-visible, a:focus-visible, .punto:focus-v
     overflow-y: auto;
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
 }
+/* Aviso al pie de la lista cuando quedaron lugares afuera. No es una
+   opcion: no se toca ni se recorre con las flechas. */
+.sugerencias .sugerencia-pista {
+    cursor: default;
+    padding: 10px 12px 6px;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--texto-suave);
+    border-top: 1px solid var(--linea);
+    margin-top: 4px;
+}
+.sugerencias .sugerencia-pista strong { color: var(--texto); font-weight: 400; }
+.sugerencias .sugerencia-pista:hover { background: none; }
+
 .sugerencias li {
     padding: 10px 12px;
     border-radius: 8px;
@@ -420,6 +434,63 @@ details > summary {
 .ahora-inicio .boton-texto { margin-top: 4px; }
 /* Al imprimir una carta, esto no existe. */
 @media print { .ahora-inicio { display: none !important; } }
+
+/* El "?" de al lado de "¿Dónde naciste?" y la ayuda que abre. */
+.fila-etiqueta { display: flex; align-items: center; gap: 8px; }
+.boton-ayuda {
+    width: 20px; height: 20px; flex: none; padding: 0; line-height: 1;
+    border: 1px solid var(--linea-fuerte); border-radius: 50%;
+    background: none; color: var(--texto-suave);
+    font: inherit; font-size: 0.78rem; cursor: pointer;
+}
+.boton-ayuda:hover { color: var(--texto); border-color: var(--texto); }
+.pista-lugar { margin: 2px 0 6px; }
+.signo-ayuda {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 15px; height: 15px; border: 1px solid var(--linea-fuerte);
+    border-radius: 50%; font-size: 0.7rem; vertical-align: -2px;
+}
+.ayuda-lugar {
+    margin: 0 0 14px; padding: 16px 18px;
+    background: var(--superficie); border-radius: var(--radio);
+    color: var(--texto-suave); font-size: 0.9rem;
+}
+.ayuda-lugar h3 { margin: 0 0 10px; font-size: 0.95rem; font-weight: 400; color: var(--texto); }
+.ayuda-lugar ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 9px; }
+.ayuda-lugar strong { color: var(--texto); font-weight: 400; }
+.ayuda-lugar em { font-style: normal; color: var(--texto); }
+
+/* Engranaje de la cabecera: entra a los ajustes del calculo desde
+   cualquier lado, tambien antes de calcular. */
+.boton-engranaje {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; padding: 0;
+    background: none; border: none; border-radius: 50%;
+    color: var(--texto-suave); cursor: pointer;
+}
+.boton-engranaje:hover { color: var(--texto); background: var(--superficie); }
+
+/* Ajustes: "Otros puntos" y "Ajustar orbes", cada uno en su desplegable. */
+.desplegable-ajustes { border-top: 1px solid var(--linea); padding: 10px 0 2px; }
+.desplegable-ajustes > summary {
+    cursor: pointer; list-style: none; padding: 8px 0;
+    font-size: 0.95rem; color: var(--texto);
+    display: flex; align-items: center; gap: 8px;
+}
+.desplegable-ajustes > summary::-webkit-details-marker { display: none; }
+.desplegable-ajustes > summary::before {
+    content: ''; width: 7px; height: 7px; flex: none;
+    border-right: 1.5px solid var(--texto-suave); border-bottom: 1.5px solid var(--texto-suave);
+    transform: rotate(-45deg); transition: transform 0.15s ease;
+}
+.desplegable-ajustes[open] > summary::before { transform: rotate(45deg); }
+.grilla-puntos {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 6px 14px; margin: 6px 0 12px;
+}
+.punto-opcional { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.92rem; }
+.punto-opcional .glifo-opcional { display: inline-flex; color: var(--p-nodo); }
+@media (prefers-reduced-motion: reduce) { .desplegable-ajustes > summary::before { transition: none; } }
 
 /* ---------- Rueda ---------- */
 
@@ -717,6 +788,17 @@ body.sin-scroll { overflow: hidden; }
 [data-punto="pluton"], [data-punto="r-pluton"] { --p: var(--p-pluton); }
 [data-punto="quiron"], [data-punto="r-quiron"] { --p: var(--p-quiron); }
 [data-punto="nodo"], [data-punto="r-nodo"] { --p: var(--p-nodo); }
+/* Los puntos que se suman desde los ajustes van todos en tinta plena, como
+   el Nodo y Lilith. */
+[data-punto="ceres"], [data-punto="r-ceres"], [data-punto="t-ceres"],
+[data-punto="palas"], [data-punto="r-palas"], [data-punto="t-palas"],
+[data-punto="juno"], [data-punto="r-juno"], [data-punto="t-juno"],
+[data-punto="vesta"], [data-punto="r-vesta"], [data-punto="t-vesta"],
+[data-punto="sedna"], [data-punto="r-sedna"], [data-punto="t-sedna"],
+[data-punto="eris"], [data-punto="r-eris"], [data-punto="t-eris"],
+[data-punto="nodosur"], [data-punto="r-nodosur"], [data-punto="t-nodosur"],
+[data-punto="tierra"], [data-punto="r-tierra"], [data-punto="t-tierra"],
+[data-punto="fortuna"], [data-punto="r-fortuna"], [data-punto="t-fortuna"] { --p: var(--p-nodo); }
 [data-punto="lilith"], [data-punto="r-lilith"] { --p: var(--p-lilith); }
 /* Planetas en transito ("t-saturno"...): todos del mismo color. */
 [data-punto^="t-"] { --p: var(--transito); }

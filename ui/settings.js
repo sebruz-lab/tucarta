@@ -1,8 +1,10 @@
 // Panel de ajustes: sistema de casas, orbes por punto y aspectos a los
 // angulos. Se guarda en el dispositivo (localStorage).
 
-import { SISTEMAS_CASAS, AJUSTES_POR_DEFECTO, ORBES_POR_DEFECTO, ORBES_MENORES, MENORES_POR_DEFECTO, ORBES_TRANSITO } from '../engine/config.js';
+import { SISTEMAS_CASAS, AJUSTES_POR_DEFECTO, ORBES_POR_DEFECTO, ORBES_MENORES, MENORES_POR_DEFECTO, ORBES_TRANSITO,
+    PUNTOS_OPCIONALES, PUNTOS_ACTIVOS_POR_DEFECTO } from '../engine/config.js';
 import { NOMBRE_PUNTO, NOMBRE_ASPECTO } from './textos.js';
+import { PUNTOS as G_PUNTOS, iconoSvg } from './glyphs.js';
 import { METODOS_PROGRESION } from '../engine/progressions.js';
 
 const CLAVE = 'tucarta:ajustes';
@@ -15,7 +17,8 @@ export function leerAjustes() {
             orbes: { ...ORBES_POR_DEFECTO, ...g.orbes },
             menores: { ...MENORES_POR_DEFECTO, ...g.menores },
             orbesMenores: { ...ORBES_MENORES, ...g.orbesMenores },
-            orbesTransito: { ...ORBES_TRANSITO, ...g.orbesTransito }
+            orbesTransito: { ...ORBES_TRANSITO, ...g.orbesTransito },
+            puntos: { ...PUNTOS_ACTIVOS_POR_DEFECTO, ...g.puntos }
         };
     } catch {}
     return structuredClone(AJUSTES_POR_DEFECTO);
@@ -62,6 +65,22 @@ export function panelAjustes(a) {
         </label>
         <label class="casilla"><input type="checkbox" name="aspectos-angulos" ${a.aspectosAngulos ? 'checked' : ''}>
             Calcular aspectos al Ascendente y al Medio Cielo</label>
+        <details class="desplegable-ajustes" id="ajustes-puntos">
+            <summary>Otros puntos</summary>
+            <p class="nota">Se suman a la rueda, a las tablas y a los aspectos. Sedna y Eris bajan su efeméride la primera vez que las prendés.</p>
+            <div class="grilla-puntos">${PUNTOS_OPCIONALES.map((o) => `
+                <label class="punto-opcional">
+                    <input type="checkbox" name="punto-${o.id}" ${a.puntos?.[o.id] ? 'checked' : ''}>
+                    <span class="glifo-opcional" data-punto="${o.id}">${G_PUNTOS[o.id] ? iconoSvg(G_PUNTOS[o.id], 18, o.nombre) : ''}</span>
+                    <span>${o.nombre}</span>
+                </label>`).join('')}
+            </div>
+            <label class="casilla"><input type="checkbox" name="fortuna-nocturna" ${a.fortunaNocturna !== false ? 'checked' : ''}>
+                Parte de Fortuna: dar vuelta la fórmula en las cartas nocturnas</label>
+        </details>
+
+        <details class="desplegable-ajustes" id="ajustes-orbes">
+            <summary>Ajustar orbes</summary>
         <fieldset class="orbes"><legend>Aspectos menores</legend>
             <div class="grilla-menores">${Object.keys(MENORES_POR_DEFECTO).map((id) => `
                 <label class="menor">
@@ -86,6 +105,7 @@ export function panelAjustes(a) {
                 </div>`).join('')}
             </div>
         </fieldset>
+        </details>
         <button type="button" class="boton-texto" data-accion="ajustes-defecto">Volver a los valores por defecto</button>`;
 }
 
@@ -108,7 +128,11 @@ export function ajustesDesde(form, previos) {
     }
     const menores = {};
     for (const id of Object.keys(MENORES_POR_DEFECTO)) menores[id] = form.elements['menor-' + id].checked;
+    const puntos = {};
+    for (const o of PUNTOS_OPCIONALES) puntos[o.id] = Boolean(form.elements['punto-' + o.id]?.checked);
     return {
+        puntos,
+        fortunaNocturna: Boolean(form.elements['fortuna-nocturna']?.checked),
         casas: form.elements.casas.value,
         metodoProgresion: form.elements['metodo-progresion'].value,
         nodoDraconica: form.elements['nodo-draconica'].value,

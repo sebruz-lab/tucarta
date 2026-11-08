@@ -44,6 +44,12 @@
             <button type="button" data-tema="oscuro" aria-pressed="false">Oscuro</button>
             <button type="button" data-tema="claro" aria-pressed="true">Claro</button>
         </div>
+        <button type="button" class="boton-engranaje" data-accion="abrir-ajustes" aria-label="Ajustes del cálculo" title="Ajustes del cálculo">
+            <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3.2"/>
+                <path d="M12 2.4l1.1 2.5 2.7-.5.4 2.7 2.5 1.1-1.4 2.3 1.4 2.3-2.5 1.1-.4 2.7-2.7-.5L12 21.6l-1.1-2.5-2.7.5-.4-2.7-2.5-1.1L6.7 13.5 5.3 11.2l2.5-1.1.4-2.7 2.7.5z"/>
+            </svg>
+        </button>
         <button type="button" id="boton-menu" class="boton-menu" aria-expanded="false" aria-controls="menu-sitio" aria-label="Menú del sitio">
             <span></span><span></span><span></span>
         </button>
@@ -192,10 +198,33 @@
         <p class="nota aviso-hora" id="aviso-hora" role="status" hidden></p>
 
         <div class="campo lugar">
-            <label for="lugar">¿Dónde naciste?</label>
+            <div class="fila-etiqueta">
+                <label for="lugar">¿Dónde naciste?</label>
+                <button type="button" class="boton-ayuda" data-ayuda="lugar" aria-expanded="false"
+                    aria-controls="ayuda-lugar" aria-label="Ayuda para encontrar tu lugar">?</button>
+            </div>
+            <p class="nota pista-lugar">Elegí las primeras letras de tu ciudad o tu pueblo y elegilo de la lista. Si no aparece tocá <span class="signo-ayuda">?</span></p>
             <input id="lugar" type="text" name="lugar" autocomplete="off" placeholder="Escribí tu ciudad o pueblo"
                 role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias">
             <ul id="sugerencias" class="sugerencias" role="listbox" hidden></ul>
+        </div>
+
+        <div id="ayuda-lugar" class="ayuda-lugar" hidden>
+            <h3>Si no encontrás tu lugar</h3>
+            <ul>
+                <li><strong>Hay muchos lugares con ese nombre.</strong> Agregá la provincia o el país después del nombre:
+                    escribí <em>La Paz, Córdoba</em> en vez de <em>La Paz</em> sola. La lista muestra ocho a la vez, y si tu
+                    pueblo es chico queda más abajo.</li>
+                <li><strong>El pueblo es muy chico.</strong> Probá con la ciudad o la cabecera más cercana: unos pocos
+                    kilómetros no mueven la carta. Lo que sí la mueve son los minutos de la hora.</li>
+                <li><strong>Escribiste el nombre completo de una.</strong> Con las primeras letras alcanza. Si te pasaste,
+                    borrá un poco y mirá la lista de nuevo.</li>
+                <li><strong>Los acentos y la ñ no importan.</strong> <em>Cordoba</em> encuentra <em>Córdoba</em>, y
+                    <em>Nuñez</em> encuentra <em>Núñez</em>.</li>
+                <li><strong>El lugar cambió de nombre.</strong> Probá con el nombre actual, que es el que figura en el mapa.</li>
+                <li><strong>No está y listo.</strong> Abrí <em>¿No encontrás tu lugar? Cargá las coordenadas</em>, acá abajo,
+                    y poné la latitud y la longitud. Las sacás buscando el lugar en Google Maps y tocando el punto.</li>
+            </ul>
         </div>
 
         <details class="manual" id="manual">

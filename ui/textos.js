@@ -10,7 +10,10 @@ export const NOMBRE_PUNTO = {
     sol: 'Sol', luna: 'Luna', mercurio: 'Mercurio', venus: 'Venus', marte: 'Marte',
     jupiter: 'Júpiter', saturno: 'Saturno', urano: 'Urano', neptuno: 'Neptuno',
     pluton: 'Plutón', nodo: 'Nodo Norte', lilith: 'Lilith', quiron: 'Quirón',
-    asc: 'Ascendente', mc: 'Medio Cielo'
+    asc: 'Ascendente', mc: 'Medio Cielo',
+    ceres: 'Ceres', palas: 'Palas', juno: 'Juno', vesta: 'Vesta',
+    sedna: 'Sedna', eris: 'Eris',
+    nodosur: 'Nodo Sur', tierra: 'Tierra', fortuna: 'Parte de Fortuna'
 };
 
 export const NOMBRE_ASPECTO = {

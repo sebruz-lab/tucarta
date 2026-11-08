@@ -41,6 +41,27 @@ export const PUNTOS = {
 };
 
 // Semisextil y quincuncio: dibujo de Seba (el quincuncio, dado vuelta).
+// Puntos que se pueden sumar desde los ajustes. Van en trazo, como los
+// aspectos: las formas son geometricas y no piden dibujo. El Nodo Sur es
+// el Norte dado vuelta (rot), que es la convencion de siempre.
+export const PUNTOS_OPCIONALES = {
+    ceres:   { d: 'M13.6 4.3A4.7 4.7 0 1 0 10 11.3V18M6.3 14.9H13.7' },
+    palas:   { d: 'M10 2L13.2 6.1L10 10.2L6.8 6.1ZM10 10.2V18M6.3 14.9H13.7' },
+    juno:    { d: 'M10 1.8V9.4M6.7 3.4L13.3 7.8M13.3 3.4L6.7 7.8M10 9.4V18M6.3 14.9H13.7' },
+    vesta:   { d: 'M11.7 1.8C13.4 3.5 10.4 4.8 9.2 6C8.2 7.1 9.6 7.9 11.2 8.1M2 10.8H5.2L10 17.8L14.8 10.8H18M6.1 6.9L10 12.5L13.9 6.9' },
+    sedna:   { d: 'M9.1 2.5V10C13.2 10 16.6 13.4 16.6 17.5M5.3 6.25H10.9', r: [[5.3, 4.4, 1.9]] },
+    eris:    { d: 'M10 11.2V18.2M7.2 15.4L10 18.2L12.8 15.4', r: [[10, 6.8, 4.4]] },
+    tierra:  { d: 'M3 10H17M10 3V17', r: [[10, 10, 7]] },
+    fortuna: { d: 'M5 5L15 15M15 5L5 15', r: [[10, 10, 7]] }
+};
+
+// El Nodo Sur: el mismo dibujo del Norte, girado 180.
+PUNTOS_OPCIONALES.nodosur = { ...PUNTOS.nodo, rot: 180 };
+
+// Quedan tambien en PUNTOS: todo el resto de la interfaz busca el glifo
+// por id (la rueda, las tablas, el anexo, el calendario) y asi los encuentra.
+Object.assign(PUNTOS, PUNTOS_OPCIONALES);
+
 export const ASPECTOS = {
     conjuncion: { d: 'M13 7L17 3', r: [[9, 11, 4.2]] },
     sextil: { d: 'M10 3V17M4 6.5L16 13.5M4 13.5L16 6.5' },
@@ -67,6 +88,11 @@ function encajar({ caja: [x, y, ancho, alto], girar = false }) {
 export function glifo(g, x, y, t = 20, extra = '', clase = '', grosor = 1) {
     const s = t / 20;
     const partes = [];
+    // rot: el mismo dibujo girado (el Nodo Sur es el Norte a 180 grados).
+    if (g.rot) return glifo({ ...g, rot: 0 }, x, y, t, extra, clase, grosor)
+        .replace('">', `" data-rot="${g.rot}">`)
+        .replace(/transform="translate\(([^)]*)\) scale\(([^)]*)\)"/,
+            (m, tr, sc) => `transform="translate(${tr}) scale(${sc}) rotate(${g.rot} 10 10)"`);
     if (g.d) partes.push(`<path d="${g.d}"/>`);
     for (const [cx, cy, r] of g.r || []) partes.push(`<circle cx="${cx}" cy="${cy}" r="${r}"/>`);
     for (const [cx, cy, r] of g.p || []) partes.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="currentColor" stroke="none"/>`);

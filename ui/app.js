@@ -348,7 +348,7 @@ function pintar({ liviano = false } = {}) {
         : tablaAspectos(carta);
     $('#tabla-casas').innerHTML = tablaCasas(sola || externa || carta);
     if (liviano) return;
-    if (ajustesAbiertos()) $('#form-ajustes').innerHTML = panelAjustes(estado.ajustes);
+    if (ajustesAbiertos()) pintarPanelAjustes();
     pintarInterpretaciones();
 }
 
@@ -363,9 +363,10 @@ function pintarEsquinas(sistema) {
     // Renglones cortos: mas abajo la rueda deja menos lugar en la esquina.
     const renglonesLugar = (x) => x.manual ? ['Coordenadas', 'a mano'] : [x.nombre, x.provincia, x.paisNombre].filter(Boolean);
     const renglon = (t, clase = '') => t ? `<span class="${clase}">${escapar(t)}</span>` : '';
-    const botonHuso = estado.motivoHuso
-        ? '<span class="aviso-esquina">ADVERTENCIA</span><button type="button" data-accion="editar-huso">Revisar huso</button>'
-        : '<button type="button" data-accion="editar-huso">Editar huso horario</button>';
+    // El huso no se anuncia como un problema: va una pregunta tranquila
+    // debajo, que lleva al panel de abajo para cambiarlo. La alarma
+    // desconcertaba a quien no tenia por que dudar de su hora.
+    const botonHuso = '<button type="button" data-accion="editar-huso">¿No es ese huso horario?</button>';
     const verano = o.verano === null ? '' : o.verano ? `verano +${duracionTexto(o.verano)}` : 'sin horario de verano';
     const { sola, externa } = cartasVista();
     const otra = sola || externa;
@@ -385,8 +386,7 @@ function pintarEsquinas(sistema) {
     const natal = (titulo = 'Carta Natal') => [
         renglon(titulo, 'titulo-esquina'), renglon(`${dia}/${m}/${a}`, 'principal'),
         `<span class="principal">${escapar(d.hora)} h (<button type="button" class="enlace-huso" data-accion="editar-huso">${utcTexto(o.total)}</button>)</span>`,
-        ...renglonesLugar(l).map((t) => renglon(t)),
-        estado.motivoHuso ? '<span class="aviso-esquina">ADVERTENCIA</span>' : ''
+        ...renglonesLugar(l).map((t) => renglon(t))
     ];
 
     if (otra && esRS(estado.modo)) {
@@ -705,8 +705,24 @@ conectarBuscador($('#lugar-rs-nuevo'), $('#sugerencias-rs-nuevo'), async (l) => 
     $('.figura-rueda').scrollIntoView({ block: 'start', behavior: 'smooth' });
 });
 
+// El "?" de al lado de "¿Dónde naciste?": abre y cierra la ayuda.
+document.addEventListener('click', (e) => {
+    const boton = e.target.closest('[data-ayuda="lugar"]');
+    if (!boton) return;
+    const caja = $('#ayuda-lugar');
+    caja.hidden = !caja.hidden;
+    boton.setAttribute('aria-expanded', String(!caja.hidden));
+    if (!caja.hidden) caja.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+});
+
+// El engranaje vive en la cabecera: entra a los ajustes desde cualquier
+// lado, tambien antes de calcular. Por eso el enganche va en el documento
+// y no en la rueda, que es donde esta el otro acceso.
+document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-accion="abrir-ajustes"]')) abrirAjustes();
+});
+
 $('.figura-rueda').addEventListener('click', (e) => {
-    if (e.target.closest('[data-accion="abrir-ajustes"]')) return abrirAjustes();
     if (!e.target.closest('[data-accion="editar-huso"]')) return;
     $('#huso').open = true;
     $('#huso').scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -728,11 +744,11 @@ function pintarAdvertencia() {
         motivo = 'para este país no tenemos el detalle histórico del huso horario y del horario de verano. Revisá que el huso sea el correcto.';
     }
     estado.motivoHuso = motivo;
-    // El panel ya explica por su cuenta lo de antes de 1970 y las horas
-    // ambiguas; el recuadro queda para el caso sin datos de horario de verano.
+    // Ya no se pinta un recuadro de alarma: el motivo lo cuenta el panel
+    // del huso, que es donde se puede hacer algo al respecto.
     const caja = $('#advertencia-huso');
-    caja.hidden = !motivo || tz.tentativo || tz.estado === 'ambigua' || tz.estado === 'inexistente';
-    caja.innerHTML = motivo ? `<strong>ADVERTENCIA:</strong> ${motivo}` : '';
+    caja.hidden = true;
+    caja.innerHTML = '';
 }
 
 // Los datos del momento que se esta mirando: los del nacimiento, o los de
@@ -1987,12 +2003,25 @@ ventanaAjustes.addEventListener('click', (e) => {
     if (e.target.closest('[data-ajustes="cerrar"]')) ventanaAjustes.close();
 });
 
+// El panel se repinta entero en cada cambio (los orbes de los angulos se
+// prenden y apagan solos, por ejemplo). Eso cerraria los desplegables, asi
+// que se anota cuales estaban abiertos y se vuelven a abrir.
+function pintarPanelAjustes() {
+    const abiertos = [...$('#form-ajustes').querySelectorAll('details[id]')]
+        .filter((d) => d.open).map((d) => d.id);
+    $('#form-ajustes').innerHTML = panelAjustes(estado.ajustes);
+    for (const id of abiertos) {
+        const d = $('#form-ajustes').querySelector('#' + id);
+        if (d) d.open = true;
+    }
+}
+
 // Cambiar un ajuste recalcula la carta que se este mirando; sin carta
 // abierta, solo se guarda y vale para la proxima.
 function ajusteCambiado() {
     guardarAjustes(estado.ajustes);
     if (estado.datos) calcular();
-    else $('#form-ajustes').innerHTML = panelAjustes(estado.ajustes);
+    else pintarPanelAjustes();
 }
 
 $('#form-ajustes').addEventListener('change', () => {

@@ -20,6 +20,30 @@ export const PUNTOS = [
     { id: 'quiron',   nombre: 'Quirón',     swe: 15, grupo: 'transpersonal' }
 ];
 
+// Puntos que la persona puede sumar desde los ajustes. Ninguno viene
+// prendido. `swe` es el cuerpo de Swiss Ephemeris; los que no lo tienen se
+// calculan a partir de otros (el Nodo Sur es el Norte mas 180, la Tierra es
+// el punto opuesto al Sol, y la Parte de Fortuna sale del Ascendente, el
+// Sol y la Luna).
+//
+// Ceres, Palas, Juno y Vesta salen de seas_18.se1, el archivo que ya viaja
+// por Quiron. Sedna y Eris necesitan el suyo, que se baja al prenderlas.
+export const PUNTOS_OPCIONALES = [
+    { id: 'ceres',   nombre: 'Ceres',  swe: 17, grupo: 'asteroide' },
+    { id: 'palas',   nombre: 'Palas',  swe: 18, grupo: 'asteroide' },
+    { id: 'juno',    nombre: 'Juno',   swe: 19, grupo: 'asteroide' },
+    { id: 'vesta',   nombre: 'Vesta',  swe: 20, grupo: 'asteroide' },
+    { id: 'sedna',   nombre: 'Sedna',  swe: 10000 + 90377,  archivo: 'se90377.se1', grupo: 'lejano' },
+    { id: 'eris',    nombre: 'Eris',   swe: 10000 + 136199, archivo: 's136199.se1', grupo: 'lejano' },
+    { id: 'nodosur', nombre: 'Nodo Sur',          calculado: true, grupo: 'punto' },
+    { id: 'tierra',  nombre: 'Tierra',            calculado: true, grupo: 'punto' },
+    { id: 'fortuna', nombre: 'Parte de Fortuna',  calculado: true, grupo: 'punto' }
+];
+
+// Ninguno viene prendido: la carta sale como siempre hasta que se elijan.
+export const PUNTOS_ACTIVOS_POR_DEFECTO =
+    Object.fromEntries(PUNTOS_OPCIONALES.map((p) => [p.id, false]));
+
 export const ANGULOS = [
     { id: 'asc', nombre: 'Ascendente' },
     { id: 'mc',  nombre: 'Medio Cielo' }
@@ -60,7 +84,10 @@ export const ORBES_POR_DEFECTO = {
     sol: 9, luna: 9,
     mercurio: 7, venus: 7, marte: 7, jupiter: 7, saturno: 7,
     urano: 5, neptuno: 5, pluton: 5, quiron: 5, nodo: 5, lilith: 5,
-    asc: 5, mc: 5
+    asc: 5, mc: 5,
+    // Los opcionales entran con orbe chico: son puntos finos.
+    ceres: 3, palas: 3, juno: 3, vesta: 3, sedna: 3, eris: 3,
+    nodosur: 5, tierra: 5, fortuna: 3
 };
 
 // Lo mismo para los aspectos menores.
@@ -68,7 +95,9 @@ export const ORBES_MENORES = {
     sol: 7, luna: 7,
     mercurio: 5, venus: 5, marte: 5, jupiter: 5, saturno: 5,
     urano: 3, neptuno: 3, pluton: 3, quiron: 3, nodo: 3, lilith: 3,
-    asc: 3, mc: 3
+    asc: 3, mc: 3,
+    ceres: 2, palas: 2, juno: 2, vesta: 2, sedna: 2, eris: 2,
+    nodosur: 3, tierra: 3, fortuna: 2
 };
 
 // Transitos: transitan todos los puntos de la carta, con orbe por
@@ -86,5 +115,9 @@ export const AJUSTES_POR_DEFECTO = {
     orbesMenores: ORBES_MENORES,
     orbesTransito: ORBES_TRANSITO,
     metodoProgresion: 'arco-long',
-    nodoDraconica: 'real'
+    nodoDraconica: 'real',
+    // Que puntos opcionales se suman a la carta.
+    puntos: PUNTOS_ACTIVOS_POR_DEFECTO,
+    // La Parte de Fortuna cambia de formula entre el dia y la noche.
+    fortunaNocturna: true
 };

@@ -16,6 +16,7 @@ async function iniciar(leerArchivoQuiron) {
     const [M, bytesQuiron] = await Promise.all([crearSwe(), leerArchivoQuiron()]);
     M.FS.mkdir(RUTA_EPHE);
     M.FS.writeFile(RUTA_EPHE + '/seas_18.se1', new Uint8Array(bytesQuiron));
+    const montados = new Set(['seas_18.se1']);
     M.ccall('tc_set_ephe_path', null, ['string'], [RUTA_EPHE]);
 
     const buffer = M.ccall('tc_buffer', 'number', [], []) / 8;
@@ -25,6 +26,15 @@ async function iniciar(leerArchivoQuiron) {
     const error = () => M.ccall('tc_error', 'string', [], []);
 
     return {
+        // Sedna y Eris tienen su propio archivo y se bajan recien cuando
+        // alguien las prende: se montan aca, al lado del de Quiron.
+        montar(nombre, bytes) {
+            if (montados.has(nombre)) return;
+            M.FS.writeFile(RUTA_EPHE + '/' + nombre, new Uint8Array(bytes));
+            montados.add(nombre);
+        },
+        tiene: (nombre) => montados.has(nombre),
+
         julday: M.cwrap('tc_julday', 'number', ['number', 'number', 'number', 'number']),
 
         // -> { lon, lat, dist, velLon, velLat, velDist }
