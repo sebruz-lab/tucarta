@@ -302,6 +302,7 @@ async function calcular({ nueva = false } = {}) {
         form.hidden = true;
         $('.intro').hidden = true;
         $('#mis-cartas').hidden = true;
+        $('#ahora-inicio').hidden = true;
         $('#resultado').hidden = false;
         $('#resultado').scrollIntoView({ block: 'start' });
     }
@@ -964,8 +965,17 @@ function lugarAhora() {
         const g = JSON.parse(localStorage.getItem(CLAVE_AHORA));
         if (g && Number.isFinite(g.lat) && Number.isFinite(g.lon)) return (estado.lugarAhora = g);
     } catch {}
-    return estado.datos.lugar;
+    // Sin lugar propio: el de la carta que se esta mirando, el de la
+    // ultima que se calculo en este dispositivo, o Buenos Aires.
+    return estado.datos?.lugar || lugarElegido || LUGAR_POR_DEFECTO;
 }
+
+// Mientras no sepamos donde esta la persona. Se dice cual es, para que no
+// parezca que el Ascendente es el suyo.
+const LUGAR_POR_DEFECTO = {
+    nombre: 'Buenos Aires', provincia: 'Buenos Aires', pais: 'AR', paisNombre: 'Argentina',
+    lat: -34.6131, lon: -58.3772, zona: 'America/Argentina/Buenos_Aires'
+};
 function guardarLugarAhora(l) {
     estado.lugarAhora = l;
     try { localStorage.setItem(CLAVE_AHORA, JSON.stringify(l)); } catch {}
@@ -1022,6 +1032,68 @@ $('#mi-ubicacion').addEventListener('click', () => {
         pintar();
         $('.figura-rueda').scrollIntoView({ block: 'start', behavior: 'smooth' });
     }, () => decir('No pudimos saber dónde estás. Buscá el lugar acá arriba.'), { timeout: 10000 });
+});
+
+// ---------- Los astros ahora, debajo del formulario ----------
+//
+// Al entrar a la calculadora ya se ve el cielo de este momento, sin tener
+// que cargar nada. Es la misma carta que la vista "Los astros ahora": el
+// lugar sale de lugarAhora(), asi que si la persona ya eligio donde esta,
+// vale tambien aca (y al reves).
+//
+// Se dibuja aparte de pintar(): esto vive en la primera pagina, no en la
+// carta, y no toca estado.carta ni estado.datos.
+let ahoraInicio = null; // { carta, lugar, jd }
+
+async function pintarAhoraInicio() {
+    const seccion = $('#ahora-inicio');
+    // En la pagina de la carta no va, y si hay una carta abierta tampoco.
+    if (!$('#resultado').hidden) { seccion.hidden = true; return; }
+    const lugar = lugarAhora();
+    const d = new Date();
+    const utc = {
+        anio: d.getUTCFullYear(), mes: d.getUTCMonth() + 1, dia: d.getUTCDate(),
+        hora: d.getUTCHours(), minuto: d.getUTCMinutes()
+    };
+    try {
+        const carta = await calcularEnWorker({ utc, lat: lugar.lat, lon: lugar.lon, ajustes: estado.ajustes });
+        ahoraInicio = { carta, lugar };
+    } catch (err) {
+        console.error(err);
+        seccion.hidden = true;
+        return;
+    }
+    dibujarAhoraInicio();
+    seccion.hidden = false;
+}
+
+function dibujarAhoraInicio() {
+    if (!ahoraInicio) return;
+    const { carta, lugar } = ahoraInicio;
+    $('#ahora-inicio-rueda').innerHTML = dibujarRueda(carta, { nombres: NOMBRE_PUNTO, clara: tema === 'claro' });
+    const m = momentoEn(carta.meta.jd, lugar);
+    // "Buenos Aires, Buenos Aires, Argentina" no: la provincia se repite.
+    const donde = [...new Set([lugar.nombre, lugar.provincia, lugar.paisNombre].filter(Boolean))].join(', ');
+    // Si el lugar no lo eligio la persona, se aclara: el Ascendente y las
+    // casas son los de ahi, no los suyos.
+    const propio = Boolean(estado.lugarAhora);
+    $('#ahora-inicio-pie').innerHTML = `${m.fecha}, ${m.hora} h · ${escapar(donde)}`
+        + (propio ? '' : '<br>Las casas y el Ascendente son los de ese lugar.');
+}
+
+// Si la persona deja, el navegador dice donde esta y la rueda se rehace.
+$('#ahora-inicio-ubicacion').addEventListener('click', (e) => {
+    const boton = e.currentTarget;
+    if (!navigator.geolocation) { boton.textContent = 'Tu navegador no sabe decir dónde estás.'; return; }
+    boton.textContent = 'Buscando dónde estás…';
+    navigator.geolocation.getCurrentPosition(async ({ coords }) => {
+        guardarLugarAhora({
+            nombre: 'Donde estás', lat: coords.latitude, lon: coords.longitude,
+            zona: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+        });
+        boton.hidden = true;
+        await pintarAhoraInicio();
+    }, () => { boton.textContent = 'No pudimos saber dónde estás.'; }, { timeout: 10000 });
 });
 
 // Draconica: la natal medida desde el Nodo Norte (real o medio, segun los
@@ -2016,6 +2088,7 @@ function mostrarFormulario() {
     form.hidden = false;
     $('.intro').hidden = false;
     pintarMisCartas();
+    pintarAhoraInicio();
     window.scrollTo({ top: 0 });
 }
 
@@ -2604,6 +2677,7 @@ function aplicarTema(nuevo, { medir = false } = {}) {
         b.setAttribute('aria-pressed', String(b.dataset.tema === tema)));
     try { localStorage.setItem('tucarta:tema', tema); } catch {}
     if (estado.carta) pintarRueda();
+    dibujarAhoraInicio();
     if (medir) evento('cambio_fondo', { fondo: tema });
 }
 // Impresa, siempre en fondo claro (sin cambiar lo que eligio la persona).
@@ -2770,3 +2844,12 @@ async function abrirEnlace() {
     }
 }
 abrirEnlace();
+
+// El cielo de este momento, debajo del formulario. Va al final y sin apuro:
+// primero que la pagina este lista para escribir. Con un enlace de carta (o
+// con la hoja que arma el PDF) no corresponde, porque esa pagina no se ve.
+if (!location.hash.startsWith('#carta=') && !location.hash.startsWith('#hoja=')) {
+    const arrancar = () => pintarAhoraInicio();
+    if (window.requestIdleCallback) requestIdleCallback(arrancar, { timeout: 2000 });
+    else setTimeout(arrancar, 300);
+}

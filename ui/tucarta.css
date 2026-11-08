@@ -397,6 +397,30 @@ details > summary {
 }
 .correccion label { display: flex; flex-direction: column; gap: 4px; font-size: 0.88rem; color: var(--texto-suave); flex: 1 1 140px; }
 
+/* ---------- Los astros ahora, debajo del formulario ---------- */
+/* El cielo de este momento al entrar a la calculadora. La rueda va
+   centrada y no mas ancha que la columna. */
+.ahora-inicio {
+    margin: 36px 0 8px;
+    padding-top: 28px;
+    border-top: 1px solid var(--linea);
+    text-align: center;
+}
+.ahora-inicio h2 {
+    margin: 0 0 14px;
+    font-size: 1.05rem;
+    font-weight: 400;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+}
+.ahora-inicio-rueda { max-width: 520px; margin: 0 auto; }
+.ahora-inicio-rueda svg { display: block; width: 100%; height: auto; }
+.ahora-inicio #ahora-inicio-pie { margin: 10px 0 0; }
+.ahora-inicio .boton-texto { margin-top: 4px; }
+/* Al imprimir una carta, esto no existe. */
+@media print { .ahora-inicio { display: none !important; } }
+
 /* ---------- Rueda ---------- */
 
 .figura-rueda { margin: 0 -10px; position: relative; }
