@@ -7,7 +7,14 @@
 import { describe, it, expect, afterAll } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { localAUtc } from '../time/tz.js';
+import { localAUtc, cargarZona, configurarHusos } from '../time/tz.js';
+import indice from '../time/zonas.json';
+
+// En el navegador cada zona se baja cuando hace falta; aca se leen del
+// disco y se cargan todas antes de empezar.
+configurarHusos(async (archivo) =>
+    JSON.parse(readFileSync(new URL(`../ui/public/husos/${archivo}`, import.meta.url), 'utf8')));
+await Promise.all(indice.zonas.map((z) => cargarZona(z)));
 
 const H = 3600;
 const dir = fileURLToPath(new URL('./fixtures/solarfire/', import.meta.url));
@@ -62,8 +69,19 @@ describe('base y horario de verano por separado', () => {
     it('San Luis en el verano 2008-09: verano sobre base -4', () => {
         expect(caso('America/Argentina/San_Luis', '2009-01-15', '12:00')).toMatchObject({ base: -4 * H, verano: H });
     });
-    it('zona fuera de la tabla: solo offset total', () => {
-        expect(caso('Asia/Tokyo', '1990-01-01', '12:00')).toMatchObject({ total: 9 * H, verano: null });
+    // Desde que se empaqueta el mundo entero, Tokio tiene detalle propio:
+    // 9 horas de base y cero de verano (Japon no mueve el reloj).
+    it('ahora tambien el resto del mundo tiene detalle', () => {
+        expect(caso('Asia/Tokyo', '1990-01-01', '12:00')).toMatchObject({ total: 9 * H, base: 9 * H, verano: 0 });
+        expect(caso('Australia/Sydney', '1990-01-15', '12:00')).toMatchObject({ verano: H });
+        expect(caso('Africa/Cairo', '1990-01-01', '12:00')).toMatchObject({ total: 2 * H, verano: 0 });
+    });
+
+    // Las zonas que el generador descarto por no coincidir con Intl (Rusia
+    // y Asia central, por los cambios sovieticos del 91) siguen saliendo
+    // por Intl: offset total correcto, sin separar base y verano.
+    it('zona sin detalle: solo offset total', () => {
+        expect(caso('Europe/Moscow', '1990-01-01', '12:00')).toMatchObject({ total: 3 * H, verano: null });
     });
 });
 

@@ -3,7 +3,16 @@
 // version de tzdata) cada 6 horas desde 1900 y alrededor de cada cambio.
 
 import { describe, it, expect } from 'vitest';
-import tabla from '../time/zonas.json';
+import { readFileSync } from 'node:fs';
+import indice from '../time/zonas.json';
+import { archivoDeZona } from '../time/archivo.js';
+
+// El detalle de cada zona vive en su propio archivo (ui/public/husos/).
+const tabla = {
+    version: indice.version,
+    zonas: Object.fromEntries(indice.zonas.map((z) => [z,
+        JSON.parse(readFileSync(new URL(`../ui/public/husos/${archivoDeZona(z)}`, import.meta.url), 'utf8'))]))
+};
 
 const fmt = {};
 function offsetIntl(zona, seg) {

@@ -6,14 +6,20 @@
 // Uso: node time/build/zonas.mjs [version]
 //   Espera el fuente descomprimido en time/build/raw/ (ver README de time/).
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { archivoDeZona } from '../archivo.js';
 
 const RAW = new URL('./raw/', import.meta.url);
-const ARCHIVOS = ['southamerica', 'europe', 'africa', 'northamerica'];
+const ARCHIVOS = ['southamerica', 'europe', 'africa', 'northamerica', 'asia', 'australasia', 'antarctica',
+    'etcetera', 'backward'];
 
-// Zonas que se empaquetan: el publico de la v1 (Argentina, Uruguay,
-// España) y vecinos. Las demas usan Intl, sin separar base y verano.
-const ZONAS = [
+// Se empaqueta el mundo entero: una zona por archivo en ui/public/husos/,
+// que el navegador baja recien cuando la persona elige su lugar (1,5 KB
+// promedio). Antes iban 23 zonas en un solo JSON y el resto se resolvia
+// con Intl, que da el offset total pero no separa el huso base del
+// horario de verano: por eso a medio mundo le salia el cartel de "no
+// tenemos el detalle historico".
+const ZONAS_PREFERIDAS = [
     'America/Argentina/Buenos_Aires', 'America/Argentina/Cordoba',
     'America/Argentina/Salta', 'America/Argentina/Jujuy',
     'America/Argentina/Tucuman', 'America/Argentina/Catamarca',
@@ -174,14 +180,76 @@ function periodos(lineas, reglas) {
     return out.filter((p, i) => i === 0 || p[1] !== out[i - 1][1] || p[2] !== out[i - 1][2]);
 }
 
+
 const { reglas, zonas, links } = parsear();
 const version = readFileSync(new URL('version', RAW), 'utf8').trim();
-const res = { version, zonas: {} };
-for (const nombre of ZONAS) {
-    const real = zonas[nombre] ? nombre : links[nombre];
-    if (!zonas[real]) throw new Error('Zona no encontrada: ' + nombre);
-    res.zonas[nombre] = periodos(zonas[real], reglas);
+
+// Todas las zonas de tzdata, mas los alias (links) que apuntan a ellas:
+// el buscador de lugares devuelve cualquiera de los dos nombres.
+const todas = [...new Set([...ZONAS_PREFERIDAS, ...Object.keys(zonas), ...Object.keys(links)])].sort();
+
+const salida = new URL('../../ui/public/husos/', import.meta.url);
+rmSync(salida, { recursive: true, force: true });
+mkdirSync(salida, { recursive: true });
+
+// Solo se publica lo que se puede probar. Cada zona se compara con Intl
+// (el ICU de Node trae la misma tzdata) cada 6 horas desde 1900 y alrededor
+// de cada cambio de hora. La que no coincide no se publica: esa zona sigue
+// resolviendose con Intl en el navegador, que es lo que hacia hasta ahora,
+// asi nunca mostramos una hora que no podemos sostener.
+const DESDE_CONTROL = Date.UTC(1900, 0, 1) / 1000;
+const HASTA_CONTROL = Date.UTC(2030, 0, 1) / 1000;
+const fmtIntl = {};
+function offsetIntl(zona, seg) {
+    fmtIntl[zona] ||= new Intl.DateTimeFormat('en', { timeZone: zona, timeZoneName: 'longOffset' });
+    const t = fmtIntl[zona].formatToParts(new Date(seg * 1000)).find((x) => x.type === 'timeZoneName').value;
+    const m = t.match(/GMT([+-])(\d\d):(\d\d)(?::(\d\d))?/);
+    if (!m) return 0;
+    return (m[1] === '-' ? -1 : 1) * (+m[2] * 3600 + +m[3] * 60 + +(m[4] || 0));
 }
-const destino = new URL('../zonas.json', import.meta.url);
-writeFileSync(destino, JSON.stringify(res));
-console.log(`tzdata ${version}: ${ZONAS.length} zonas, ${JSON.stringify(res).length} bytes`);
+function coincideConIntl(zona, periodos) {
+    const offset = (seg) => {
+        let r = periodos[0];
+        for (const p of periodos) if (p[0] <= seg) r = p; else break;
+        return r[1];
+    };
+    for (let seg = DESDE_CONTROL; seg < HASTA_CONTROL; seg += 6 * 3600) {
+        if (offsetIntl(zona, seg) !== offset(seg)) return false;
+    }
+    for (const [cambio] of periodos) {
+        if (cambio < DESDE_CONTROL || cambio > HASTA_CONTROL) continue;
+        for (const seg of [cambio - 1, cambio, cambio + 1]) {
+            if (offsetIntl(zona, seg) !== offset(seg)) return false;
+        }
+    }
+    return true;
+}
+
+let bytes = 0;
+const nombres = [];
+const descartadas = [];
+const usados = new Map();
+for (const nombre of todas) {
+    const real = zonas[nombre] ? nombre : links[nombre];
+    if (!zonas[real]) continue; // alias colgado
+    const archivo = archivoDeZona(nombre);
+    if (usados.has(archivo)) throw new Error(`Dos zonas con el mismo archivo: ${usados.get(archivo)} y ${nombre} -> ${archivo}`);
+    usados.set(archivo, nombre);
+    const ps = periodos(zonas[real], reglas);
+    if (!coincideConIntl(nombre, ps)) { descartadas.push(nombre); continue; }
+    const json = JSON.stringify(ps);
+    writeFileSync(new URL(archivo, salida), json);
+    bytes += json.length;
+    nombres.push(nombre);
+}
+
+// El indice: la version de tzdata y que zonas tienen detalle. Es lo unico
+// que viaja en la precarga.
+const indice = { version, zonas: nombres };
+writeFileSync(new URL('../zonas.json', import.meta.url), JSON.stringify(indice));
+console.log(`tzdata ${version}: ${nombres.length} zonas, ${(bytes / 1024).toFixed(0)} KB en total`);
+console.log(`indice: ${(JSON.stringify(indice).length / 1024).toFixed(1)} KB`);
+if (descartadas.length) {
+    console.log(`descartadas por no coincidir con Intl (siguen con Intl en el navegador): ${descartadas.length}`);
+    console.log('  ' + descartadas.join(', '));
+}

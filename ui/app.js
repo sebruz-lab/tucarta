@@ -1,7 +1,7 @@
 // Orquesta la pagina: formulario -> huso -> calculo (worker) -> rueda,
 // tablas, interpretaciones y llamado a consultar.
 
-import { localAUtc } from '../time/tz.js';
+import { localAUtc, cargarZona, configurarHusos } from '../time/tz.js';
 import { dibujarRueda } from './wheel.js';
 import {
     tablaPosiciones, tablaAspectos, tablaCasas, detallePunto,
@@ -260,8 +260,17 @@ form.addEventListener('submit', async (e) => {
 
 // ---------- Calculo ----------
 
+// El huso de cada zona vive en su propio archivo y se baja cuando hace
+// falta. Sin el, el calculo igual sale: se usa Intl.
+configurarHusos((archivo) =>
+    fetch(import.meta.env.BASE_URL + 'husos/' + archivo).then((r) => {
+        if (!r.ok) throw new Error(r.status);
+        return r.json();
+    }));
+
 async function calcular({ nueva = false } = {}) {
     const d = datosVista();
+    await cargarZona(d.lugar.zona);
     estado.tz = localAUtc({ fecha: d.fecha, hora: d.hora }, d.lugar.zona, d.correccion);
     const opcion = estado.tz.opciones[d.eleccion] || estado.tz.opciones[0];
 
@@ -956,6 +965,7 @@ async function aplicarModo(modo) {
 async function calcularReubicacion() {
     estado.reubicacion ||= { lugar: null };
     const l = estado.reubicacion.lugar || estado.datos.lugar;
+    await cargarZona(l?.zona);
     const o = estado.tz.opciones[estado.datos.eleccion] || estado.tz.opciones[0];
     try {
         estado.reubicacion.carta = await calcularEnWorker({ utc: o.utc, lat: l.lat, lon: l.lon, ajustes: estado.ajustes });
@@ -1003,6 +1013,7 @@ function guardarLugarAhora(l) {
 // 0° Aries), que es la Transits Chart con zodiaco Draconic de Solar Fire.
 async function calcularCartaDelMomento() {
     estado.transito ||= momentoLocal(new Date());
+    await cargarZona((esAhora(estado.modo) ? lugarAhora() : estado.datos.lugar)?.zona);
     const t = fechaDeTransito(estado.transito);
     const utc = {
         anio: t.getUTCFullYear(), mes: t.getUTCMonth() + 1, dia: t.getUTCDate(),
@@ -1063,6 +1074,7 @@ let ahoraInicio = null; // { carta, lugar, jd }
 
 async function pintarAhoraInicio() {
     const seccion = $('#ahora-inicio');
+    await cargarZona(lugarAhora()?.zona);
     // En la pagina de la carta no va, y si hay una carta abierta tampoco.
     if (!$('#resultado').hidden) { seccion.hidden = true; return; }
     const lugar = lugarAhora();
@@ -1137,6 +1149,7 @@ const textoNodoDraconica = () => (estado.draconica?.carta.meta.draconica.nodo ==
 async function calcularRevolucionSolar() {
     estado.revolucion ||= { anio: null, lugar: null };
     const l = estado.revolucion.lugar || estado.datos.lugar;
+    await cargarZona(l?.zona);
     try {
         estado.revolucion.resultado = await calcularEnWorker({
             tipo: 'revolucion', natal: estado.carta, anio: estado.revolucion.anio,
@@ -1323,6 +1336,7 @@ function momentoAnimado() {
 // camino corto de calcular(): no guarda nada ni toca el boton de guardar.
 async function recalcularMomento({ liviano = false } = {}) {
     const d = datosVista();
+    await cargarZona(d.lugar.zona);
     estado.tz = localAUtc({ fecha: d.fecha, hora: d.hora }, d.lugar.zona, d.correccion);
     const opcion = estado.tz.opciones[d.eleccion] || estado.tz.opciones[0];
     try {

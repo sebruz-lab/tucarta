@@ -1,13 +1,41 @@
-// Hora local -> UTC. Para las zonas de time/zonas.json (Argentina, Uruguay,
-// España y vecinos) se sabe el huso base y el horario de verano por
-// separado; para el resto solo el offset total, que da Intl.
+// Hora local -> UTC, con el huso base y el horario de verano por separado
+// (Intl da el offset total pero no distingue "UTC-3 de base" de "UTC-4 mas
+// una hora de verano", que es lo que la app muestra y deja corregir).
+//
+// El detalle de cada zona vive en su propio archivo (ui/public/husos/) y se
+// baja recien cuando hace falta: son 597 zonas y 888 KB en total, pero cada
+// una pesa kilo y medio. Lo unico que viaja siempre es el indice.
+// Quien use esto llama antes a cargarZona(); si no esta cargada, se cae a
+// Intl, que es lo que hacia para todo el mundo menos 23 zonas.
 //
 // Todas las horas se manejan en segundos: "local" es la hora de reloj
 // contada como si fuera UTC, asi local - offset = instante UTC.
 
-import tabla from './zonas.json';
+import indice from './zonas.json';
+import { archivoDeZona } from './archivo.js';
 
-export const VERSION_TZ = tabla.version;
+export const VERSION_TZ = indice.version;
+
+// Zonas que tienen detalle propio (todas las de tzdata y sus alias).
+const CON_DETALLE = new Set(indice.zonas);
+// Las ya bajadas: zona -> periodos.
+const tabla = { zonas: {} };
+// Quien trae el archivo de una zona. El navegador lo configura con fetch;
+// los tests, leyendo del disco.
+let traerZona = null;
+export function configurarHusos(fn) { traerZona = fn; }
+
+// Deja lista una zona para que husoEn y localAUtc la usen. Si falla la
+// bajada no pasa nada: se sigue con Intl.
+export async function cargarZona(zona) {
+    if (!zona || !traerZona || tabla.zonas[zona] || !CON_DETALLE.has(zona)) return;
+    try {
+        const periodos = await traerZona(archivoDeZona(zona));
+        if (Array.isArray(periodos)) tabla.zonas[zona] = periodos;
+    } catch (e) {
+        console.error('No se pudo bajar el huso de ' + zona, e);
+    }
+}
 export const ANIO_TENTATIVO = 1970; // antes de esto la base IANA no garantiza exactitud
 
 const fmt = {};
@@ -19,7 +47,7 @@ function offsetIntl(zona, seg) {
     return (m[1] === '-' ? -1 : 1) * (+m[2] * 3600 + +m[3] * 60 + +(m[4] || 0));
 }
 
-export const tieneDetalle = (zona) => zona in tabla.zonas;
+export const tieneDetalle = (zona) => CON_DETALLE.has(zona);
 
 // Huso vigente en un instante UTC: { total, base, verano } en segundos.
 // verano es null si la zona no esta en la tabla (no se sabe cuanto es).
