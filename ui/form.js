@@ -44,6 +44,15 @@ export function conectarBuscador(input, lista, alElegir, {
             lista.innerHTML = resultados.map((l, i) => `<li id="${lista.id}-${i}" role="option" data-i="${i}" aria-selected="${i === activo}">
                 <span class="lugar-nombre">${escapar(l.nombre)}</span>
                 <span class="lugar-region">${escapar([l.provincia, l.paisNombre].filter(Boolean).join(', '))}</span></li>`).join('');
+            // Hay nombres que se repiten en medio mundo (La Paz, San Jose):
+            // el pueblo chico queda lejos en la lista y la persona cree que
+            // no esta. Se avisa y se ensenia el truco: agregar la provincia.
+            // Sin data-i: no se puede tocar ni se recorre con las flechas.
+            if (resultados.total > resultados.length) {
+                lista.insertAdjacentHTML('beforeend',
+                    '<li class="sugerencia-pista" role="presentation">Hay más lugares con ese nombre. '
+                    + 'Agregá la provincia o el país, por ejemplo <strong>La Paz, Córdoba</strong>.</li>');
+            }
         }
         lista.hidden = !lista.innerHTML;
         input.setAttribute('aria-expanded', String(!lista.hidden));

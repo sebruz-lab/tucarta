@@ -48,4 +48,25 @@ describe('buscador de lugares', () => {
     it('menos de 3 letras no busca', async () => {
         expect(await buscar('vi')).toEqual([]);
     });
+
+    // Los lugares se guardan bajo las palabras de su nombre, no las de la
+    // provincia. Con "La Paz, Cordoba" la palabra mas larga es la
+    // provincia, y su fragmento no tiene ninguna Paz: antes daba vacio.
+    it('agregar la provincia encuentra el pueblo chico, aunque sea la palabra mas larga', async () => {
+        const conProvincia = await buscar('la paz cordoba');
+        expect(conProvincia.length).toBeGreaterThan(0);
+        for (const l of conProvincia) expect(l).toMatchObject({ nombre: 'La Paz', provincia: 'Córdoba', pais: 'AR' });
+        // La coma no molesta, y el nombre solo no alcanza para llegar a el.
+        expect(await buscar('la paz, cordoba')).toEqual(conProvincia);
+        expect((await buscar('la paz')).some((l) => l.provincia === 'Córdoba')).toBe(false);
+    });
+
+    // La lista se corta en 8: la interfaz avisa cuando quedaron afuera.
+    it('dice cuantos habia en total', async () => {
+        const r = await buscar('la paz');
+        expect(r.length).toBe(8);
+        expect(r.total).toBeGreaterThan(8);
+        const pocos = await buscar('villa de las rosas');
+        expect(pocos.total).toBe(pocos.length);
+    });
 });
