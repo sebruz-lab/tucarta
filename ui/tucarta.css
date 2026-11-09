@@ -460,15 +460,15 @@ details > summary {
 .ayuda-lugar strong { color: var(--texto); font-weight: 400; }
 .ayuda-lugar em { font-style: normal; color: var(--texto); }
 
-/* Engranaje de la cabecera: entra a los ajustes del calculo desde
+/* Las perillas de la cabecera: entran a los ajustes del calculo desde
    cualquier lado, tambien antes de calcular. */
-.boton-engranaje {
+.boton-ajustes {
     display: inline-flex; align-items: center; justify-content: center;
     width: 34px; height: 34px; padding: 0;
     background: none; border: none; border-radius: 50%;
     color: var(--texto-suave); cursor: pointer;
 }
-.boton-engranaje:hover { color: var(--texto); background: var(--superficie); }
+.boton-ajustes:hover { color: var(--texto); background: var(--superficie); }
 
 /* Ajustes: "Otros puntos" y "Ajustar orbes", cada uno en su desplegable. */
 .desplegable-ajustes { border-top: 1px solid var(--linea); padding: 10px 0 2px; }
