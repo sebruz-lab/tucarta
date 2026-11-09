@@ -157,6 +157,48 @@
         <button type="button" class="boton-texto" data-anexo="cerrar">Cancelar</button>
     </dialog>
 
+    <dialog id="ventana-pareja" class="ventana-cuenta ventana-pareja" aria-labelledby="titulo-pareja">
+        <button type="button" class="cerrar" data-pareja="cerrar" aria-label="Cerrar">×</button>
+        <h2 id="titulo-pareja">La otra persona</h2>
+        <div id="pareja-guardadas" class="menu-pareja" hidden>
+            <p class="nota">De tus cartas guardadas:</p>
+            <input type="search" class="buscar-pareja" placeholder="Buscar por nombre" aria-label="Buscar en tus cartas" enterkeyhint="go">
+            <ul class="lista-pareja lista-cambiar"></ul>
+        </div>
+        <form id="form-pareja" class="datos" novalidate>
+            <p class="nota" id="nota-pareja">O cargá los datos:</p>
+            <label class="campo"><span>Nombre <span class="opcional">(opcional)</span></span>
+                <input type="text" name="nombre" maxlength="60" autocomplete="off">
+            </label>
+            <div class="fila">
+                <label class="campo"><span>Fecha <span class="opcional">(DD/MM/AAAA)</span></span>
+                    <input type="text" name="fecha" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="30">
+                </label>
+                <label class="campo">Hora de nacimiento
+                    <input type="text" name="hora" inputmode="numeric" placeholder="HH:MM" maxlength="20" autocomplete="off">
+                </label>
+            </div>
+            <div class="campo lugar">
+                <label for="lugar-pareja">¿Dónde nació?</label>
+                <input id="lugar-pareja" type="text" name="lugar" autocomplete="off"
+                    placeholder="Escribí las primeras letras de la ciudad y elegila de la lista"
+                    role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias-pareja">
+                <ul id="sugerencias-pareja" class="sugerencias" role="listbox" hidden></ul>
+            </div>
+            <details class="manual" id="manual-pareja">
+                <summary>¿No encontrás el lugar? Cargá las coordenadas</summary>
+                <div class="fila">
+                    <label class="campo">Latitud <input type="text" name="lat" inputmode="decimal" placeholder="-34.65 o 34°39'S"></label>
+                    <label class="campo">Longitud <input type="text" name="lon" inputmode="decimal" placeholder="-58.62 o 58°37'O"></label>
+                </div>
+                <label class="campo">Zona horaria <select name="zona"></select></label>
+            </details>
+            <label class="casilla"><input type="checkbox" name="guardar"> Guardar esta carta en Mis cartas</label>
+            <p class="error" id="error-pareja" role="alert" hidden></p>
+            <button type="submit" class="boton boton-principal">Usar esta carta</button>
+        </form>
+    </dialog>
+
     <form id="datos" class="datos" novalidate>
         <label class="campo"><span>¿Qué querés calcular?</span>
             <select name="tipo">
@@ -175,6 +217,8 @@
                 <option value="draconica">Carta Natal + dracónica</option>
                 <option value="transitos-draconicos">Tránsitos dracónicos del día</option>
 <option value="draconica-transitos">Carta dracónica + tránsitos dracónicos</option>
+                <option value="sinastria">Sinastría: dos cartas</option>
+<option value="compuesta">Carta compuesta</option>
             </select>
         </label>
         <label class="campo"><span>Nombre <span class="opcional">(opcional)</span></span>
@@ -242,6 +286,12 @@
             </fieldset>
         </div>
 
+        <div id="campos-pareja" class="campo campo-pareja" hidden>
+            <span class="etiqueta-pareja">¿Con quién?</span>
+            <p class="nota" id="resumen-pareja" role="status">Todavía no elegiste a la otra persona.</p>
+            <button type="button" class="boton-texto" data-pareja="abrir">Elegir a la otra persona</button>
+        </div>
+
         <div id="campos-revolucion" class="campo lugar" hidden>
             <label for="lugar-rs" id="etiqueta-lugar-rs">¿Dónde pasás tu cumpleaños?</label>
             <input id="lugar-rs" type="text" name="lugarRS" autocomplete="off" placeholder="Si lo dejás vacío, el lugar de nacimiento"
@@ -301,6 +351,8 @@
                 <option value="draconica">Carta Natal + dracónica</option>
                 <option value="transitos-draconicos">Tránsitos dracónicos del día</option>
 <option value="draconica-transitos">Carta dracónica + tránsitos dracónicos</option>
+                <option value="sinastria">Sinastría: dos cartas</option>
+<option value="compuesta">Carta compuesta</option>
             </select>
         </label>
         <button type="button" class="boton-animar" id="animar" aria-expanded="false"
@@ -384,6 +436,14 @@
             <p class="nota" id="nota-ln"></p>
         </div>
 
+        <div id="controles-sin" class="controles-transito" hidden>
+            <div class="pasos-transito">
+                <button type="button" data-sin="cambiar">Cambiar a la otra persona</button>
+                <button type="button" data-sin="invertir">Invertir las ruedas</button>
+            </div>
+            <p class="nota" id="nota-sin"></p>
+        </div>
+
         <div id="controles-animacion" class="controles-transito controles-animacion" hidden>
             <div class="fila-animacion">
                 <div class="momento-editable" id="momento-editable">
@@ -452,6 +512,8 @@
                         <option value="draconica">Carta Natal + dracónica</option>
                         <option value="transitos-draconicos">Tránsitos dracónicos del día</option>
 <option value="draconica-transitos">Carta dracónica + tránsitos dracónicos</option>
+                        <option value="sinastria">Sinastría: dos cartas</option>
+<option value="compuesta">Carta compuesta</option>
                     </select>
                 </label>
                 <button type="button" class="boton-animar animar-completa" data-completa="animar"

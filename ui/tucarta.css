@@ -1727,3 +1727,31 @@ body.sin-scroll { overflow: hidden; }
     .ef-svg .ef-fondo { fill: none; }
     .ef-svg .ef-cursor, .ef-svg .ef-lectura { display: none; }
 }
+
+/* ---------- Sinastria: la otra persona ---------- */
+
+/* En la primera pagina, quien es la otra persona. */
+.campo-pareja { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.campo-pareja[hidden] { display: none; }
+.etiqueta-pareja { font-size: 0.9rem; color: var(--texto-suave); }
+#resumen-pareja { margin: 0; }
+
+/* La ventana para elegirla: primero las cartas guardadas, despues los
+   datos a mano. */
+.ventana-pareja { width: min(460px, calc(100vw - 32px)); overflow-y: auto; }
+.menu-pareja { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.menu-pareja[hidden] { display: none; }
+.menu-pareja .nota { margin: 0; }
+.buscar-pareja { font-size: 0.85rem; padding: 6px 10px; min-height: 0; }
+.buscar-pareja[hidden] { display: none; }
+.lista-pareja { max-height: 28vh; }
+#nota-pareja { margin: 0 0 4px; }
+
+/* Dos tablas, una debajo de la otra: cada una con el nombre arriba. */
+.titulo-tabla {
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin: 18px 0 6px;
+}
+.titulo-tabla:first-child { margin-top: 0; }
+.titulo-tabla .nota { font-size: 0.8rem; }

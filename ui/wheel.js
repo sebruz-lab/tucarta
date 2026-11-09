@@ -310,8 +310,11 @@ const medioCasa = (lons, i) => lons[i] + ((((lons[(i + 1) % 12] - lons[i]) % 360
 // dos los signos van en el color de su elemento.
 // transitos: el modelo de engine/transits.js, para la rueda doble.
 // revolucion: la carta de la revolucion solar (calcularCarta), para la
-// rueda doble completa.
-export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = false, transitos = null, revolucion = null } = {}) {
+// rueda doble completa. En la sinastria es la carta de la otra persona.
+// aspectosCruzados: los aspectos de la carta de afuera a la de adentro
+// (en la sinastria), que se dibujan en el centro. La revolucion y la
+// progresion no los dibujan: se leen en la tabla.
+export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = false, transitos = null, revolucion = null, aspectosCruzados = null } = {}) {
     const asc = carta.angulos.find((a) => a.id === 'asc').lon;
     const mc = carta.angulos.find((a) => a.id === 'mc').lon;
     // Con revolucion, manda su Ascendente (a la izquierda) y la natal gira.
@@ -384,7 +387,12 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
     // de los natales van los del transito a la natal (prefijo "t-" en el
     // planeta en transito).
     const lonDe = Object.fromEntries([...carta.puntos, ...carta.angulos].map((p) => [p.id, p.lon]));
-    const lineas = revolucion ? []
+    const lonDeAfuera = revolucion
+        ? Object.fromEntries([...revolucion.puntos, ...revolucion.angulos].map((p) => [p.id, p.lon]))
+        : {};
+    const lineas = revolucion
+        ? (aspectosCruzados || []).filter((a) => lonDeAfuera[a.a] !== undefined && lonDe[a.b] !== undefined)
+            .map((a) => ({ ...a, lonA: lonDeAfuera[a.a], a: 'r-' + a.a }))
         : transitos
             ? transitos.aspectos.map((a) => ({ ...a, lonA: transitos.puntos.find((p) => p.id === a.a).lon, a: 't-' + a.a }))
             : carta.aspectos.map((a) => ({ ...a, lonA: lonDe[a.a] }));

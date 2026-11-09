@@ -6,7 +6,8 @@ import { dibujarRueda } from './wheel.js';
 import {
     tablaPosiciones, tablaAspectos, tablaCasas, detallePunto,
     tablaPosicionesTransito, tablaAspectosTransito, detalleTransito, detalleNatalConTransitos,
-    tablaPosicionesRevolucion, detalleRevolucion, tablaAspectosANatal
+    tablaPosicionesRevolucion, detalleRevolucion, tablaAspectosANatal,
+    tablaPosicionesSinastria, tablaCasasSinastria
 } from './tables.js';
 import { husoEn } from '../time/tz.js';
 import { panelHuso } from './huso.js';
@@ -58,6 +59,13 @@ const estado = {
     transito: null,     // { fecha: 'AAAA-MM-DD', hora: 'HH:MM' } en la hora del dispositivo
     transitos: null,    // resultado de engine/transits.js
     delMomento: null,   // { carta, lugar } la carta del cielo de un momento
+    // Sinastria: la otra persona, con sus propios datos, su huso y su
+    // carta. La de adentro siempre es estado.carta; invertir las ruedas
+    // intercambia las dos, asi todo lo demas (titulo, esquinas, guardar)
+    // sigue hablando de la carta de adentro.
+    pareja: null,       // { datos, tz, carta }
+    sinastria: null,    // { aspectos } los aspectos de la de afuera a la de adentro
+    compuesta: null,    // la carta compuesta (puntos medios de las dos)
     lugarAhora: null,   // donde esta la persona (para "Los astros ahora")
     // Animacion: la carta corrida en el tiempo, como la pagina animada de
     // Solar Fire. Los datos de nacimiento (estado.datos) no se tocan.
@@ -84,10 +92,13 @@ const calcularEnWorker = (pedido) => new Promise((resolve, reject) => {
 // ---------- Formulario ----------
 
 const form = $('#datos');
+const formPareja = $('#form-pareja');
 let lugarElegido = null;
 conectarBuscador($('#lugar'), $('#sugerencias'), (l) => { lugarElegido = l; });
 let lugarRS = null;
 conectarBuscador($('#lugar-rs'), $('#sugerencias-rs'), (l) => { lugarRS = l; });
+let lugarPareja = null;
+conectarBuscador($('#lugar-pareja'), $('#sugerencias-pareja'), (l) => { lugarPareja = l; });
 // Al cargar las coordenadas a mano hay que elegir la zona horaria. Se
 // arranca con la del dispositivo, que suele ser la correcta y evita que
 // alguien de otro pais deje Buenos Aires sin darse cuenta. No se consulta
@@ -97,6 +108,7 @@ const ZONA_DEL_DISPOSITIVO = (() => {
     catch { return 'America/Argentina/Buenos_Aires'; }
 })();
 form.elements.zona.innerHTML = opcionesZonas(ZONA_DEL_DISPOSITIVO);
+formPareja.elements.zona.innerHTML = opcionesZonas(ZONA_DEL_DISPOSITIVO);
 
 // Hora en formato 24 h con dos listas: el <input type="time"> sigue el
 // formato del dispositivo y en muchos celulares muestra a. m. / p. m.
@@ -166,13 +178,20 @@ function mostrarError(msj) {
 }
 
 function leerFormulario() {
-    const f = form.elements;
+    return leerDatosDe(form.elements, lugarElegido, $('#manual').open);
+}
+
+// Un juego de campos de nacimiento (fecha, hora, lugar o coordenadas a
+// mano) -> los datos de la carta, o un texto con que hay que revisar. Lo
+// usan el formulario de la primera pagina y el de la otra persona en la
+// sinastria.
+function leerDatosDe(f, lugarElegido, manualAbierto) {
     const fecha = fechaIso(f.fecha.value.trim());
     if (!fecha) return 'Revisá la fecha: tiene que ser día, mes y año, por ejemplo 03/01/1984.';
     const hora = completarHora(f.hora.value);
     if (!/^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(hora)) return 'Revisá la hora de nacimiento: escribila como 09:30 (o 9, 930, 9.30, 9 pm).';
     let lugar = lugarElegido;
-    if (!lugar && $('#manual').open) {
+    if (!lugar && manualAbierto) {
         const lat = parsearCoordenada(f.lat.value, 'N', 'S');
         const lon = parsearCoordenada(f.lon.value, 'E', 'WO');
         if (!(Math.abs(lat) <= 90) || !(Math.abs(lon) <= 180)) return 'Revisá la latitud y la longitud.';
@@ -203,9 +222,15 @@ const esMomento = (m) => esTRD(m) || esAhora(m);
 const esDR = (m) => m === 'draconica' || m === 'draconica-sola' || esDRT(m);
 const esRL = (m) => m === 'reubicacion';
 const esLN = (m) => m === 'lunacion';
-const esSola = (m) => m === 'revolucion-sola' || m === 'progresion-sola' || m === 'draconica-sola' || m === 'reubicacion' || esDRT(m) || esMomento(m);
+// Sinastria: dos cartas de dos personas, una adentro y otra afuera.
+const esSIN = (m) => m === 'sinastria';
+// Carta compuesta: los puntos medios de las dos, una carta sola.
+const esCOM = (m) => m === 'compuesta';
+// Las dos vistas que necesitan a la otra persona.
+const esDeDos = (m) => esSIN(m) || esCOM(m);
+const esSola = (m) => m === 'revolucion-sola' || m === 'progresion-sola' || m === 'draconica-sola' || m === 'reubicacion' || esDRT(m) || esMomento(m) || esCOM(m);
 const MODOS = ['natal', 'revolucion-sola', 'revolucion', 'astros-ahora', 'transitos', 'lunacion', 'calendario', 'efemerides', 'progresion-sola',
-    'progresion', 'reubicacion', 'draconica-sola', 'draconica', 'transitos-draconicos', 'draconica-transitos'];
+    'progresion', 'reubicacion', 'draconica-sola', 'draconica', 'transitos-draconicos', 'draconica-transitos', 'sinastria', 'compuesta'];
 // Los transitos que se dibujan afuera de la natal: en la vista de transitos
 // y en la de la lunacion, que es el cielo del instante de la lunacion.
 const adentroDeLaVista = () => (esDRT(estado.modo) ? 'dracónica' : 'natal');
@@ -219,6 +244,8 @@ function tipoElegido() {
     const tipo = form.elements.tipo.value;
     $('#campos-transito').hidden = !(tipo === 'transitos' || sinRueda(tipo) || esPR(tipo) || esLN(tipo) || esDRT(tipo) || esMomento(tipo));
     $('#campos-revolucion').hidden = !(esRS(tipo) || esRL(tipo));
+    $('#campos-pareja').hidden = !esDeDos(tipo);
+    pintarResumenPareja();
     $('#etiqueta-lugar-rs').textContent = esRL(tipo) ? '¿En qué lugar?' : '¿Dónde pasás tu cumpleaños?';
     $('#etiqueta-fechaT').textContent = sinRueda(tipo) ? 'Desde'
         : esPR(tipo) ? 'Progresar al'
@@ -258,6 +285,10 @@ form.addEventListener('submit', async (e) => {
     if (typeof datos === 'string') return mostrarError(datos);
     if (form.elements.tipo.value !== 'natal' && form.elements.fechaT.value.trim() && !fechaIso(form.elements.fechaT.value.trim())) {
         return mostrarError('Revisá la fecha del tránsito: tiene que ser día, mes y año, por ejemplo 01/11/2026.');
+    }
+    if (esDeDos(form.elements.tipo.value) && !estado.pareja?.datos) {
+        abrirVentanaPareja(true);
+        return mostrarError('Elegí a la otra persona: hacen falta las dos cartas.');
     }
     mostrarError('');
     modoDelFormulario();
@@ -303,6 +334,8 @@ async function calcular({ nueva = false } = {}) {
     if (esPR(estado.modo)) await calcularProgresion();
     if (esRL(estado.modo)) await calcularReubicacion();
     if (esLN(estado.modo)) await calcularLunacion();
+    if (esSIN(estado.modo)) await calcularSinastria();
+    if (esCOM(estado.modo)) await calcularCompuesta();
     $('#cargando').hidden = true;
     guardarDatos();
     pintar();
@@ -335,7 +368,10 @@ function pintar({ liviano = false } = {}) {
     const d = datosVista();
     const carta = estado.carta;
     const corrida = animando() && (d.fecha !== estado.datos.fecha || d.hora !== estado.datos.hora);
-    $('#titulo-carta').textContent = (d.nombre ? `Carta de ${d.nombre}` : 'Tu carta') +
+    const dosNombres = () => `${d.nombre || 'una carta'} y ${estado.pareja?.datos?.nombre || 'la otra'}`;
+    $('#titulo-carta').textContent = (esSIN(estado.modo) && estado.pareja?.datos ? `Sinastría: ${dosNombres()}`
+        : esCOM(estado.modo) && estado.pareja?.datos ? `Carta compuesta: ${dosNombres()}`
+            : d.nombre ? `Carta de ${d.nombre}` : 'Tu carta') +
         (corrida ? ' · momento animado' : '');
     const [a, m, dia] = d.fecha.split('-');
     const sistema = SISTEMAS_CASAS.find((s) => s.id === estado.ajustes.casas)?.nombre;
@@ -353,18 +389,23 @@ function pintar({ liviano = false } = {}) {
     pintarAvisoLunacion();
     const conTransitos = transitosDeLaVista();
     const { sola, externa } = cartasVista();
+    const nombresSin = () => ({ nombreAfuera: nombrePareja(), nombreAdentro: nombreAdentro() });
     $('#tabla-posiciones').innerHTML = conTransitos ? tablaPosicionesTransito(estado.transitos, adentroDeLaVista())
         : sola ? tablaPosiciones(sola)
-            : externa ? tablaPosicionesRevolucion(externa, carta, etiquetaExterna())
-                : tablaPosiciones(carta);
+            : externa && esSIN(estado.modo) ? tablaPosicionesSinastria(externa, carta, nombresSin())
+                : externa ? tablaPosicionesRevolucion(externa, carta, etiquetaExterna())
+                    : tablaPosiciones(carta);
     const prANatal = externa && esPR(estado.modo) && estado.progresion?.resultado?.aspectosNatal;
     const drANatal = externa && esDR(estado.modo) && estado.draconica?.aspectosNatal;
     $('#tabla-aspectos').innerHTML = conTransitos ? tablaAspectosTransito(estado.transitos, adentroDeLaVista())
         : prANatal ? tablaAspectosANatal(prANatal, 'Progresión')
         : drANatal ? tablaAspectosANatal(drANatal, 'Dracónica')
+        : externa && esSIN(estado.modo) && estado.sinastria ? tablaAspectosANatal(estado.sinastria.aspectos, nombrePareja())
         : sola || externa ? tablaAspectos(sola || externa)
         : tablaAspectos(carta);
-    $('#tabla-casas').innerHTML = tablaCasas(sola || externa || carta);
+    $('#tabla-casas').innerHTML = externa && esSIN(estado.modo)
+        ? tablaCasasSinastria(externa, carta, nombresSin())
+        : tablaCasas(sola || externa || carta);
     if (liviano) return;
     if (ajustesAbiertos()) pintarPanelAjustes();
     pintarInterpretaciones();
@@ -414,6 +455,30 @@ function pintarEsquinas(sistema) {
         ...renglonesLugar(l).map((t) => renglon(t))
     ];
 
+    if (otra && esCOM(estado.modo) && estado.pareja?.datos) {
+        // La compuesta no tiene fecha ni lugar: son las dos personas.
+        const b = estado.pareja.datos;
+        const [ba, bm, bd] = b.fecha.split('-');
+        poner([renglon('Carta compuesta', 'titulo-esquina'), renglon('Puntos medios'),
+            renglon(d.nombre || 'Carta de adentro', 'principal'), renglon(`${dia}/${m}/${a}`),
+            renglon(b.nombre || 'La otra persona', 'principal'), renglon(`${bd}/${bm}/${ba}`)],
+        [renglon(sistema), '<button type="button" data-accion="cambiar-pareja">Cambiar</button>']);
+        return;
+    }
+    if (otra && esSIN(estado.modo) && estado.pareja?.datos) {
+        // Las dos personas, como en Solar Fire: la de adentro a la
+        // izquierda y la de afuera a la derecha.
+        const b = estado.pareja.datos;
+        const [ba, bm, bd] = b.fecha.split('-');
+        poner([renglon('Carta de adentro', 'leyenda'), ...natal()],
+            [renglon('Carta de afuera', 'leyenda'),
+                renglon(b.nombre || 'La otra persona', 'nombre-esquina'),
+                renglon(`${bd}/${bm}/${ba}`, 'principal'), renglon(`${b.hora} h`, 'principal'),
+                ...renglonesLugar(b.lugar).map((t) => renglon(t)),
+                '<button type="button" data-accion="cambiar-pareja">Cambiar</button>',
+                '<button type="button" data-accion="invertir-sinastria">Invertir</button>']);
+        return;
+    }
     if (otra && esRS(estado.modo)) {
         const rs = momentoRevolucionLocal();
         const revo = [
@@ -508,6 +573,17 @@ function pintarFichasImpresion(sistema) {
             ...lugar(rs.lugar).map((t) => linea(t)), linea(coords(rs.lugar))];
         if (externa) der = revo;
         else izq = [linea(d.nombre, 'nombre'), ...revo];
+    } else if (sola && esCOM(estado.modo) && estado.pareja?.datos) {
+        const b = estado.pareja.datos;
+        izq = [linea('Carta compuesta'), linea('Puntos medios'),
+            linea(d.nombre || 'Carta de adentro', 'nombre'), linea(fecha(d.fecha)),
+            linea(b.nombre || 'La otra persona', 'nombre'), linea(fecha(b.fecha))];
+    } else if (externa && esSIN(estado.modo) && estado.pareja?.datos) {
+        const b = estado.pareja.datos;
+        const o2 = estado.pareja.tz ? (estado.pareja.tz.opciones[b.eleccion] || estado.pareja.tz.opciones[0]) : null;
+        der = [linea(b.nombre || 'La otra persona', 'nombre'), linea('Carta de afuera'), linea(fecha(b.fecha)),
+            linea(`${b.hora}${o2 ? ' ' + utcTexto(o2.total) : ''}`),
+            ...lugar(b.lugar).map((t) => linea(t)), linea(coords(b.lugar))];
     } else if ((sola || externa) && esPR(estado.modo)) {
         const [al, edad] = textoProgresion();
         const pr = [linea('Progresiones secundarias'), linea(al), linea(edad)];
@@ -705,6 +781,8 @@ document.fonts?.ready.then(acomodarLuego);
 
 // Cambiar el lugar de la revolucion sin volver a la primera pagina.
 $('.figura-rueda').addEventListener('click', (e) => {
+    if (e.target.closest('[data-accion="cambiar-pareja"]')) { abrirVentanaPareja(true); return; }
+    if (e.target.closest('[data-accion="invertir-sinastria"]')) { invertirSinastria(); return; }
     if (!e.target.closest('[data-accion="cambiar-lugar-rs"]')) return;
     const panel = $('#panel-lugar-rs');
     panel.hidden = false;
@@ -791,18 +869,25 @@ function cartasVista() {
         : esPR(estado.modo) ? estado.progresion?.resultado?.carta
             : esRL(estado.modo) ? estado.reubicacion?.carta
                 : esMomento(estado.modo) ? estado.delMomento?.carta
-                    : esDR(estado.modo) ? estado.draconica?.carta : null;
+                    : esDR(estado.modo) ? estado.draconica?.carta
+                        : esSIN(estado.modo) ? estado.pareja?.carta
+                            : esCOM(estado.modo) ? estado.compuesta : null;
     return esSola(estado.modo) ? { sola: otra || null, externa: null } : { sola: null, externa: otra || null };
 }
 // Los aspectos que la carta de afuera le hace a la natal: la revolucion,
 // la progresion y la draconica los traen cada una por su lado.
 const aspectosExternaANatal = () => (esPR(estado.modo) ? estado.progresion?.resultado?.aspectosNatal || null
     : esDR(estado.modo) ? estado.draconica?.aspectosNatal || null
-        : esRS(estado.modo) ? estado.revolucion?.resultado?.aspectosNatal || null : null);
+        : esRS(estado.modo) ? estado.revolucion?.resultado?.aspectosNatal || null
+            : esSIN(estado.modo) ? estado.sinastria?.aspectos || null : null);
 const etiquetaExterna = () => (esPR(estado.modo)
     ? { titulo: 'Progresión', sigla: 'PR', de: 'de la progresión' }
     : esDR(estado.modo) ? { titulo: 'Dracónica', sigla: 'DR', de: 'de la dracónica' }
-        : { titulo: 'Revolución', sigla: 'RS', de: 'de la revolución' });
+        : esSIN(estado.modo) ? {
+            titulo: nombrePareja(), sigla: 'af.',
+            de: estado.pareja?.datos?.nombre ? `de ${estado.pareja.datos.nombre}` : 'de la carta de afuera'
+        }
+            : { titulo: 'Revolución', sigla: 'RS', de: 'de la revolución' });
 
 function pintarRueda() {
     const transitos = transitosDeLaVista();
@@ -810,7 +895,8 @@ function pintarRueda() {
     const base = sola || estado.carta;
     $('#rueda').innerHTML = dibujarRueda(base, {
         nombres: NOMBRE_PUNTO, seleccion: estado.seleccion,
-        clara: tema === 'claro', transitos, revolucion: externa
+        clara: tema === 'claro', transitos, revolucion: externa,
+        aspectosCruzados: esSIN(estado.modo) ? estado.sinastria?.aspectos || null : null
     });
     acomodarLuego();
     const s = estado.seleccion;
@@ -868,6 +954,7 @@ function pintarControlesTransito() {
     pintarControlesRevolucion();
     pintarControlesProgresion();
     pintarControlesLunacion();
+    pintarControlesSinastria();
     pintarControlesAnimacion();
     if (!enTransitos || !estado.transito) return;
     const f = formTransito.elements;
@@ -958,6 +1045,14 @@ async function aplicarModo(modo) {
         estado.lunacion ||= { referencia: momentoLocal(new Date()) };
         await calcularLunacion();
         evento('lunacion_vista', { tipo: laLunacion()?.tipo || 'ninguna' });
+    }
+    if (esDeDos(modo)) {
+        $('#cargando').hidden = false;
+        if (esSIN(modo)) await calcularSinastria();
+        else await calcularCompuesta();
+        $('#cargando').hidden = true;
+        if (!estado.pareja?.datos) abrirVentanaPareja(true);
+        evento(esSIN(modo) ? 'sinastria_vista' : 'compuesta_vista', {});
     }
     if (modo === 'calendario') {
         $('#cargando').hidden = false;
@@ -1159,6 +1254,187 @@ async function calcularDraconica() {
 }
 const textoNodoDe = (c) => (c?.meta?.draconica?.nodo === 'medio' ? 'Desde el Nodo medio' : 'Desde el Nodo real');
 const textoNodoDraconica = () => (estado.draconica?.carta.meta.draconica.nodo === 'medio' ? 'Desde el Nodo medio' : 'Desde el Nodo real');
+
+// ---------- Sinastria ----------
+
+// La otra persona se elige de "Mis cartas" o se carga a mano, en la misma
+// ventana. Sus datos viven en estado.pareja, aparte de estado.datos: la
+// carta de adentro sigue siendo la principal (la que se guarda, la que
+// titula y la que se interpreta).
+const CLAVE_PAREJA = 'tucarta:ultima-pareja';
+
+// Datos de nacimiento -> { datos, tz, carta }, el mismo camino que la
+// carta principal: zona, hora local a UTC y calculo en el worker.
+async function cartaDeDatos(datos) {
+    await cargarZona(datos.lugar.zona);
+    const tz = localAUtc({ fecha: datos.fecha, hora: datos.hora }, datos.lugar.zona, datos.correccion);
+    const opcion = tz.opciones[datos.eleccion] || tz.opciones[0];
+    const carta = await calcularEnWorker({
+        utc: opcion.utc, lat: datos.lugar.lat, lon: datos.lugar.lon, ajustes: estado.ajustes
+    });
+    return { datos, tz, carta };
+}
+
+// Los aspectos van de la carta de afuera (la pareja) a la de adentro,
+// igual que en los transitos y en la revolucion: el punto "a" es el de
+// afuera, que en la rueda lleva el prefijo "r-".
+async function calcularSinastria() {
+    if (!estado.pareja?.datos) { estado.sinastria = null; return; }
+    try {
+        estado.pareja = await cartaDeDatos(estado.pareja.datos);
+        const pts = (c) => [...c.puntos, ...c.angulos];
+        estado.sinastria = {
+            aspectos: calcularAspectos(pts(estado.pareja.carta), pts(estado.carta),
+                { orbesPorAspecto: estado.ajustes.orbesSinastria, menores: estado.ajustes.menores })
+        };
+    } catch (err) {
+        console.error(err);
+        estado.pareja = { datos: estado.pareja.datos };
+        estado.sinastria = null;
+    }
+}
+
+// Invertir no cambia los aspectos: cambia quien va adentro. Se
+// intercambian las dos cartas enteras para que todo lo demas (el titulo,
+// las esquinas, las interpretaciones, el boton de guardar) siga hablando
+// de la de adentro.
+async function invertirSinastria() {
+    if (!estado.pareja?.carta || !esSIN(estado.modo)) return;
+    const afuera = estado.pareja;
+    estado.pareja = { datos: estado.datos, tz: estado.tz, carta: estado.carta };
+    estado.datos = afuera.datos;
+    estado.tz = afuera.tz;
+    estado.carta = afuera.carta;
+    estado.seleccion = null;
+    await calcularSinastria();
+    guardarDatos();
+    guardarPareja();
+    pintar();
+    pintarBotonGuardar();
+}
+
+const nombrePareja = () => (estado.pareja?.datos?.nombre || 'Carta de afuera');
+const nombreAdentro = () => (estado.datos?.nombre || 'Carta de adentro');
+
+function pintarResumenPareja() {
+    const r = $('#resumen-pareja');
+    if (!r) return;
+    const d = estado.pareja?.datos;
+    r.textContent = d
+        ? `${d.nombre || 'Sin nombre'} · ${d.fecha.split('-').reverse().join('/')}, ${d.hora} h`
+        : 'Todavía no elegiste a la otra persona.';
+}
+
+// La compuesta sale de las dos cartas ya calculadas: puntos medios, sin
+// efemerides de por medio.
+async function calcularCompuesta() {
+    if (!estado.pareja?.datos) { estado.compuesta = null; return; }
+    try {
+        if (!estado.pareja.carta) estado.pareja = await cartaDeDatos(estado.pareja.datos);
+        estado.compuesta = await calcularEnWorker({
+            tipo: 'compuesta', a: estado.carta, b: estado.pareja.carta, ajustes: estado.ajustes
+        });
+    } catch (err) {
+        console.error(err);
+        estado.compuesta = null;
+    }
+}
+
+function pintarControlesSinastria() {
+    const caja = $('#controles-sin');
+    if (!caja) return;
+    caja.hidden = !esDeDos(estado.modo);
+    if (caja.hidden) return;
+    // En la compuesta no hay adentro ni afuera: invertir no cambia nada.
+    $('#controles-sin').querySelector('[data-sin="invertir"]').hidden = !esSIN(estado.modo);
+    $('#nota-sin').textContent = !estado.pareja?.datos
+        ? 'Elegí a la otra persona: hacen falta las dos cartas.'
+        : esCOM(estado.modo)
+            ? `Carta compuesta de ${nombreAdentro()} y ${nombrePareja()}: los puntos medios de las dos.`
+            : `Adentro, ${nombreAdentro()}; afuera, ${nombrePareja()}.`;
+}
+
+// ---- La ventana para elegir a la otra persona
+const ventanaPareja = $('#ventana-pareja');
+
+function abrirVentanaPareja(abrir) {
+    if (!abrir) { ventanaPareja.close(); return; }
+    $('#pareja-guardadas').hidden = !guardadas.length;
+    $('.buscar-pareja').value = '';
+    $('.buscar-pareja').hidden = guardadas.length < 2;
+    if (guardadas.length) pintarSaltoCartas($('.buscar-pareja'), $('.lista-pareja'), 'data-pareja-carta');
+    $('#error-pareja').hidden = true;
+    ventanaPareja.showModal();
+}
+
+// Elegida la otra persona, se recalcula y se repinta; si la carta
+// principal todavia no esta (se eligio desde el formulario), solo queda
+// anotada.
+async function usarPareja(datos, { guardar = false } = {}) {
+    estado.pareja = { datos };
+    guardarPareja();
+    pintarResumenPareja();
+    if (guardar) {
+        try { await almacen.guardar(datos); await pintarBotonGuardar(); } catch (err) { console.error(err); }
+    }
+    abrirVentanaPareja(false);
+    if (!estado.carta) return;
+    if (!esDeDos(estado.modo)) { await aplicarModo('sinastria'); return; }
+    $('#cargando').hidden = false;
+    estado.seleccion = null;
+    if (esSIN(estado.modo)) await calcularSinastria();
+    else await calcularCompuesta();
+    $('#cargando').hidden = true;
+    pintar();
+}
+
+$('#campos-pareja').addEventListener('click', (e) => {
+    if (e.target.closest('[data-pareja="abrir"]')) abrirVentanaPareja(true);
+});
+$('#controles-sin').addEventListener('click', async (e) => {
+    const accion = e.target.closest('[data-sin]')?.dataset.sin;
+    if (accion === 'cambiar') abrirVentanaPareja(true);
+    else if (accion === 'invertir') await invertirSinastria();
+});
+ventanaPareja.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-pareja="cerrar"]')) { abrirVentanaPareja(false); return; }
+    const id = e.target.closest('[data-pareja-carta]')?.dataset.parejaCarta;
+    if (!id) return;
+    const c = guardadas.find((x) => x.id === id);
+    if (c) await usarPareja({ nombre: c.nombre, fecha: c.fecha, hora: c.hora, lugar: c.lugar, correccion: c.correccion || null, eleccion: c.eleccion || 0 });
+});
+$('.buscar-pareja').addEventListener('input', () =>
+    pintarSaltoCartas($('.buscar-pareja'), $('.lista-pareja'), 'data-pareja-carta'));
+$('.buscar-pareja').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    $('.lista-pareja .coincide button')?.click();
+});
+formPareja.elements.fecha.addEventListener('input', barrasFecha);
+formPareja.elements.fecha.addEventListener('change', (e) => { e.target.value = completarFecha(e.target.value.trim()); });
+formPareja.elements.hora.addEventListener('change', (e) => { e.target.value = completarHora(e.target.value); });
+formPareja.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const datos = leerDatosDe(formPareja.elements, lugarPareja, $('#manual-pareja').open);
+    const err = $('#error-pareja');
+    if (typeof datos === 'string') { err.textContent = datos; err.hidden = false; return; }
+    err.hidden = true;
+    await usarPareja(datos, { guardar: formPareja.elements.guardar.checked });
+});
+
+function guardarPareja() {
+    try {
+        if (estado.pareja?.datos) localStorage.setItem(CLAVE_PAREJA, JSON.stringify(estado.pareja.datos));
+        else localStorage.removeItem(CLAVE_PAREJA);
+    } catch {}
+}
+function restaurarPareja() {
+    try {
+        const d = JSON.parse(localStorage.getItem(CLAVE_PAREJA));
+        if (d && d.fecha && d.hora && d.lugar) estado.pareja = { datos: d };
+    } catch {}
+    pintarResumenPareja();
+}
 
 // ---------- Revolucion solar ----------
 
@@ -2630,9 +2906,12 @@ function anexoActual() {
         aspectos = esPR(estado.modo)
             ? (estado.progresion?.resultado?.aspectosNatal || [])
             : esDR(estado.modo) ? (estado.draconica?.aspectosNatal || [])
+            : esSIN(estado.modo) ? (estado.sinastria?.aspectos || [])
             : calcularAspectos(pts(externa), pts(estado.carta), { orbesPorAspecto: estado.ajustes.orbesTransito, menores: estado.ajustes.menores });
         triangular = false;
-        tituloGrilla = `${etiquetaExterna().titulo} a la natal`;
+        tituloGrilla = esSIN(estado.modo)
+            ? `${nombrePareja()} a ${nombreAdentro()}`
+            : `${etiquetaExterna().titulo} a la natal`;
     } else {
         filas = columnas = ids(base);
         aspectos = base.aspectos || [];
@@ -2672,7 +2951,12 @@ async function descargarImagen() {
     const trd = esTRD(estado.modo) && sola;
     const drt = esDRT(estado.modo) && sola;
     const dr = esDR(estado.modo) && !drt && (sola || externa);
-    caja.innerHTML = dibujarRueda(sola || estado.carta, { nombres: NOMBRE_PUNTO, clara: tema === 'claro', transitos, revolucion: externa }) + anexoActual();
+    const sin = esSIN(estado.modo) && externa;
+    const com = esCOM(estado.modo) && sola;
+    caja.innerHTML = dibujarRueda(sola || estado.carta, {
+        nombres: NOMBRE_PUNTO, clara: tema === 'claro', transitos, revolucion: externa,
+        aspectosCruzados: sin ? estado.sinastria?.aspectos || null : null
+    }) + anexoActual();
     const cs = getComputedStyle(document.body);
     const color = (v) => cs.getPropertyValue(v).trim();
     const d = datosVista();
@@ -2690,6 +2974,8 @@ async function descargarImagen() {
                 : rs ? `Revolución solar ${estado.revolucion.anio}`
                     : pr ? `Progresiones ${textoProgresion()[0]}`
                         : rl ? `Carta relocalizada en ${descripcionLugar(momentoReubicacionLocal().lugar)}`
+                            : sin ? `Sinastría: ${nombreAdentro()} y ${nombrePareja()}`
+                            : com ? `Carta compuesta: ${nombreAdentro()} y ${nombrePareja()}`
                             : dr ? 'Carta dracónica' : $('#titulo-carta').textContent,
             datos: rs ? $('#nota-rs').textContent.replace(/^Revolución solar \d+: /, '')
                 : transitos || pr || rl || dr || mom ? `${$('#titulo-carta').textContent} · ${$('#resumen-datos').textContent}`
@@ -2710,6 +2996,8 @@ async function descargarImagen() {
             ? `transitos-draconicos-${estado.transito.fecha}.png`
             : drt
             ? `draconica-transitos-${slug(d.nombre || 'natal') || 'natal'}-${estado.transito.fecha}.png`
+            : sin || com
+            ? `${com ? 'compuesta' : 'sinastria'}-${slug(d.nombre || 'carta') || 'carta'}-${slug(estado.pareja?.datos?.nombre || 'otra') || 'otra'}.png`
             : dr
             ? `draconica-${slug(d.nombre || 'natal') || 'natal'}-${d.fecha}.png`
             : transitos
@@ -2785,6 +3073,7 @@ function guardarDatos() {
 }
 
 function restaurar() {
+    restaurarPareja();
     let d = null;
     try { d = JSON.parse(localStorage.getItem(CLAVE_DATOS)); } catch {}
     if (!d?.fecha || !d?.lugar) return;

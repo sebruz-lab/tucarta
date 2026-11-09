@@ -107,6 +107,13 @@ export const ORBES_TRANSITO = {
     conjuncion: 3, oposicion: 3, trigono: 2, cuadratura: 2, sextil: 2, menor: 1
 };
 
+// Sinastria: los aspectos entre las dos cartas, tambien con orbe por
+// aspecto. Mas amplios que los de transito, porque aca se cruzan dos
+// cartas enteras y no un cielo de paso.
+export const ORBES_SINASTRIA = {
+    conjuncion: 7, oposicion: 7, trigono: 5, cuadratura: 5, sextil: 4, menor: 2
+};
+
 // Que puntos entran en el juego de aspectos. Todos, salvo el Ascendente y
 // el Medio Cielo, que muchos prefieren no aspectar.
 export const PUNTOS_ASPECTADOS_POR_DEFECTO = {
@@ -122,6 +129,7 @@ export const AJUSTES_POR_DEFECTO = {
     menores: MENORES_POR_DEFECTO,
     orbesMenores: ORBES_MENORES,
     orbesTransito: ORBES_TRANSITO,
+    orbesSinastria: ORBES_SINASTRIA,
     metodoProgresion: 'arco-long',
     nodoDraconica: 'real',
     // Que puntos opcionales se suman a la carta.

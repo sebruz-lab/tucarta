@@ -1,7 +1,7 @@
 // Panel de ajustes: sistema de casas, orbes por punto y aspectos a los
 // angulos. Se guarda en el dispositivo (localStorage).
 
-import { SISTEMAS_CASAS, AJUSTES_POR_DEFECTO, ORBES_POR_DEFECTO, ORBES_MENORES, MENORES_POR_DEFECTO, ORBES_TRANSITO,
+import { SISTEMAS_CASAS, AJUSTES_POR_DEFECTO, ORBES_POR_DEFECTO, ORBES_MENORES, MENORES_POR_DEFECTO, ORBES_TRANSITO, ORBES_SINASTRIA,
     PUNTOS, PUNTOS_OPCIONALES, PUNTOS_ACTIVOS_POR_DEFECTO, PUNTOS_ASPECTADOS_POR_DEFECTO } from '../engine/config.js';
 import { NOMBRE_PUNTO, NOMBRE_ASPECTO } from './textos.js';
 import { PUNTOS as G_PUNTOS, iconoSvg } from './glyphs.js';
@@ -18,6 +18,7 @@ export function leerAjustes() {
             menores: { ...MENORES_POR_DEFECTO, ...g.menores },
             orbesMenores: { ...ORBES_MENORES, ...g.orbesMenores },
             orbesTransito: { ...ORBES_TRANSITO, ...g.orbesTransito },
+            orbesSinastria: { ...ORBES_SINASTRIA, ...g.orbesSinastria },
             puntos: { ...PUNTOS_ACTIVOS_POR_DEFECTO, ...g.puntos },
             puntosAspectados: { ...PUNTOS_ASPECTADOS_POR_DEFECTO, ...g.puntosAspectados }
         };
@@ -33,7 +34,8 @@ export const orbesModificados = (a) =>
     Object.entries(ORBES_POR_DEFECTO).some(([k, v]) => a.orbes[k] !== v) ||
     Object.entries(ORBES_MENORES).some(([k, v]) => a.orbesMenores[k] !== v) ||
     Object.entries(MENORES_POR_DEFECTO).some(([k, v]) => a.menores[k] !== v) ||
-    Object.entries(ORBES_TRANSITO).some(([k, v]) => a.orbesTransito[k] !== v);
+    Object.entries(ORBES_TRANSITO).some(([k, v]) => a.orbesTransito[k] !== v) ||
+    Object.entries(ORBES_SINASTRIA).some(([k, v]) => a.orbesSinastria[k] !== v);
 
 const NOMBRE_ORBE_TRANSITO = {
     conjuncion: 'Conjunción', oposicion: 'Oposición', trigono: 'Trígono',
@@ -138,6 +140,13 @@ export function panelAjustes(a) {
                         ${campo('orbe-tr-' + id, a.orbesTransito[id], `Orbe de tránsito: ${NOMBRE_ORBE_TRANSITO[id]}`)}
                     </div>`).join('')}
                 </div>
+                <p class="nota">En la sinastría, los aspectos entre las dos cartas.</p>
+                <div class="grilla-orbes">${Object.keys(ORBES_SINASTRIA).map((id) => `
+                    <div class="orbe">
+                        <span>${NOMBRE_ORBE_TRANSITO[id]}</span>
+                        ${campo('orbe-sin-' + id, a.orbesSinastria[id], `Orbe de sinastría: ${NOMBRE_ORBE_TRANSITO[id]}`)}
+                    </div>`).join('')}
+                </div>
             </details>
         </details>
 
@@ -175,6 +184,11 @@ export function ajustesDesde(form, previos) {
         const v = leer('orbe-tr-' + id);
         if (valido(v)) orbesTransito[id] = v;
     }
+    const orbesSinastria = { ...previos.orbesSinastria };
+    for (const id of Object.keys(ORBES_SINASTRIA)) {
+        const v = leer('orbe-sin-' + id);
+        if (valido(v)) orbesSinastria[id] = v;
+    }
     const menores = {};
     for (const id of Object.keys(MENORES_POR_DEFECTO)) menores[id] = form.elements['menor-' + id].checked;
     const puntos = {};
@@ -194,6 +208,6 @@ export function ajustesDesde(form, previos) {
         metodoProgresion: form.elements['metodo-progresion'].value,
         nodoDraconica: form.elements['nodo-draconica'].value,
         aspectosAngulos: Boolean(puntosAspectados.asc || puntosAspectados.mc),
-        orbes, menores, orbesMenores, orbesTransito
+        orbes, menores, orbesMenores, orbesTransito, orbesSinastria
     };
 }

@@ -1,7 +1,7 @@
 // Tablas de posiciones y de aspectos.
 
 import { SIGNOS as G_SIGNOS, PUNTOS as G_PUNTOS, ASPECTOS as G_ASPECTOS, iconoSvg } from './glyphs.js';
-import { NOMBRE_SIGNO, NOMBRE_PUNTO, NOMBRE_ASPECTO, gradoMin, orbeTexto } from './textos.js';
+import { NOMBRE_SIGNO, NOMBRE_PUNTO, NOMBRE_ASPECTO, gradoMin, orbeTexto, escapar } from './textos.js';
 import { SIGNOS, casaDe } from '../engine/chart.js';
 
 const ELEMENTOS = ['fuego', 'tierra', 'aire', 'agua'];
@@ -77,7 +77,7 @@ export function detallePunto(carta, id) {
 export function tablaPosicionesRevolucion(rs, natal, e = { titulo: 'Revolución', sigla: 'RS' }) {
     const cusps = natal.cusps.map((c) => c.lon);
     return `<table class="tabla">
-        <thead><tr><th>${e.titulo}</th><th>Signo</th><th class="num">Posición</th><th class="num">Casa ${e.sigla}</th><th class="num">Casa natal</th><th><span class="visualmente-oculto">Retrógrado</span></th></tr></thead>
+        <thead><tr><th>${e.titulo}</th><th>Signo</th><th class="num">Posición</th><th class="num">Casa ${e.sigla}</th><th class="num">${e.casaAdentro || 'Casa natal'}</th><th><span class="visualmente-oculto">Retrógrado</span></th></tr></thead>
         <tbody>${rs.puntos.map((p) => `<tr data-punto="r-${p.id}">
             <th scope="row">${iconoSvg(G_PUNTOS[p.id], 18, NOMBRE_PUNTO[p.id])}<span>${NOMBRE_PUNTO[p.id]}</span></th>
             <td>${iconoSigno(p.signo)}<span>${NOMBRE_SIGNO[p.signo]}</span></td>
@@ -116,6 +116,24 @@ export function detalleRevolucion(rs, natal, idR, de = 'de la revolución', aspe
             ? (asp.length ? renglon(`Adentro ${de}`, asp) : '') +
               (aspectosNatal ? renglon('A la natal', aNatal.length ? aNatal : ['sin aspectos con los orbes elegidos']) : '')
             : '');
+}
+
+// ---------- Sinastria ----------
+
+// Las dos personas, una debajo de la otra: primero la de afuera (con la
+// casa en la que cae en la carta de adentro) y despues la de adentro.
+export function tablaPosicionesSinastria(afuera, adentro, { nombreAfuera, nombreAdentro }) {
+    const titulo = (t, donde) => `<h4 class="titulo-tabla">${escapar(t)} <span class="nota">(${donde})</span></h4>`;
+    return titulo(nombreAfuera, 'afuera')
+        + tablaPosicionesRevolucion(afuera, adentro, { titulo: nombreAfuera, sigla: 'af.', casaAdentro: 'Casa adentro' })
+        + titulo(nombreAdentro, 'adentro')
+        + tablaPosiciones(adentro);
+}
+
+export function tablaCasasSinastria(afuera, adentro, { nombreAfuera, nombreAdentro }) {
+    const titulo = (t, donde) => `<h4 class="titulo-tabla">${escapar(t)} <span class="nota">(${donde})</span></h4>`;
+    return titulo(nombreAfuera, 'afuera') + tablaCasas(afuera)
+        + titulo(nombreAdentro, 'adentro') + tablaCasas(adentro);
 }
 
 // ---------- Transitos ----------
