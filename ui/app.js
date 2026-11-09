@@ -17,7 +17,7 @@ import { textosInterpretacion, configRemota } from './firestore.js';
 import { CONFIG_POR_DEFECTO } from './config.js';
 import { evento } from './analytics.js';
 import { NOMBRE_PUNTO, NOMBRE_ASPECTO, NOMBRE_SIGNO, gradoMin, escapar, utcTexto, duracionTexto, coordTexto } from './textos.js';
-import { ENGRANAJE } from './iconos.js';
+import { ENGRANAJE, PERILLAS, COMPLETA } from './iconos.js';
 import { SISTEMAS_CASAS, PUNTOS, ANGULOS } from '../engine/config.js';
 import { almacenLocal, igualQue } from './miscartas.js';
 import { imagenCarta, imagenEfemerides, entregarImagen } from './descarga.js';
@@ -397,9 +397,15 @@ function pintarEsquinas(sistema) {
     // El acceso a los ajustes va en todas las vistas, al pie de la esquina
     // de la derecha (debajo del huso, las coordenadas y las casas).
 
+    // Los ajustes y la pantalla completa, al pie de la esquina derecha:
+    // debajo del huso, las coordenadas y las casas.
+    const acciones = '<span class="acciones-esquina">'
+        + `<button type="button" data-accion="abrir-ajustes" aria-label="Ajustes del cálculo" title="Ajustes del cálculo">${PERILLAS(17)}</button>`
+        + `<button type="button" data-completa="entrar" aria-label="Ver en pantalla completa" title="Pantalla completa">${COMPLETA(17)}</button>`
+        + '</span>';
     const poner = (izq, der) => {
         $('#esquina-izq').innerHTML = [nombre, ...izq].join('');
-        $('#esquina-der').innerHTML = der.join('');
+        $('#esquina-der').innerHTML = [...der, acciones].join('');
     };
     // La natal: el huso se edita tocando el UTC (o desde la Carta Natal).
     const natal = (titulo = 'Carta Natal') => [
@@ -471,7 +477,8 @@ function pintarEsquinas(sistema) {
         `<span class="principal linea-huso">${escapar([utcTexto(o.total), d.correccion ? 'corregido a mano' : '']
             .filter(Boolean).join(' · '))}${botonHuso}</span>`,
         renglon(`${coordTexto(l.lat, 'N', 'S')} ${coordTexto(l.lon, 'E', 'O')}`),
-        renglon(sistema)
+        renglon(sistema),
+        acciones
     ].join('');
 }
 
