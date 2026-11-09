@@ -81,7 +81,11 @@ export function panelAjustes(a) {
 
         <details class="desplegable-ajustes" id="ajustes-puntos">
             <summary>Otros puntos</summary>
-            <p class="nota">Se suman a la rueda, a las tablas y a los aspectos. Sedna y Eris bajan su efeméride la primera vez que las prendés.</p>
+            <div class="atajos">
+                <button type="button" class="boton-texto" data-marcar="punto:todos">Todos</button>
+                <button type="button" class="boton-texto" data-marcar="punto:ninguno">Ninguno</button>
+                <button type="button" class="boton-texto" data-marcar="punto:asteroides">Solo asteroides</button>
+            </div>
             <div class="grilla-puntos">${PUNTOS_OPCIONALES.map((o) =>
                 casilla('punto-' + o.id, o.id, a.puntos?.[o.id], o.nombre)).join('')}
             </div>

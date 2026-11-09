@@ -491,15 +491,30 @@ details > summary {
 .desplegable-ajustes.anidado { margin-left: 14px; border-top: 1px solid var(--linea); }
 .desplegable-ajustes.anidado > summary { font-size: 0.9rem; color: var(--texto-suave); }
 .desplegable-ajustes.anidado[open] > summary { color: var(--texto); }
-.atajos { display: flex; gap: 14px; margin: 2px 0 10px; }
+.atajos { display: flex; flex-wrap: wrap; gap: 14px; margin: 2px 0 10px; }
+.grilla-menores .menor { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px; }
+.grilla-menores .menor input { margin: 0; }
 .atajos .boton-texto { font-size: 0.82rem; }
 
 .grilla-puntos {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 6px 14px; margin: 6px 0 12px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+    gap: 8px 18px; margin: 6px 0 12px;
 }
-.punto-opcional { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.92rem; }
-.punto-opcional .glifo-opcional { display: inline-flex; color: var(--p-nodo); }
+.punto-opcional {
+    display: grid;
+    grid-template-columns: auto 22px 1fr;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.92rem;
+    min-width: 0;
+}
+.punto-opcional .glifo-opcional {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; color: var(--p-nodo);
+}
+.punto-opcional > span:last-child { min-width: 0; }
+.punto-opcional input { margin: 0; }
 @media (prefers-reduced-motion: reduce) { .desplegable-ajustes > summary::before { transition: none; } }
 
 /* ---------- Rueda ---------- */
@@ -593,7 +608,7 @@ body.sin-scroll { overflow: hidden; }
     position: absolute;
     top: 0;
     left: 50%;
-    transform: translateX(-150%);
+    transform: translateX(-280%);
     z-index: 2;
     background: none;
     border: none;
@@ -608,7 +623,7 @@ body.sin-scroll { overflow: hidden; }
     position: absolute;
     top: 0;
     left: 50%;
-    transform: translateX(50%);
+    transform: translateX(180%);
     z-index: 2;
     background: none;
     border: none;

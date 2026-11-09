@@ -17,6 +17,7 @@ import { textosInterpretacion, configRemota } from './firestore.js';
 import { CONFIG_POR_DEFECTO } from './config.js';
 import { evento } from './analytics.js';
 import { NOMBRE_PUNTO, NOMBRE_ASPECTO, NOMBRE_SIGNO, gradoMin, escapar, utcTexto, duracionTexto, coordTexto } from './textos.js';
+import { ENGRANAJE } from './iconos.js';
 import { SISTEMAS_CASAS, PUNTOS, ANGULOS } from '../engine/config.js';
 import { almacenLocal, igualQue } from './miscartas.js';
 import { imagenCarta, imagenEfemerides, entregarImagen } from './descarga.js';
@@ -383,14 +384,8 @@ function pintarEsquinas(sistema) {
     // El huso no se anuncia como un problema: va una pregunta tranquila
     // debajo, que lleva al panel de abajo para cambiarlo. La alarma
     // desconcertaba a quien no tenia por que dudar de su hora.
-    const ENGRANAJE = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" fill="none" '
-        + 'stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">'
-        + '<path d="M12 1.4 13.17 5.1 10.83 5.1Z M19.49 4.51 18.3 8.2 16.65 6.55Z M22.6 12 18.9 13.17 18.9 10.83Z '
-        + 'M19.49 19.49 15.8 18.3 17.45 16.65Z M12 22.6 10.83 18.9 13.17 18.9Z M4.51 19.49 5.7 15.8 7.35 17.45Z '
-        + 'M1.4 12 5.1 10.83 5.1 13.17Z M4.51 4.51 8.2 5.7 6.55 7.35Z"/>'
-        + '<circle cx="12" cy="12" r="7.1"/><circle cx="12" cy="12" r="3.1"/></svg>';
     const botonHuso = `<button type="button" class="huso-engranaje" data-accion="editar-huso" `
-        + `aria-label="Ajustar el huso horario" title="Ajustar el huso horario">${ENGRANAJE}</button>`;
+        + `aria-label="Ajustar el huso horario" title="Ajustar el huso horario">${ENGRANAJE(13)}</button>`;
     const verano = o.verano === null ? '' : o.verano ? `verano +${duracionTexto(o.verano)}` : 'sin horario de verano';
     const { sola, externa } = cartasVista();
     const otra = sola || externa;
@@ -2062,8 +2057,13 @@ $('#form-ajustes').addEventListener('click', (e) => {
     const marcar = e.target.closest('[data-marcar]')?.dataset.marcar;
     if (marcar) {
         const [prefijo, que] = marcar.split(':');
+        // "Solo asteroides": Ceres, Palas, Juno y Vesta, y nada mas.
+        const soloAsteroides = ['ceres', 'palas', 'juno', 'vesta'];
         $('#form-ajustes').querySelectorAll(`input[type="checkbox"][name^="${prefijo}-"]`)
-            .forEach((c) => { c.checked = que === 'todos'; });
+            .forEach((c) => {
+                const id = c.name.slice(prefijo.length + 1);
+                c.checked = que === 'todos' || (que === 'asteroides' && soloAsteroides.includes(id));
+            });
         estado.ajustes = ajustesDesde($('#form-ajustes'), estado.ajustes);
         return ajusteCambiado();
     }
