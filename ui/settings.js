@@ -2,7 +2,7 @@
 // angulos. Se guarda en el dispositivo (localStorage).
 
 import { SISTEMAS_CASAS, AJUSTES_POR_DEFECTO, ORBES_POR_DEFECTO, ORBES_MENORES, MENORES_POR_DEFECTO, ORBES_TRANSITO,
-    PUNTOS_OPCIONALES, PUNTOS_ACTIVOS_POR_DEFECTO } from '../engine/config.js';
+    PUNTOS, PUNTOS_OPCIONALES, PUNTOS_ACTIVOS_POR_DEFECTO, PUNTOS_ASPECTADOS_POR_DEFECTO } from '../engine/config.js';
 import { NOMBRE_PUNTO, NOMBRE_ASPECTO } from './textos.js';
 import { PUNTOS as G_PUNTOS, iconoSvg } from './glyphs.js';
 import { METODOS_PROGRESION } from '../engine/progressions.js';
@@ -18,7 +18,8 @@ export function leerAjustes() {
             menores: { ...MENORES_POR_DEFECTO, ...g.menores },
             orbesMenores: { ...ORBES_MENORES, ...g.orbesMenores },
             orbesTransito: { ...ORBES_TRANSITO, ...g.orbesTransito },
-            puntos: { ...PUNTOS_ACTIVOS_POR_DEFECTO, ...g.puntos }
+            puntos: { ...PUNTOS_ACTIVOS_POR_DEFECTO, ...g.puntos },
+            puntosAspectados: { ...PUNTOS_ASPECTADOS_POR_DEFECTO, ...g.puntosAspectados }
         };
     } catch {}
     return structuredClone(AJUSTES_POR_DEFECTO);
@@ -43,69 +44,105 @@ export function panelAjustes(a) {
     const campo = (nombre, valor, etiqueta) =>
         `<span class="valor"><input type="number" name="${nombre}" min="0" max="15" step="0.5" inputmode="decimal" value="${valor}" aria-label="${etiqueta}">°</span>`;
     const orbes = Object.keys(ORBES_POR_DEFECTO).map((id) => `
-        <div class="orbe ${(id === 'asc' || id === 'mc') && !a.aspectosAngulos ? 'apagado' : ''}">
+        <div class="orbe">
             <span>${NOMBRE_PUNTO[id]}</span>
             ${campo('orbe-' + id, a.orbes[id], `Orbe mayor de ${NOMBRE_PUNTO[id]}`)}
             ${campo('orbe-menor-' + id, a.orbesMenores[id], `Orbe menor de ${NOMBRE_PUNTO[id]}`)}
         </div>`).join('');
+
+    // Los que pueden aspectar: los de siempre, los opcionales que esten
+    // prendidos, y los dos angulos.
+    const aspectables = [
+        ...PUNTOS.map((x) => x.id),
+        ...PUNTOS_OPCIONALES.filter((x) => a.puntos?.[x.id]).map((x) => x.id),
+        'asc', 'mc'
+    ];
+    const aspecta = (id) => (a.puntosAspectados?.[id] !== false);
+    const casilla = (nombre, id, marcada, texto) => `
+        <label class="punto-opcional">
+            <input type="checkbox" name="${nombre}" ${marcada ? 'checked' : ''}>
+            <span class="glifo-opcional" data-punto="${id}">${G_PUNTOS[id] ? iconoSvg(G_PUNTOS[id], 18, texto) : ''}</span>
+            <span>${texto}</span>
+        </label>`;
+    const atajos = (que) => `
+        <div class="atajos">
+            <button type="button" class="boton-texto" data-marcar="${que}:todos">Todos</button>
+            <button type="button" class="boton-texto" data-marcar="${que}:ninguno">Ninguno</button>
+        </div>`;
+
     return `
-        <label class="campo">Sistema de casas
-            <select name="casas">${SISTEMAS_CASAS.map((s) =>
-                `<option value="${s.id}" ${s.id === a.casas ? 'selected' : ''}>${s.nombre}</option>`).join('')}</select>
-        </label>
-        <label class="campo">Progresiones: cómo avanzan el Ascendente y el Medio Cielo
-            <select name="metodo-progresion">${METODOS_PROGRESION.map((m) =>
-                `<option value="${m.id}" ${m.id === a.metodoProgresion ? 'selected' : ''}>${m.nombre}</option>`).join('')}</select>
-        </label>
-        <label class="campo">Carta dracónica: desde qué Nodo
-            <select name="nodo-draconica">
-                <option value="real" ${a.nodoDraconica !== 'medio' ? 'selected' : ''}>Nodo real</option>
-                <option value="medio" ${a.nodoDraconica === 'medio' ? 'selected' : ''}>Nodo medio</option>
-            </select>
-        </label>
-        <label class="casilla"><input type="checkbox" name="aspectos-angulos" ${a.aspectosAngulos ? 'checked' : ''}>
-            Calcular aspectos al Ascendente y al Medio Cielo</label>
+        <details class="desplegable-ajustes" id="ajustes-casas">
+            <summary>Sistema de casas</summary>
+            <label class="campo">Cómo se dividen las casas
+                <select name="casas">${SISTEMAS_CASAS.map((x) =>
+                    `<option value="${x.id}" ${x.id === a.casas ? 'selected' : ''}>${x.nombre}</option>`).join('')}</select>
+            </label>
+        </details>
+
         <details class="desplegable-ajustes" id="ajustes-puntos">
             <summary>Otros puntos</summary>
             <p class="nota">Se suman a la rueda, a las tablas y a los aspectos. Sedna y Eris bajan su efeméride la primera vez que las prendés.</p>
-            <div class="grilla-puntos">${PUNTOS_OPCIONALES.map((o) => `
-                <label class="punto-opcional">
-                    <input type="checkbox" name="punto-${o.id}" ${a.puntos?.[o.id] ? 'checked' : ''}>
-                    <span class="glifo-opcional" data-punto="${o.id}">${G_PUNTOS[o.id] ? iconoSvg(G_PUNTOS[o.id], 18, o.nombre) : ''}</span>
-                    <span>${o.nombre}</span>
-                </label>`).join('')}
+            <div class="grilla-puntos">${PUNTOS_OPCIONALES.map((o) =>
+                casilla('punto-' + o.id, o.id, a.puntos?.[o.id], o.nombre)).join('')}
             </div>
             <label class="casilla"><input type="checkbox" name="fortuna-nocturna" ${a.fortunaNocturna !== false ? 'checked' : ''}>
                 Parte de Fortuna: dar vuelta la fórmula en las cartas nocturnas</label>
         </details>
 
-        <details class="desplegable-ajustes" id="ajustes-orbes">
-            <summary>Ajustar orbes</summary>
-        <fieldset class="orbes"><legend>Aspectos menores</legend>
-            <div class="grilla-menores">${Object.keys(MENORES_POR_DEFECTO).map((id) => `
-                <label class="menor">
-                    <input type="checkbox" name="menor-${id}" ${a.menores[id] ? 'checked' : ''}>
-                    <span>${NOMBRE_ASPECTO[id]}</span>
-                </label>`).join('')}
-            </div>
-        </fieldset>
-        <fieldset class="orbes"><legend>Orbes</legend>
-            <p class="nota">Entre dos puntos se usa el orbe mayor de los dos.</p>
-            <div class="grilla-orbes">
-                <div class="orbe encabezado"><span></span><span class="valor">Mayores</span><span class="valor">Menores</span></div>
-                ${orbes}
-            </div>
-        </fieldset>
-        <fieldset class="orbes"><legend>Orbes de los tránsitos</legend>
-            <p class="nota">En los tránsitos el orbe depende del aspecto.</p>
-            <div class="grilla-orbes">${Object.keys(ORBES_TRANSITO).map((id) => `
-                <div class="orbe">
-                    <span>${NOMBRE_ORBE_TRANSITO[id]}</span>
-                    ${campo('orbe-tr-' + id, a.orbesTransito[id], `Orbe de tránsito: ${NOMBRE_ORBE_TRANSITO[id]}`)}
-                </div>`).join('')}
-            </div>
-        </fieldset>
+        <details class="desplegable-ajustes" id="ajustes-aspectos">
+            <summary>Aspectos</summary>
+
+            <details class="desplegable-ajustes anidado" id="ajustes-cuales">
+                <summary>Aspectos a considerar</summary>
+                <p class="nota">La conjunción, el sextil, la cuadratura, el trígono y la oposición van siempre.</p>
+                ${atajos('menor')}
+                <div class="grilla-menores">${Object.keys(MENORES_POR_DEFECTO).map((id) => `
+                    <label class="menor">
+                        <input type="checkbox" name="menor-${id}" ${a.menores[id] ? 'checked' : ''}>
+                        <span>${NOMBRE_ASPECTO[id]}</span>
+                    </label>`).join('')}
+                </div>
+            </details>
+
+            <details class="desplegable-ajustes anidado" id="ajustes-aspectados">
+                <summary>Puntos aspectados</summary>
+                ${atajos('aspecta')}
+                <div class="grilla-puntos">${aspectables.map((id) =>
+                    casilla('aspecta-' + id, id, aspecta(id), NOMBRE_PUNTO[id])).join('')}
+                </div>
+            </details>
+
+            <details class="desplegable-ajustes anidado" id="ajustes-orbes">
+                <summary>Orbes</summary>
+                <p class="nota">Entre dos puntos se usa el orbe mayor de los dos.</p>
+                <div class="grilla-orbes">
+                    <div class="orbe encabezado"><span></span><span class="valor">Mayores</span><span class="valor">Menores</span></div>
+                    ${orbes}
+                </div>
+                <p class="nota">En los tránsitos el orbe depende del aspecto, no del punto.</p>
+                <div class="grilla-orbes">${Object.keys(ORBES_TRANSITO).map((id) => `
+                    <div class="orbe">
+                        <span>${NOMBRE_ORBE_TRANSITO[id]}</span>
+                        ${campo('orbe-tr-' + id, a.orbesTransito[id], `Orbe de tránsito: ${NOMBRE_ORBE_TRANSITO[id]}`)}
+                    </div>`).join('')}
+                </div>
+            </details>
         </details>
+
+        <details class="desplegable-ajustes" id="ajustes-otras">
+            <summary>Progresiones y dracónica</summary>
+            <label class="campo">Progresiones: cómo avanzan el Ascendente y el Medio Cielo
+                <select name="metodo-progresion">${METODOS_PROGRESION.map((m) =>
+                    `<option value="${m.id}" ${m.id === a.metodoProgresion ? 'selected' : ''}>${m.nombre}</option>`).join('')}</select>
+            </label>
+            <label class="campo">Carta dracónica: desde qué Nodo
+                <select name="nodo-draconica">
+                    <option value="real" ${a.nodoDraconica !== 'medio' ? 'selected' : ''}>Nodo real</option>
+                    <option value="medio" ${a.nodoDraconica === 'medio' ? 'selected' : ''}>Nodo medio</option>
+                </select>
+            </label>
+        </details>
+
         <button type="button" class="boton-texto" data-accion="ajustes-defecto">Volver a los valores por defecto</button>`;
 }
 
@@ -130,13 +167,21 @@ export function ajustesDesde(form, previos) {
     for (const id of Object.keys(MENORES_POR_DEFECTO)) menores[id] = form.elements['menor-' + id].checked;
     const puntos = {};
     for (const o of PUNTOS_OPCIONALES) puntos[o.id] = Boolean(form.elements['punto-' + o.id]?.checked);
+    // Los aspectados: solo los que estan en pantalla; los opcionales
+    // apagados no aparecen y conservan lo que tenian.
+    const puntosAspectados = { ...previos.puntosAspectados };
+    for (const id of Object.keys(PUNTOS_ASPECTADOS_POR_DEFECTO)) {
+        const c = form.elements['aspecta-' + id];
+        if (c) puntosAspectados[id] = c.checked;
+    }
     return {
         puntos,
+        puntosAspectados,
         fortunaNocturna: Boolean(form.elements['fortuna-nocturna']?.checked),
         casas: form.elements.casas.value,
         metodoProgresion: form.elements['metodo-progresion'].value,
         nodoDraconica: form.elements['nodo-draconica'].value,
-        aspectosAngulos: form.elements['aspectos-angulos'].checked,
+        aspectosAngulos: Boolean(puntosAspectados.asc || puntosAspectados.mc),
         orbes, menores, orbesMenores, orbesTransito
     };
 }

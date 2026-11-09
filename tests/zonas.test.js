@@ -32,7 +32,16 @@ function offsetTabla(periodos, seg) {
 const DESDE = Date.UTC(1900, 0, 1) / 1000;
 const HASTA = Date.UTC(2030, 0, 1) / 1000;
 
-describe(`tzdata ${tabla.version} vs Intl (ICU ${process.versions.tz})`, () => {
+// La comparacion solo tiene sentido con la misma tzdata de los dos lados:
+// Intl usa el ICU que trae Node, que en el runner puede ser otra version.
+// Cuando no coinciden se saltea (el generador ya hizo esta misma
+// comparacion, con versiones iguales, antes de escribir los archivos).
+const mismaTz = process.versions.tz === tabla.version;
+if (!mismaTz) {
+    console.warn(`Husos: se saltea la comparacion con Intl (datos ${tabla.version}, ICU de Node ${process.versions.tz}).`);
+}
+
+describe.skipIf(!mismaTz)(`tzdata ${tabla.version} vs Intl (ICU ${process.versions.tz})`, () => {
     for (const [zona, periodos] of Object.entries(tabla.zonas)) {
         it(zona, () => {
             const instantes = [];

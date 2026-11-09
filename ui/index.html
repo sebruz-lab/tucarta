@@ -46,8 +46,8 @@
         </div>
         <button type="button" class="boton-ajustes" data-accion="abrir-ajustes" aria-label="Ajustes del cálculo" title="Ajustes del cálculo">
             <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 7h7M15 7h5M4 12h11M19 12h1M4 17h3M11 17h9"/>
-                <circle cx="13" cy="7" r="2"/><circle cx="17" cy="12" r="2"/><circle cx="9" cy="17" r="2"/>
+                <path d="M7 4v5M7 13v7M12 4v11M12 19v1M17 4v3M17 11v9"/>
+                <circle cx="7" cy="11" r="2"/><circle cx="12" cy="17" r="2"/><circle cx="17" cy="9" r="2"/>
             </svg>
         </button>
         <button type="button" id="boton-menu" class="boton-menu" aria-expanded="false" aria-controls="menu-sitio" aria-label="Menú del sitio">
@@ -203,27 +203,25 @@
                 <button type="button" class="boton-ayuda" data-ayuda="lugar" aria-expanded="false"
                     aria-controls="ayuda-lugar" aria-label="Ayuda para encontrar tu lugar">?</button>
             </div>
-            <p class="nota pista-lugar">Escribí las primeras letras de tu ciudad o tu pueblo y elegilo de la lista. Si no aparece tocá <span class="signo-ayuda">?</span></p>
-            <input id="lugar" type="text" name="lugar" autocomplete="off" placeholder="Escribí tu ciudad o pueblo"
+            <input id="lugar" type="text" name="lugar" autocomplete="off"
+                placeholder="Escribí las primeras letras de tu ciudad o tu pueblo y elegilo de la lista"
                 role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias">
             <ul id="sugerencias" class="sugerencias" role="listbox" hidden></ul>
         </div>
 
         <div id="ayuda-lugar" class="ayuda-lugar" hidden>
-            <h3>Si no encontrás tu lugar</h3>
+            <h3>Si no encontrás tu lugar puede ser que:</h3>
             <ul>
-                <li><strong>Hay muchos lugares con ese nombre.</strong> Agregá la provincia o el país después del nombre:
-                    escribí <em>La Paz, Córdoba</em> en vez de <em>La Paz</em> sola. La lista muestra ocho a la vez, y si tu
-                    pueblo es chico queda más abajo.</li>
-                <li><strong>El pueblo es muy chico.</strong> Probá con la ciudad o la cabecera más cercana: unos pocos
-                    kilómetros no mueven la carta. Lo que sí la mueve son los minutos de la hora.</li>
-                <li><strong>Escribiste el nombre completo de una.</strong> Con las primeras letras alcanza. Si te pasaste,
-                    borrá un poco y mirá la lista de nuevo.</li>
-                <li><strong>Los acentos y la ñ no importan.</strong> <em>Cordoba</em> encuentra <em>Córdoba</em>, y
-                    <em>Nuñez</em> encuentra <em>Núñez</em>.</li>
-                <li><strong>El lugar cambió de nombre.</strong> Probá con el nombre actual, que es el que figura en el mapa.</li>
-                <li><strong>No está y listo.</strong> Abrí <em>¿No encontrás tu lugar? Cargá las coordenadas</em>, acá abajo,
-                    y poné la latitud y la longitud. Las sacás buscando el lugar en Google Maps y tocando el punto.</li>
+                <li><strong>Haya muchos lugares con ese nombre.</strong> Agregá la provincia o el país después del
+                    nombre: escribí <em>Potrerillos, Mendoza</em> en vez de <em>Potrerillos</em> solo. La lista muestra
+                    ocho a la vez, y si tu pueblo es chico queda más abajo y no lo vas a ver.</li>
+                <li><strong>El pueblo sea muy chico.</strong> Probá con la ciudad o la cabecera más cercana: unos pocos
+                    kilómetros no mueven sustancialmente la carta.</li>
+                <li><strong>Hayas escrito el nombre completo de una.</strong> Con las primeras letras alcanza. Si te
+                    pasaste, borrá un poco y mirá la lista de nuevo.</li>
+                <li><strong>Sencillamente no esté.</strong> Abrí <em>¿No encontrás tu lugar? Cargá las coordenadas</em>,
+                    acá abajo, y poné la latitud y la longitud. Las sacás buscando el lugar en Google Maps y tocando
+                    el punto.</li>
             </ul>
         </div>
 
@@ -439,6 +437,7 @@
             <div id="rueda"></div>
             <p id="aviso-lunacion" class="aviso-lunacion" hidden></p>
             <figcaption id="detalle-punto" class="detalle-punto" aria-live="polite">Tocá un planeta para ver dónde está y con quién se relaciona.</figcaption>
+            <button type="button" class="ajustes-rueda" data-accion="abrir-ajustes" aria-label="Ajustes del cálculo" title="Ajustes del cálculo"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v5M7 13v7M12 4v11M12 19v1M17 4v3M17 11v9"/><circle cx="7" cy="11" r="2"/><circle cx="12" cy="17" r="2"/><circle cx="17" cy="9" r="2"/></svg></button>
             <button type="button" class="entrar-completa" data-completa="entrar" aria-label="Ver en pantalla completa" title="Pantalla completa"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
             <div class="panel-completa">
                 <button type="button" class="cambiar-carta" data-completa="cartas" aria-expanded="false">Mis cartas</button>
@@ -607,6 +606,8 @@
     <p>Calculado con <a href="https://www.astro.com/swisseph/">Swiss Ephemeris</a> (zodíaco tropical).
         Lugares: <a href="https://www.geonames.org/">GeoNames</a>. Husos horarios: base IANA.</p>
     <p><a id="enlace-repo" href="https://github.com/sebruz-lab/tucarta">Código fuente</a> bajo licencia AGPL-3.0.</p>
+    <p>Contacto: <a href="mailto:info@sebabru.com">info@sebabru.com</a> ·
+        <a href="https://sebabru.com">sebabru.com</a></p>
 </footer>
 
 <script type="module" src="./app.js"></script>

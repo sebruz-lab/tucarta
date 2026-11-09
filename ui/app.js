@@ -87,7 +87,15 @@ let lugarElegido = null;
 conectarBuscador($('#lugar'), $('#sugerencias'), (l) => { lugarElegido = l; });
 let lugarRS = null;
 conectarBuscador($('#lugar-rs'), $('#sugerencias-rs'), (l) => { lugarRS = l; });
-form.elements.zona.innerHTML = opcionesZonas('America/Argentina/Buenos_Aires');
+// Al cargar las coordenadas a mano hay que elegir la zona horaria. Se
+// arranca con la del dispositivo, que suele ser la correcta y evita que
+// alguien de otro pais deje Buenos Aires sin darse cuenta. No se consulta
+// a nadie: el dato ya esta en el navegador.
+const ZONA_DEL_DISPOSITIVO = (() => {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Argentina/Buenos_Aires'; }
+    catch { return 'America/Argentina/Buenos_Aires'; }
+})();
+form.elements.zona.innerHTML = opcionesZonas(ZONA_DEL_DISPOSITIVO);
 
 // Hora en formato 24 h con dos listas: el <input type="time"> sigue el
 // formato del dispositivo y en muchos celulares muestra a. m. / p. m.
@@ -375,7 +383,14 @@ function pintarEsquinas(sistema) {
     // El huso no se anuncia como un problema: va una pregunta tranquila
     // debajo, que lleva al panel de abajo para cambiarlo. La alarma
     // desconcertaba a quien no tenia por que dudar de su hora.
-    const botonHuso = '<button type="button" data-accion="editar-huso">¿No es ese huso horario?</button>';
+    const ENGRANAJE = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" fill="none" '
+        + 'stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">'
+        + '<path d="M12 1.4 13.17 5.1 10.83 5.1Z M19.49 4.51 18.3 8.2 16.65 6.55Z M22.6 12 18.9 13.17 18.9 10.83Z '
+        + 'M19.49 19.49 15.8 18.3 17.45 16.65Z M12 22.6 10.83 18.9 13.17 18.9Z M4.51 19.49 5.7 15.8 7.35 17.45Z '
+        + 'M1.4 12 5.1 10.83 5.1 13.17Z M4.51 4.51 8.2 5.7 6.55 7.35Z"/>'
+        + '<circle cx="12" cy="12" r="7.1"/><circle cx="12" cy="12" r="3.1"/></svg>';
+    const botonHuso = `<button type="button" class="huso-engranaje" data-accion="editar-huso" `
+        + `aria-label="Ajustar el huso horario" title="Ajustar el huso horario">${ENGRANAJE}</button>`;
     const verano = o.verano === null ? '' : o.verano ? `verano +${duracionTexto(o.verano)}` : 'sin horario de verano';
     const { sola, externa } = cartasVista();
     const otra = sola || externa;
@@ -386,10 +401,10 @@ function pintarEsquinas(sistema) {
     $('.cambiar-carta').hidden = !guardadas.length;
     // El acceso a los ajustes va en todas las vistas, al pie de la esquina
     // de la derecha (debajo del huso, las coordenadas y las casas).
-    const enlaceAjustes = '<button type="button" data-accion="abrir-ajustes">Ajustes del cálculo</button>';
+
     const poner = (izq, der) => {
         $('#esquina-izq').innerHTML = [nombre, ...izq].join('');
-        $('#esquina-der').innerHTML = [...der, enlaceAjustes].join('');
+        $('#esquina-der').innerHTML = der.join('');
     };
     // La natal: el huso se edita tocando el UTC (o desde la Carta Natal).
     const natal = (titulo = 'Carta Natal') => [
@@ -458,11 +473,10 @@ function pintarEsquinas(sistema) {
         nombre, renglon(`${dia}/${m}/${a}`, 'principal'), renglon(`${d.hora} h`, 'principal'), ...renglonesLugar(l).map((t) => renglon(t))
     ].join('');
     $('#esquina-der').innerHTML = [
-        renglon([utcTexto(o.total), d.correccion ? 'corregido a mano' : verano].filter(Boolean).join(' · '), 'principal'),
+        `<span class="principal linea-huso">${escapar([utcTexto(o.total), d.correccion ? 'corregido a mano' : '']
+            .filter(Boolean).join(' · '))}${botonHuso}</span>`,
         renglon(`${coordTexto(l.lat, 'N', 'S')} ${coordTexto(l.lon, 'E', 'O')}`),
-        renglon(sistema),
-        botonHuso,
-        enlaceAjustes
+        renglon(sistema)
     ].join('');
 }
 
@@ -2042,7 +2056,17 @@ $('#form-ajustes').addEventListener('change', () => {
     estado.ajustes = ajustesDesde($('#form-ajustes'), estado.ajustes);
     ajusteCambiado();
 });
+// "Todos" y "Ninguno" de cada submenu: marcan o desmarcan las casillas
+// cuyo nombre empieza con el prefijo.
 $('#form-ajustes').addEventListener('click', (e) => {
+    const marcar = e.target.closest('[data-marcar]')?.dataset.marcar;
+    if (marcar) {
+        const [prefijo, que] = marcar.split(':');
+        $('#form-ajustes').querySelectorAll(`input[type="checkbox"][name^="${prefijo}-"]`)
+            .forEach((c) => { c.checked = que === 'todos'; });
+        estado.ajustes = ajustesDesde($('#form-ajustes'), estado.ajustes);
+        return ajusteCambiado();
+    }
     if (e.target.closest('[data-accion="ajustes-defecto"]')) {
         try { localStorage.removeItem('tucarta:ajustes'); } catch {}
         estado.ajustes = leerAjustes();

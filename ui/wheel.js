@@ -141,18 +141,18 @@ const R_DOBLE = { exterior: 294, glifos: 271 };
 // Revolucion solar (como Solar Fire): la natal adentro, mas chica, y la
 // revolucion afuera con su propio zodiaco, sus casas y sus planetas con
 // grados. El centro queda sin lineas de aspectos.
-const ESCALA_RS = 0.66;
+const ESCALA_RS = 0.62;
 // Letra de los numeros de la natal, tal como se ve en pantalla (en
 // unidades de la rueda): la de la natal de adentro de la revolucion.
 const LETRA_NATAL = { grado: 11.9, casa: 10.1, retro: 6.7 };
-const R_RS = { exterior: 294, signos: 272, linea: 207, casas: 200 };
+const R_RS = { exterior: 294, signos: 264, linea: 194, casas: 187 };
 
 // Columna de cada planeta, como en Solar Fire: de afuera hacia adentro el
 // glifo, el grado, el glifo del signo y los minutos. Distancias desde el
 // borde del zodiaco y tamanios, en unidades de pantalla.
 // fC: letra del grado y los minutos de cada cuspide, junto al zodiaco.
 const COLUMNA_NATAL = { glifo: 26, grado: 48, signo: 64, minuto: 79, tG: 24, fG: 11.9, tS: 11, fM: 10.5, retro: 6.7, fC: 9 };
-const COLUMNA_EXTERNA = { glifo: 20, grado: 36, signo: 47, minuto: 58, tG: 20, fG: 10.5, tS: 9.5, fM: 9.5, retro: 6.5, fC: 8 };
+const COLUMNA_EXTERNA = { glifo: 22, grado: 40, signo: 52, minuto: 64, tG: 22, fG: 11.5, tS: 10.5, fM: 10.5, retro: 6.5, fC: 8.8 };
 
 // Distancia minima entre una columna y la cuspide de su casa.
 const medioMinimo = (minimo) => minimo / 2 + 0.3;
@@ -396,7 +396,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         const activo = seleccion && (a.a === seleccion || a.b === seleccion);
         const atenuado = seleccion && !activo;
         // Mas opaco cuanto mas exacto.
-        const op = `opacity="${(atenuado ? 0.1 : Math.max(0.5, 1 - a.orbe / a.orbeMax * 0.5)).toFixed(2)}"`;
+        const op = `opacity="${(atenuado ? 0.08 : Math.max(0.5, 1 - a.orbe / a.orbeMax * 0.5)).toFixed(2)}"`;
         // La linea se corta en el medio y ahi va el glifo del aspecto.
         const largo = Math.hypot(x2 - x1, y2 - y1);
         const mx = (x1 + x2) / 2;
@@ -460,7 +460,7 @@ function anilloRevolucion(rs, natal, { polar, linea, seleccion, nombres }) {
     SIGNOS.forEach((s, i) => {
         out.push(linea(i * 30, R2.signos, R2.exterior, 'borde'));
         const [x, y] = polar(i * 30 + 15, (R2.exterior + R2.signos) / 2);
-        out.push(glifo(G_SIGNOS[s], x, y, 17, `data-signo="${s}"`, `elem-${ELEMENTOS[i % 4]}`));
+        out.push(glifo(G_SIGNOS[s], x, y, 20, `data-signo="${s}"`, `elem-${ELEMENTOS[i % 4]}`));
     });
     for (let g = 0; g < 360; g++) {
         if (g % 30 === 0) continue;

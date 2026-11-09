@@ -107,6 +107,14 @@ export const ORBES_TRANSITO = {
     conjuncion: 3, oposicion: 3, trigono: 2, cuadratura: 2, sextil: 2, menor: 1
 };
 
+// Que puntos entran en el juego de aspectos. Todos, salvo el Ascendente y
+// el Medio Cielo, que muchos prefieren no aspectar.
+export const PUNTOS_ASPECTADOS_POR_DEFECTO = {
+    ...Object.fromEntries(PUNTOS.map((p) => [p.id, true])),
+    ...Object.fromEntries(PUNTOS_OPCIONALES.map((p) => [p.id, true])),
+    asc: false, mc: false
+};
+
 export const AJUSTES_POR_DEFECTO = {
     casas: 'P',
     orbes: ORBES_POR_DEFECTO,
@@ -119,5 +127,7 @@ export const AJUSTES_POR_DEFECTO = {
     // Que puntos opcionales se suman a la carta.
     puntos: PUNTOS_ACTIVOS_POR_DEFECTO,
     // La Parte de Fortuna cambia de formula entre el dia y la noche.
-    fortunaNocturna: true
+    fortunaNocturna: true,
+    // Que puntos participan de los aspectos.
+    puntosAspectados: PUNTOS_ASPECTADOS_POR_DEFECTO
 };

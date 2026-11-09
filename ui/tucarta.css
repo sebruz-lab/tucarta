@@ -216,6 +216,9 @@ input:focus, select:focus, button:focus-visible, a:focus-visible, .punto:focus-v
     border-radius: 12px;
     max-height: 60vh;
     overflow-y: auto;
+    /* Con el dedo: arrastrar recorre la lista, tocar elige (ver form.js). */
+    touch-action: pan-y;
+    overscroll-behavior: contain;
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
 }
 /* Aviso al pie de la lista cuando quedaron lugares afuera. No es una
@@ -484,6 +487,13 @@ details > summary {
     transform: rotate(-45deg); transition: transform 0.15s ease;
 }
 .desplegable-ajustes[open] > summary::before { transform: rotate(45deg); }
+/* Submenus dentro de Aspectos: un escaloncito a la derecha. */
+.desplegable-ajustes.anidado { margin-left: 14px; border-top: 1px solid var(--linea); }
+.desplegable-ajustes.anidado > summary { font-size: 0.9rem; color: var(--texto-suave); }
+.desplegable-ajustes.anidado[open] > summary { color: var(--texto); }
+.atajos { display: flex; gap: 14px; margin: 2px 0 10px; }
+.atajos .boton-texto { font-size: 0.82rem; }
+
 .grilla-puntos {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 6px 14px; margin: 6px 0 12px;
@@ -523,6 +533,13 @@ details > summary {
 }
 .esquina .leyenda { font-size: 0.85em; letter-spacing: 0.5px; }
 .esquina .titulo-esquina { color: var(--amarillo); white-space: nowrap; }
+/* El huso y su engranaje, en el mismo renglon. */
+.esquina .linea-huso { display: inline-flex; align-items: center; gap: 5px; }
+.esquina .huso-engranaje {
+    padding: 0; border: none; background: none; text-decoration: none;
+    color: var(--texto-suave); cursor: pointer; display: inline-flex;
+}
+.esquina .huso-engranaje:hover { color: var(--texto); }
 .esquina .enlace-huso { padding: 0; color: inherit; text-underline-offset: 2px; }
 .esquina .aviso-esquina { color: var(--amarillo); text-decoration: none; letter-spacing: 0.5px; }
 /* El panel del huso se abre desde la esquina de la rueda. */
@@ -569,11 +586,29 @@ body.sin-scroll { overflow: hidden; }
 .esquina .nombre-esquina { color: var(--texto); font-size: 1.15em; white-space: normal; margin-bottom: 2px; }
 
 /* Boton chico de pantalla completa, arriba al centro (sobre el Medio Cielo). */
+/* Arriba de la rueda, a los costados del centro: los ajustes a la
+   izquierda y la pantalla completa a la derecha. En las esquinas estan el
+   nombre (izquierda) y el huso (derecha). */
+.ajustes-rueda {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-150%);
+    z-index: 2;
+    background: none;
+    border: none;
+    padding: 2px;
+    color: var(--texto-suave);
+    cursor: pointer;
+}
+.ajustes-rueda:hover { color: var(--texto); }
+.figura-rueda:fullscreen .ajustes-rueda, .figura-rueda.completa .ajustes-rueda { display: none; }
+
 .entrar-completa {
     position: absolute;
     top: 0;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(50%);
     z-index: 2;
     background: none;
     border: none;
@@ -1247,7 +1282,11 @@ body.sin-scroll { overflow: hidden; }
 }
 .ventana-cuenta {
     width: min(420px, calc(100vw - 32px));
-    max-height: calc(100vh - 32px);
+    /* 10% de aire arriba y 5% abajo: en el celular, con un submenu
+       desplegado, la X quedaba pegada al borde de arriba. */
+    max-height: 85vh;
+    margin-top: 10vh;
+    margin-bottom: 5vh;
     background: var(--bg);
     color: var(--texto);
     border: 1px solid var(--linea-fuerte);
@@ -1610,7 +1649,7 @@ body.sin-scroll { overflow: hidden; }
     html, body { background: #fff !important; }
     body > :not(main), main > :not(#resultado), #resultado > :not(.figura-rueda),
     .figura-rueda .esquina,
-    .figura-rueda .entrar-completa, .figura-rueda .panel-completa, .figura-rueda .salir-completa,
+    .figura-rueda .entrar-completa, .figura-rueda .ajustes-rueda, .figura-rueda .panel-completa, .figura-rueda .salir-completa,
     .figura-rueda #controles-animacion, #detalle-punto {
         display: none !important;
     }

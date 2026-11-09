@@ -126,7 +126,16 @@ export function calcularCarta(swe, { utc, lat, lon, ajustes = AJUSTES_POR_DEFECT
 
     puntos.push(...puntosOpcionales(swe, jd, { puntos, casas, ajustes }));
 
-    const participantes = ajustes.aspectosAngulos ? [...puntos, ...angulos] : puntos;
+    // Quien entra en los aspectos: lo que la persona haya elegido. El
+    // Ascendente y el Medio Cielo siguen atados a aspectosAngulos para no
+    // cambiarle la carta a quien ya lo tenia configurado.
+    const elegidos = ajustes.puntosAspectados;
+    const entra = (id) => (elegidos ? elegidos[id] !== false : true);
+    const conAngulos = elegidos ? (entra('asc') || entra('mc')) : ajustes.aspectosAngulos;
+    const participantes = [
+        ...puntos.filter((p) => entra(p.id)),
+        ...(conAngulos ? angulos.filter((a) => entra(a.id)) : [])
+    ];
     const aspectos = calcularAspectos(participantes, participantes, {
         orbes: ajustes.orbes, mismaCarta: true,
         menores: ajustes.menores, orbesMenores: ajustes.orbesMenores

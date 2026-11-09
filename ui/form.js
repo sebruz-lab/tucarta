@@ -20,7 +20,7 @@ export const descripcionLugar = (l) =>
 // indice local no tiene ninguno. La calculadora no la usa (no consulta a
 // terceros); la pasan los formularios del sitio, que preguntan a GeoNames.
 export function conectarBuscador(input, lista, alElegir, {
-    sinResultados = 'No encontramos ese lugar. Probá con otra forma de escribirlo o cargá las coordenadas a mano.',
+    sinResultados = 'No encontramos ese lugar. Tocá ? para más info',
     respaldo = null
 } = {}) {
     let resultados = [];
@@ -51,7 +51,7 @@ export function conectarBuscador(input, lista, alElegir, {
             if (resultados.total > resultados.length) {
                 lista.insertAdjacentHTML('beforeend',
                     '<li class="sugerencia-pista" role="presentation">Hay más lugares con ese nombre. '
-                    + 'Agregá la provincia o el país, por ejemplo <strong>La Paz, Córdoba</strong>.</li>');
+                    + 'Agregá la provincia o el país, por ejemplo <strong>Potrerillos, Mendoza</strong>.</li>');
             }
         }
         lista.hidden = !lista.innerHTML;
@@ -100,14 +100,28 @@ export function conectarBuscador(input, lista, alElegir, {
         }
     });
 
-    // pointerdown para elegir antes de que el blur cierre la lista.
+    // Con el mouse se elige en pointerdown, antes de que el blur cierre la
+    // lista. Con el dedo no: ahi hay que poder arrastrar para recorrerla,
+    // asi que se espera a levantar el dedo y solo cuenta si no se movio.
+    let toque = null;
     lista.addEventListener('pointerdown', (e) => {
         const li = e.target.closest('[data-i]');
-        if (li) {
+        if (!li) return;
+        if (e.pointerType === 'mouse') {
             e.preventDefault();
             elegir(+li.dataset.i);
+            return;
         }
+        toque = { i: +li.dataset.i, x: e.clientX, y: e.clientY };
     });
+    lista.addEventListener('pointerup', (e) => {
+        if (!toque) return;
+        const li = e.target.closest('[data-i]');
+        const quieto = Math.hypot(e.clientX - toque.x, e.clientY - toque.y) < 10;
+        if (li && Number(li.dataset.i) === toque.i && quieto) elegir(toque.i);
+        toque = null;
+    });
+    lista.addEventListener('pointercancel', () => { toque = null; });
     input.addEventListener('blur', () => setTimeout(cerrar, 100));
 }
 
