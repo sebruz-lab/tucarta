@@ -30,7 +30,7 @@
 <body>
 
 <header class="cabecera">
-    <a class="marca" href="/">Seba Bru</a>
+    <button type="button" class="marca" id="boton-menu" aria-expanded="false" aria-controls="menu-sitio">Seba Bru</button>
     <div class="cabecera-derecha">
         <div class="menu-cuenta">
             <button type="button" id="boton-cuenta" class="boton-cuenta" aria-haspopup="true" hidden>Entrar</button>
@@ -40,22 +40,16 @@
                 <li><button type="button" data-cuenta-menu="salir">Salir</button></li>
             </ul>
         </div>
-        <div class="selector-tema" role="group" aria-label="Fondo">
-            <button type="button" data-tema="oscuro" aria-pressed="false">Oscuro</button>
-            <button type="button" data-tema="claro" aria-pressed="true">Claro</button>
-        </div>
         <button type="button" class="boton-ajustes" data-accion="abrir-ajustes" aria-label="Ajustes del cálculo" title="Ajustes del cálculo">
             <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M7 4v5M7 13v7M12 4v11M12 19v1M17 4v3M17 11v9"/>
                 <circle cx="7" cy="11" r="2"/><circle cx="12" cy="17" r="2"/><circle cx="17" cy="9" r="2"/>
             </svg>
         </button>
-        <button type="button" id="boton-menu" class="boton-menu" aria-expanded="false" aria-controls="menu-sitio" aria-label="Menú del sitio">
-            <span></span><span></span><span></span>
-        </button>
     </div>
     <nav id="menu-sitio" class="menu-sitio" aria-label="Sitio de Seba Bru" hidden>
         <ul>
+            <li><a href="/">Inicio</a></li>
             <li><a href="/#formaciones">Formaciones</a></li>
             <li><a href="/escuela/abierta/">Formación abierta</a></li>
             <li><a href="/#consultas">Consultas</a></li>

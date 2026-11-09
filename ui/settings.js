@@ -71,6 +71,14 @@ export function panelAjustes(a) {
         </div>`;
 
     return `
+        <div class="campo campo-tema">
+            <span>Fondo</span>
+            <div class="selector-tema" role="group" aria-label="Fondo">
+                <button type="button" data-tema="oscuro" aria-pressed="false">Oscuro</button>
+                <button type="button" data-tema="claro" aria-pressed="true">Claro</button>
+            </div>
+        </div>
+
         <details class="desplegable-ajustes" id="ajustes-casas">
             <summary>Sistema de casas</summary>
             <label class="campo">Cómo se dividen las casas

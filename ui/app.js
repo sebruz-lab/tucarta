@@ -2763,7 +2763,9 @@ window.addEventListener('afterprint', () => {
     document.body.classList.remove('tema-claro');
     if (estado.carta) pintarRueda();
 });
-document.querySelector('.selector-tema').addEventListener('click', (e) => {
+// El selector de fondo vive dentro del panel de ajustes, que se repinta
+// entero en cada cambio: por eso el enganche va en el documento.
+document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-tema]');
     if (b) aplicarTema(b.dataset.tema, { medir: true });
 });

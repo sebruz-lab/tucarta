@@ -111,6 +111,19 @@ h3 { font-size: 1.15rem; font-weight: 400; }
 }
 
 /* Selector de fondo oscuro / claro. */
+.marca {
+    font: inherit;
+    font-size: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: inherit;
+}
+
+/* El fondo, adentro de los ajustes. */
+.campo-tema { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
 .selector-tema {
     display: inline-flex;
     border: 1px solid var(--linea-fuerte);
@@ -607,8 +620,8 @@ body.sin-scroll { overflow: hidden; }
 .ajustes-rueda {
     position: absolute;
     top: 0;
-    left: 50%;
-    transform: translateX(-280%);
+    left: 40%;
+    transform: translateX(-50%);
     z-index: 2;
     background: none;
     border: none;
@@ -622,8 +635,8 @@ body.sin-scroll { overflow: hidden; }
 .entrar-completa {
     position: absolute;
     top: 0;
-    left: 50%;
-    transform: translateX(180%);
+    left: 60%;
+    transform: translateX(-50%);
     z-index: 2;
     background: none;
     border: none;
@@ -634,6 +647,13 @@ body.sin-scroll { overflow: hidden; }
 }
 .entrar-completa:hover { color: var(--texto); }
 .figura-rueda:fullscreen .entrar-completa, .figura-rueda.completa .entrar-completa { display: none; }
+/* Con lugar de sobra, bien separados; en el celular se juntan para no
+   pisar el nombre ni el huso de las esquinas. Va despues de las reglas
+   de arriba para que gane. */
+@media (min-width: 640px) {
+    .ajustes-rueda { left: 28%; }
+    .entrar-completa { left: 72%; }
+}
 
 /* Panel de pantalla completa: otra carta y las vistas, en un rectangulo. */
 .panel-completa { display: none; }
