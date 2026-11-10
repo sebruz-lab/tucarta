@@ -1251,6 +1251,9 @@ body.sin-scroll { overflow: hidden; }
     cursor: pointer;
 }
 .lista-cartas .quitar:hover { color: var(--texto); }
+/* El lapiz y el tachito van uno al lado del otro: el primero ya deja el
+   aire que lo separa de la fila, asi que el segundo va pegado. */
+.lista-cartas .quitar + .quitar { padding-left: 2px; }
 .lista-cartas .confirmar-borrado { gap: 14px; padding: 12px 0; flex-wrap: wrap; }
 .pregunta-borrado { flex: 1; font-size: 0.95rem; }
 

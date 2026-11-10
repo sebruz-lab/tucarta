@@ -106,6 +106,25 @@ export function conSincro(remoto, uid, { alCambiar = () => {} } = {}) {
             return { ...carta, id };
         },
 
+        // Igual que guardar, pero sobre un id que ya existe: edita en vez
+        // de crear. Se encola como 'guardar', que es la misma operacion
+        // para la nube (escribir esa carta en ese id).
+        async editar(id, datos) {
+            const lista = copia();
+            if (!lista.some((c) => c.id === id)) return null;
+            const carta = { ...datosDeCarta(datos), guardada: new Date().toISOString() };
+            guardarCopia(ordenadas([{ ...carta, id }, ...lista.filter((c) => c.id !== id)]));
+
+            if (navigator.onLine) {
+                try {
+                    await remoto.escribirId(id, carta);
+                    return { ...carta, id };
+                } catch { /* se encola abajo */ }
+            }
+            encolar({ tipo: 'guardar', id, carta });
+            return { ...carta, id };
+        },
+
         async borrar(id) {
             guardarCopia(copia().filter((c) => c.id !== id));
             if (navigator.onLine) {

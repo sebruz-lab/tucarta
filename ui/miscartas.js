@@ -61,6 +61,17 @@ export const almacenLocal = {
         escribir([carta, ...lista.filter((c) => c.id !== carta.id)]);
         return carta;
     },
+    // Cambiar los datos de una carta que ya existe, sin crear otra.
+    // guardar() busca una carta igual para no duplicar, asi que no sirve
+    // para editar: justamente lo que cambia son los datos con los que la
+    // buscaria.
+    async editar(id, datos) {
+        const lista = leer();
+        if (!lista.some((c) => c.id === id)) return null;
+        const carta = { ...datosDeCarta(datos), id, guardada: new Date().toISOString() };
+        escribir([carta, ...lista.filter((c) => c.id !== id)]);
+        return carta;
+    },
     async borrar(id) {
         escribir(leer().filter((c) => c.id !== id));
     },

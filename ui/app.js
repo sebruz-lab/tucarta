@@ -93,12 +93,15 @@ const calcularEnWorker = (pedido) => new Promise((resolve, reject) => {
 
 const form = $('#datos');
 const formPareja = $('#form-pareja');
+const formEditar = $('#form-editar');
 let lugarElegido = null;
 conectarBuscador($('#lugar'), $('#sugerencias'), (l) => { lugarElegido = l; });
 let lugarRS = null;
 conectarBuscador($('#lugar-rs'), $('#sugerencias-rs'), (l) => { lugarRS = l; });
 let lugarPareja = null;
 conectarBuscador($('#lugar-pareja'), $('#sugerencias-pareja'), (l) => { lugarPareja = l; });
+let lugarEditar = null;
+conectarBuscador($('#lugar-editar'), $('#sugerencias-editar'), (l) => { lugarEditar = l; });
 // Al cargar las coordenadas a mano hay que elegir la zona horaria. Se
 // arranca con la del dispositivo, que suele ser la correcta y evita que
 // alguien de otro pais deje Buenos Aires sin darse cuenta. No se consulta
@@ -109,6 +112,7 @@ const ZONA_DEL_DISPOSITIVO = (() => {
 })();
 form.elements.zona.innerHTML = opcionesZonas(ZONA_DEL_DISPOSITIVO);
 formPareja.elements.zona.innerHTML = opcionesZonas(ZONA_DEL_DISPOSITIVO);
+formEditar.elements.zona.innerHTML = opcionesZonas(ZONA_DEL_DISPOSITIVO);
 
 // Hora en formato 24 h con dos listas: el <input type="time"> sigue el
 // formato del dispositivo y en muchos celulares muestra a. m. / p. m.
@@ -1436,6 +1440,98 @@ function restaurarPareja() {
     pintarResumenPareja();
 }
 
+// ---- Editar una carta guardada
+//
+// El lapiz de la lista. No alcanza con guardar() de nuevo: esa busca una
+// carta igual para no duplicar, y justamente lo que cambia son los datos
+// con los que la buscaria. Por eso los almacenes tienen editar(id, datos),
+// que escribe sobre el id que ya existe.
+const ventanaEditar = $('#ventana-editar');
+let editando = null;
+
+function abrirVentanaEditar(c) {
+    if (!c) return;
+    editando = c;
+    const f = formEditar.elements;
+    f.nombre.value = c.nombre || '';
+    f.fecha.value = c.fecha.split('-').reverse().join('/');
+    f.hora.value = c.hora;
+    f.lugar.value = '';
+    lugarEditar = null;
+    $('#manual-editar').open = false;
+    f.lat.value = '';
+    f.lon.value = '';
+    if (c.lugar.manual) {
+        $('#manual-editar').open = true;
+        f.lat.value = c.lugar.lat;
+        f.lon.value = c.lugar.lon;
+        f.zona.value = c.lugar.zona;
+    } else {
+        f.lugar.value = descripcionLugar(c.lugar);
+        // El lugar que ya tenia vale tal cual: si no lo toca, se guarda el
+        // mismo (el buscador solo avisa cuando eligen otro).
+        lugarEditar = c.lugar;
+    }
+    $('#error-editar').hidden = true;
+    ventanaEditar.showModal();
+}
+
+ventanaEditar.addEventListener('click', (e) => {
+    if (e.target.closest('[data-editar-accion="cerrar"]')) ventanaEditar.close();
+});
+// El lugar viene prellenado, y eso puede enganar: si alguien empieza a
+// escribir otra ciudad y no la elige de la lista, o carga las coordenadas
+// a mano, se guardaria el lugar viejo sin avisar. En cuanto toca el lugar
+// se olvida el anterior y vuelve a hacer falta elegirlo.
+$('#lugar-editar').addEventListener('input', () => { lugarEditar = null; });
+$('#manual-editar').addEventListener('toggle', () => {
+    if ($('#manual-editar').open) { lugarEditar = null; $('#lugar-editar').value = ''; }
+});
+formEditar.elements.fecha.addEventListener('input', barrasFecha);
+formEditar.elements.fecha.addEventListener('change', (e) => { e.target.value = completarFecha(e.target.value.trim()); });
+formEditar.elements.hora.addEventListener('change', (e) => { e.target.value = completarHora(e.target.value); });
+formEditar.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!editando) return;
+    const datos = leerDatosDe(formEditar.elements, lugarEditar, $('#manual-editar').open);
+    const err = $('#error-editar');
+    if (typeof datos === 'string') { err.textContent = datos; err.hidden = false; return; }
+    err.hidden = true;
+    // El tipo y el grupo no se editan aca: son de la carta, no del
+    // nacimiento, y se perderian sin que nadie los haya tocado.
+    const completos = { ...datos, tipo: editando.tipo, grupo: editando.grupo };
+    // La correccion de huso a mano y la eleccion de una hora ambigua valen
+    // para ese momento y ese lugar. Si cambiaron, no se arrastran: un huso
+    // corregido para otra fecha da una carta mal sin avisar. Si solo se
+    // corrigio el nombre, se conservan.
+    const mismoLugar = (a, b) => Math.abs(a.lat - b.lat) < 1e-6 && Math.abs(a.lon - b.lon) < 1e-6
+        && a.zona === b.zona;
+    const mismoMomento = datos.fecha === editando.fecha && datos.hora === editando.hora
+        && mismoLugar(datos.lugar, editando.lugar);
+    if (mismoMomento) {
+        completos.correccion = editando.correccion || null;
+        completos.eleccion = editando.eleccion || 0;
+    }
+    const id = editando.id;
+    // Si la carta que se esta mirando es esta misma, hay que recalcularla:
+    // si no, queda en pantalla la vieja con los datos nuevos en la lista.
+    const esLaDeAhora = estado.datos && igualQue(estado.datos, editando);
+    try {
+        await almacen.editar(id, completos);
+    } catch (error) {
+        console.error(error);
+        err.textContent = 'No pudimos guardar los cambios. Probá de nuevo.';
+        err.hidden = false;
+        return;
+    }
+    editando = null;
+    ventanaEditar.close();
+    await pintarBotonGuardar();
+    pintarListaCartas();
+    evento('carta_editada', {});
+    if (esLaDeAhora) await abrirGuardada({ ...completos, id }, { mismaVista: true, origen: 'editar' });
+});
+
 // ---------- Revolucion solar ----------
 
 async function calcularRevolucionSolar() {
@@ -2552,6 +2648,7 @@ function pintarListaCartas() {
                 <span class="nombre">${escapar(nombre)}${tipoDe(c) !== 'natal' ? ` <span class="tipo-carta">${TIPOS[tipoDe(c)]}</span>` : ''}${c.grupo ? ` <span class="tipo-carta">${escapar(c.grupo)}</span>` : ''}</span>
                 <span class="nota">${c.fecha.split('-').reverse().join('/')} · ${escapar(c.hora)} h · ${escapar(lugar)}</span>
             </button>
+            <button type="button" class="quitar" data-editar="${escapar(c.id)}" aria-label="Editar la carta de ${escapar(nombre)}" title="Editar"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3M13.5 6.5l4 4"/></svg></button>
             <button type="button" class="quitar" data-quitar="${escapar(c.id)}" aria-label="Borrar la carta de ${escapar(nombre)}" title="Borrar"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 3h4M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button>
         </li>`;
     }).join('');
@@ -2747,9 +2844,12 @@ $('#ventana-importar').addEventListener('click', async (e) => {
 $('#lista-cartas').addEventListener('click', async (e) => {
     const abrir = e.target.closest('[data-abrir]')?.dataset.abrir;
     const quitar = e.target.closest('[data-quitar]')?.dataset.quitar;
+    const editar = e.target.closest('[data-editar]')?.dataset.editar;
     const si = e.target.closest('[data-borrar-si]')?.dataset.borrarSi;
     if (abrir) {
         await abrirGuardada(guardadas.find((x) => x.id === abrir));
+    } else if (editar) {
+        abrirVentanaEditar(guardadas.find((x) => x.id === editar));
     } else if (quitar) {
         porBorrar = quitar;
         pintarListaCartas();

@@ -199,6 +199,41 @@
         </form>
     </dialog>
 
+    <dialog id="ventana-editar" class="ventana-cuenta ventana-pareja" aria-labelledby="titulo-editar">
+        <button type="button" class="cerrar" data-editar-accion="cerrar" aria-label="Cerrar">×</button>
+        <h2 id="titulo-editar">Editar la carta</h2>
+        <form id="form-editar" class="datos" novalidate>
+            <label class="campo"><span>Nombre <span class="opcional">(opcional)</span></span>
+                <input type="text" name="nombre" maxlength="60" autocomplete="off">
+            </label>
+            <div class="fila">
+                <label class="campo"><span>Fecha <span class="opcional">(DD/MM/AAAA)</span></span>
+                    <input type="text" name="fecha" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="30">
+                </label>
+                <label class="campo">Hora de nacimiento
+                    <input type="text" name="hora" inputmode="numeric" placeholder="HH:MM" maxlength="20" autocomplete="off">
+                </label>
+            </div>
+            <div class="campo lugar">
+                <label for="lugar-editar">¿Dónde nació?</label>
+                <input id="lugar-editar" type="text" name="lugar" autocomplete="off"
+                    placeholder="Escribí las primeras letras de la ciudad y elegila de la lista"
+                    role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias-editar">
+                <ul id="sugerencias-editar" class="sugerencias" role="listbox" hidden></ul>
+            </div>
+            <details class="manual" id="manual-editar">
+                <summary>¿No encontrás el lugar? Cargá las coordenadas</summary>
+                <div class="fila">
+                    <label class="campo">Latitud <input type="text" name="lat" inputmode="decimal" placeholder="-34.65 o 34°39'S"></label>
+                    <label class="campo">Longitud <input type="text" name="lon" inputmode="decimal" placeholder="-58.62 o 58°37'O"></label>
+                </div>
+                <label class="campo">Zona horaria <select name="zona"></select></label>
+            </details>
+            <p class="error" id="error-editar" role="alert" hidden></p>
+            <button type="submit" class="boton boton-principal">Guardar los cambios</button>
+        </form>
+    </dialog>
+
     <form id="datos" class="datos" novalidate>
         <label class="campo"><span>¿Qué querés calcular?</span>
             <select name="tipo">
