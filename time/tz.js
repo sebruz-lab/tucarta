@@ -55,11 +55,13 @@ export function husoEn(zona, utcSeg) {
     const periodos = tabla.zonas[zona];
     if (!periodos) {
         const total = offsetIntl(zona, utcSeg);
-        return { total, base: total, verano: null };
+        return { total, base: total, verano: null, oficial: false };
     }
     let p = periodos[0];
     for (const x of periodos) if (x[0] <= utcSeg) p = x; else break;
-    return { total: p[1], base: p[1] - p[2], verano: p[2] };
+    // p[3] marca los tramos donde corregimos la base IANA con la hora
+    // oficial argentina (ver time/correcciones.js).
+    return { total: p[1], base: p[1] - p[2], verano: p[2], oficial: p[3] === 1 };
 }
 
 export function segundosLocales(fecha, hora) {

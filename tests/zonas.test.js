@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import indice from '../time/zonas.json';
 import { archivoDeZona } from '../time/archivo.js';
+import { estaCorregido } from '../time/correcciones.js';
 
 // El detalle de cada zona vive en su propio archivo (ui/public/husos/).
 const tabla = {
@@ -48,6 +49,9 @@ describe.skipIf(!mismaTz)(`tzdata ${tabla.version} vs Intl (ICU ${process.versio
             for (let s = DESDE; s < HASTA; s += 6 * 3600) instantes.push(s);
             for (const [d] of periodos) if (d >= DESDE) instantes.push(d - 1, d, d + 1);
             const fallas = instantes
+                // Los tramos de time/correcciones.js son justamente donde
+                // no seguimos a IANA: Intl no puede confirmarlos.
+                .filter((s) => !estaCorregido(zona, s))
                 .filter((s) => offsetIntl(zona, s) !== offsetTabla(periodos, s))
                 .map((s) => `${new Date(s * 1000).toISOString()} intl=${offsetIntl(zona, s)} tabla=${offsetTabla(periodos, s)}`);
             expect(fallas.slice(0, 5)).toEqual([]);

@@ -8,6 +8,7 @@
 
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { archivoDeZona } from '../archivo.js';
+import { corregir, tramosCorregidos } from '../correcciones.js';
 
 const RAW = new URL('./raw/', import.meta.url);
 const ARCHIVOS = ['southamerica', 'europe', 'africa', 'northamerica', 'asia', 'australasia', 'antarctica',
@@ -213,12 +214,19 @@ function coincideConIntl(zona, periodos) {
         for (const p of periodos) if (p[0] <= seg) r = p; else break;
         return r[1];
     };
+    // Donde corregimos a mano la base IANA (ver time/correcciones.js) no
+    // hay nada que comparar: Intl usa tzdata tal cual. El control sigue
+    // valiendo para todo el resto de la historia de la zona.
+    const tramos = tramosCorregidos(zona);
+    const corregido = (seg) => tramos.some(([a, b]) => seg >= a && seg < b);
     for (let seg = DESDE_CONTROL; seg < HASTA_CONTROL; seg += 6 * 3600) {
+        if (corregido(seg)) continue;
         if (offsetIntl(zona, seg) !== offset(seg)) return false;
     }
     for (const [cambio] of periodos) {
         if (cambio < DESDE_CONTROL || cambio > HASTA_CONTROL) continue;
         for (const seg of [cambio - 1, cambio, cambio + 1]) {
+            if (corregido(seg)) continue;
             if (offsetIntl(zona, seg) !== offset(seg)) return false;
         }
     }
@@ -235,7 +243,7 @@ for (const nombre of todas) {
     const archivo = archivoDeZona(nombre);
     if (usados.has(archivo)) throw new Error(`Dos zonas con el mismo archivo: ${usados.get(archivo)} y ${nombre} -> ${archivo}`);
     usados.set(archivo, nombre);
-    const ps = periodos(zonas[real], reglas);
+    const ps = corregir(nombre, periodos(zonas[real], reglas));
     if (!coincideConIntl(nombre, ps)) { descartadas.push(nombre); continue; }
     const json = JSON.stringify(ps);
     writeFileSync(new URL(archivo, salida), json);

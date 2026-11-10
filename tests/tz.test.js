@@ -57,8 +57,32 @@ describe('base y horario de verano por separado', () => {
     it('Buenos Aires 1991: base -3 con verano +1', () => {
         expect(caso('America/Argentina/Buenos_Aires', '1991-02-01', '21:33')).toMatchObject({ base: -3 * H, verano: H });
     });
-    it('Córdoba entre marzo y octubre de 1991: -4 sin verano', () => {
-        expect(caso('America/Argentina/Cordoba', '1991-06-15', '12:00')).toMatchObject({ base: -4 * H, verano: 0 });
+    // tzdata da -4 para las ocho provincias de la zona Córdoba entre
+    // marzo y octubre de 1991. La hora oficial argentina fue -3, y el
+    // atlas de ACS (el que usa Solar Fire) también da -3 para todas
+    // ellas: ver time/correcciones.js.
+    it('Córdoba entre marzo y octubre de 1991: -3, la hora oficial', () => {
+        expect(caso('America/Argentina/Cordoba', '1991-06-15', '12:00'))
+            .toMatchObject({ base: -3 * H, verano: 0, oficial: true });
+    });
+    it('Paraná, el 31/3/1991 a las 06:45, igual que Solar Fire', () => {
+        const r = localAUtc({ fecha: '1991-03-31', hora: '06:45' }, 'America/Argentina/Cordoba');
+        expect(r.opciones[0].total).toBe(-3 * H);
+        expect(r.opciones[0].utc).toMatchObject({ anio: 1991, mes: 3, dia: 31, hora: 9, minuto: 45 });
+    });
+    it('la corrección empieza y termina donde dice la hora oficial', () => {
+        // Hasta las 24 h del 2/3/1991 rige el verano -2; desde las 0 h del
+        // 3/3, -3. Y el verano siguiente arranca a las 0 h del 20/10.
+        expect(caso('America/Argentina/Cordoba', '1991-03-02', '23:30').total).toBe(-2 * H);
+        expect(caso('America/Argentina/Cordoba', '1991-03-03', '00:30').total).toBe(-3 * H);
+        expect(caso('America/Argentina/Cordoba', '1991-10-19', '23:30').total).toBe(-3 * H);
+        expect(caso('America/Argentina/Cordoba', '1991-10-20', '01:30').total).toBe(-2 * H);
+    });
+    it('Buenos Aires y Jujuy no se tocan', () => {
+        expect(caso('America/Argentina/Buenos_Aires', '1991-06-15', '12:00'))
+            .toMatchObject({ base: -3 * H, verano: 0, oficial: false });
+        expect(caso('America/Argentina/Jujuy', '1991-06-30', '13:00'))
+            .toMatchObject({ base: -4 * H, verano: 0, oficial: false });
     });
     it('Mendoza 1992: verano sobre base -4', () => {
         expect(caso('America/Argentina/Mendoza', '1992-01-15', '12:00')).toMatchObject({ base: -4 * H, verano: H });

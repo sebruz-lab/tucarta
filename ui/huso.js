@@ -23,6 +23,15 @@ export function panelHuso(resultado, eleccion, corrigiendo) {
 
     if (resultado.estado === 'manual') {
         partes.push('<p class="aviso">Usás un huso corregido a mano.</p>');
+    } else if (o.oficial) {
+        // Donde la base IANA no coincide con la hora legal argentina
+        // usamos la oficial, que es la que marcaban los relojes de quienes
+        // anotaron esos nacimientos. Conviene decirlo: otras páginas y
+        // otros programas, que siguen a IANA sin más, van a dar otra hora.
+        partes.push(`<p class="nota">Para esta fecha usamos la <strong>hora oficial argentina</strong>, la que fijó el
+            Servicio de Hidrografía Naval y marcaban los relojes acá. La base horaria IANA ${VERSION_TZ} (la que usan
+            la mayoría de las páginas y los programas) estima otro huso para esta provincia en estos meses, así que
+            es probable que en otro lado te den una carta distinta. Si sabés que la hora era otra, corregila acá abajo.</p>`);
     } else {
         const fuente = o.verano === null ? 'la base horaria IANA de tu navegador' : `la base horaria IANA ${VERSION_TZ}`;
         partes.push(`<p class="nota">Zona ${escapar(resultado.zona)}, según ${fuente}.</p>`);
