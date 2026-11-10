@@ -1,0 +1,111 @@
+To: tz@iana.org
+Subject: Argentina 1991-1993: America/Argentina/Cordoba groups provinces that kept different time
+
+Hello,
+
+I maintain a small astrological chart calculator that converts birth
+dates and times to UTC, so historical offsets for Argentina matter to us
+in one-minute increments. While checking our results against the ACS
+Atlas (through Solar Fire), we found a case where tzdata and that atlas
+disagree, and where tzdata's own comments suggest the data may need a
+second look. I am not asking for a specific change -- just flagging what
+we found, with sources.
+
+1. The 1991 -04 period in America/Argentina/Cordoba
+
+southamerica currently has:
+
+    # Cordoba (CB), Santa Fe (SF), Entre Rios (ER), Corrientes (CN),
+    # Misiones (MN), Chaco (CC), Formosa (FM), Santiago del Estero (SE)
+    Zone America/Argentina/Cordoba ...
+                -3:00   Arg     %z      1991 Mar  3
+                -4:00   -       %z      1991 Oct 20
+
+So all eight provinces are at -04 from 1991-03-03 to 1991-10-20.
+
+Two things argue against applying that to the whole group:
+
+(a) The file's own comment, a few lines above, says Shanks & Pottenger
+    claim that four of those eight provinces were NOT at -04 in that
+    period:
+
+    # - Formosa switched to -3:00 on 1991-01-07.
+    # - Misiones switched to -3:00 on 1990-12-29.
+    # - Chaco switched to -3:00 on 1991-01-04.
+    # - Santiago del Estero switched to -4:00 on 1991-04-01,
+    #   then to -3:00 on 1991-04-26.
+
+(b) For Entre Rios, the ACS Atlas gives -03, not -04, in that same
+    period. A chart cast for Parana, Entre Rios, 1991-03-31 06:45 local
+    is computed by Solar Fire at UTC-3. For contrast, the same program
+    gives UTC-4 for San Salvador de Jujuy on 1991-06-30, matching
+    America/Argentina/Jujuy. So the atlas does distinguish between these
+    provinces, and tzdata's grouping flattens that distinction.
+
+Since the header note says "Unless otherwise specified, data entries are
+from Shanks & Pottenger through 1992", and the Cordoba zone comment says
+Shanks & Pottenger split that region into six subregions during
+1991/1992 ("we haven't verified this yet"), it looks like the -04 line
+may be carrying Cordoba's own history for provinces that did not share
+it.
+
+2. The national legal time was -03 throughout that period
+
+Argentina's official time is published by the Servicio de Hidrografia
+Naval, the body that keeps and distributes legal time:
+
+    https://www.hidro.gov.ar/observatorio/LaHora.asp?op=3
+
+Its historical table lists, without any provincial qualification:
+
+    from 1991-03-03 to 1991-10-19   -3
+    from 1991-10-20 to 1992-02-29   -2
+    from 1992-03-01 to 1992-10-17   -3
+    from 1992-10-18 to 1993-03-06   -2
+
+So -04 in 1991 was in every case a provincial departure from legal time,
+not the national rule. That does not by itself refute the -04 entries
+(provinces did depart from national time in 2004 and 2008, as the file
+already documents), but it does mean each -04 needs province-level
+evidence, and right now eight provinces share one line.
+
+3. A second period worth checking: DST 1992-93
+
+For the 1992-93 summer, tzdata applies -02 (the national DST) to every
+Argentine zone except San_Luis. Spanish-language secondary sources,
+citing contemporary press, say that most provinces did not adopt DST
+that summer and that only Buenos Aires, Jujuy, Tucuman, Catamarca,
+Entre Rios, Santa Cruz and Tierra del Fuego did:
+
+    https://es.wikipedia.org/wiki/Hora_oficial_argentina
+
+The same article documents the 1991-92 summer as the first one with
+widespread non-adoption, and documents Mendoza's provincial law 5566
+(standard time at -04, DST at -03, in force in 1991 and 1992, repealed
+by law 5841 in April 1992), which is consistent with the current
+America/Argentina/Mendoza entries.
+
+I realise Wikipedia is a secondary source. I mention it because it cites
+newspaper coverage from the period and because it lines up with (1):
+these were years when provincial practice diverged from national law,
+and the current grouping of Cordoba cannot represent that.
+
+What would help
+
+If anyone on the list has access to provincial decrees or newspaper
+archives from 1991-1993, the specific questions are:
+
+  - Did Entre Rios and Santa Fe follow Cordoba to -04 in 1991, or did
+    they stay at -03 as the ACS Atlas indicates for Entre Rios?
+  - Which provinces observed DST in the 1991-92 and 1992-93 summers?
+
+I am happy to help chase Argentine sources (I am based in Argentina) if
+that is useful, and to send the chart data behind the Solar Fire
+comparisons.
+
+Thanks for maintaining this -- the per-province detail already in the
+file for 2004 and 2008 is far better than what most sources have.
+
+Best regards,
+[tu nombre]
+[sebabru.com]
