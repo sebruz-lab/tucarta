@@ -23,7 +23,7 @@ export function panelHuso(resultado, eleccion, corrigiendo) {
 
     if (resultado.estado === 'manual') {
         partes.push('<p class="aviso">Usás un huso corregido a mano.</p>');
-    } else if (o.oficial) {
+    } else if (o.correccion === 1) {
         // Donde la base IANA no coincide con la hora legal argentina
         // usamos la oficial, que es la que marcaban los relojes de quienes
         // anotaron esos nacimientos. Conviene decirlo: otras páginas y
@@ -32,6 +32,27 @@ export function panelHuso(resultado, eleccion, corrigiendo) {
             Servicio de Hidrografía Naval y marcaban los relojes acá. La base horaria IANA ${VERSION_TZ} (la que usan
             la mayoría de las páginas y los programas) estima otro huso para esta provincia en estos meses, así que
             es probable que en otro lado te den una carta distinta. Si sabés que la hora era otra, corregila acá abajo.</p>`);
+    } else if (o.correccion === 2) {
+        // El caso opuesto al de arriba: acá la que se aparta de la hora
+        // oficial es la provincia. En esos veranos el país quedó partido y
+        // los relojes no coincidían ni dentro de una misma provincia, así
+        // que lo único honesto es decirlo y dejar la corrección a mano.
+        partes.push(`<p class="nota">Para esta fecha usamos el huso de la provincia, que
+            <strong>no adhirió al horario de verano</strong> de ese año: el país adelantaba una hora y acá los relojes
+            no se movieron. La base horaria IANA ${VERSION_TZ} (la que usan la mayoría de las páginas y los programas)
+            le aplica el horario de verano nacional, así que en otro lado es probable que te den la carta una hora
+            corrida. En esos veranos la adhesión fue provincia por provincia y hubo lugares que no siguieron a su
+            propia provincia: si sabés que la hora era otra, corregila acá abajo.</p>`);
+    } else if (o.provincial) {
+        // Una hora provincial que no corregimos nosotros: ya viene así en
+        // la base IANA (Mendoza por su ley 5566, las del oeste en 2004,
+        // las exceptuadas del decreto 1705/2008, San Luis hasta 2010).
+        // Acá no hay discrepancia con nadie, pero conviene avisarlo: es
+        // una hora que no figura en ninguna tabla nacional.
+        partes.push(`<p class="nota">Para esta fecha esta provincia tenía un <strong>horario propio</strong>,
+            distinto de la hora oficial argentina: usamos el provincial, que es el que marcaban los relojes del lugar.
+            Si buscás esa fecha en una tabla de la hora oficial del país te va a dar otro huso. Si sabés que la hora
+            era otra, corregila acá abajo.</p>`);
     } else {
         const fuente = o.verano === null ? 'la base horaria IANA de tu navegador' : `la base horaria IANA ${VERSION_TZ}`;
         partes.push(`<p class="nota">Zona ${escapar(resultado.zona)}, según ${fuente}.</p>`);

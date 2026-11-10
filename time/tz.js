@@ -25,9 +25,53 @@ const tabla = { zonas: {} };
 let traerZona = null;
 export function configurarHusos(fn) { traerZona = fn; }
 
+// ---------- Horario provincial argentino ----------
+//
+// Entre 1990 y 2010 varias provincias tuvieron, por ley o decreto propio,
+// una hora distinta de la oficial nacional: Mendoza con su ley 5566, las
+// del oeste en 2004, las once exceptuadas del decreto 1705/2008 (mas
+// Jujuy, que se autoexcluyo) y San Luis hasta 2010. La carta lo avisa,
+// porque es una hora que no figura en ninguna tabla nacional y sorprende
+// a cualquiera que la mire.
+//
+// La hora oficial la lleva Buenos Aires: es la del meridiano que fija la
+// ley y la unica que nunca se aparto. Se compara contra ella en lugar de
+// repetir la tabla del Servicio de Hidrografia Naval, que habria que
+// mantener al dia por separado y podria quedar distinta de los husos.
+const OFICIAL_AR = 'America/Argentina/Buenos_Aires';
+const ALIAS_OFICIAL_AR = 'America/Buenos_Aires';
+// Desde el 5/10/1969 todas las zonas argentinas arrancan iguales (-3 con
+// las reglas nacionales). Antes cada una tiene su hora local media y no
+// hay con que comparar.
+const DESDE_OFICIAL_AR = Date.UTC(1969, 9, 5) / 1000;
+const ZONAS_AR = new Set([
+    'America/Argentina/Buenos_Aires', 'America/Argentina/Catamarca',
+    'America/Argentina/ComodRivadavia', 'America/Argentina/Cordoba',
+    'America/Argentina/Jujuy', 'America/Argentina/La_Rioja',
+    'America/Argentina/Mendoza', 'America/Argentina/Rio_Gallegos',
+    'America/Argentina/Salta', 'America/Argentina/San_Juan',
+    'America/Argentina/San_Luis', 'America/Argentina/Tucuman',
+    'America/Argentina/Ushuaia', 'America/Buenos_Aires', 'America/Catamarca',
+    'America/Cordoba', 'America/Jujuy', 'America/Mendoza', 'America/Rosario'
+]);
+
+// Si en ese instante esa provincia tenia una hora distinta de la oficial
+// argentina.
+export function esProvincial(zona, utcSeg) {
+    if (!ZONAS_AR.has(zona) || zona === OFICIAL_AR || zona === ALIAS_OFICIAL_AR) return false;
+    if (utcSeg < DESDE_OFICIAL_AR) return false;
+    return husoEn(zona, utcSeg).total !== husoEn(OFICIAL_AR, utcSeg).total;
+}
+
 // Deja lista una zona para que husoEn y localAUtc la usen. Si falla la
 // bajada no pasa nada: se sigue con Intl.
 export async function cargarZona(zona) {
+    // Para una zona argentina hace falta tambien Buenos Aires, que es con
+    // lo que se compara para saber si el horario era provincial. Es otro
+    // archivo de 1,5 KB y solo para los lugares de Argentina.
+    if (ZONAS_AR.has(zona) && zona !== OFICIAL_AR && zona !== ALIAS_OFICIAL_AR) {
+        await cargarZona(OFICIAL_AR);
+    }
     if (!zona || !traerZona || tabla.zonas[zona] || !CON_DETALLE.has(zona)) return;
     try {
         const periodos = await traerZona(archivoDeZona(zona));
@@ -55,13 +99,14 @@ export function husoEn(zona, utcSeg) {
     const periodos = tabla.zonas[zona];
     if (!periodos) {
         const total = offsetIntl(zona, utcSeg);
-        return { total, base: total, verano: null, oficial: false };
+        return { total, base: total, verano: null, correccion: 0 };
     }
     let p = periodos[0];
     for (const x of periodos) if (x[0] <= utcSeg) p = x; else break;
-    // p[3] marca los tramos donde corregimos la base IANA con la hora
-    // oficial argentina (ver time/correcciones.js).
-    return { total: p[1], base: p[1] - p[2], verano: p[2], oficial: p[3] === 1 };
+    // p[3] marca los tramos donde corregimos la base IANA: 1 cuando
+    // usamos la hora oficial argentina y 2 cuando la provincia no adhirio
+    // al horario de verano nacional (ver time/correcciones.js).
+    return { total: p[1], base: p[1] - p[2], verano: p[2], correccion: p[3] || 0 };
 }
 
 export function segundosLocales(fecha, hora) {
@@ -94,6 +139,20 @@ export function localAUtc({ fecha, hora }, zona, correccion = null) {
     const tentativo = Number(fecha.slice(0, 4)) < ANIO_TENTATIVO;
     const lectura = (h) => ({ utcSeg: local - h.total, utc: partesUtc(local - h.total), ...h });
 
+    // Lo mismo, pero tomando la base, el verano y la marca de correccion
+    // del tramo que de verdad contiene ese instante. Los husos que se
+    // prueban abajo se juntan por offset total, y dos tramos distintos
+    // pueden tener el mismo total: por ejemplo un verano corregido y el
+    // invierno siguiente, los dos en -3, uno con marca y el otro sin. Sin
+    // esto la marca podia venir de un tramo vecino, hasta 36 h mas alla,
+    // y la carta avisaba de menos o de mas.
+    const lecturaDelTramo = (h) => {
+        const l = lectura(h);
+        const real = husoEn(zona, l.utcSeg);
+        const con = real.total === h.total ? { ...l, ...real } : l;
+        return { ...con, provincial: esProvincial(zona, l.utcSeg) };
+    };
+
     if (correccion) {
         const h = { total: correccion.base + correccion.verano, base: correccion.base, verano: correccion.verano };
         return { estado: 'manual', opciones: [lectura(h)], tentativo, zona };
@@ -110,11 +169,11 @@ export function localAUtc({ fecha, hora }, zona, correccion = null) {
     // Una lectura vale si el huso que supone es el que realmente regia.
     const validas = [...husos.values()]
         .filter((h) => husoEn(zona, local - h.total).total === h.total)
-        .map(lectura)
+        .map(lecturaDelTramo)
         .sort((a, b) => a.utcSeg - b.utcSeg);
 
     if (validas.length === 1) return { estado: 'ok', opciones: validas, tentativo, zona };
     if (validas.length > 1) return { estado: 'ambigua', opciones: validas, tentativo, zona };
-    const todas = [...husos.values()].map(lectura).sort((a, b) => a.utcSeg - b.utcSeg);
+    const todas = [...husos.values()].map(lecturaDelTramo).sort((a, b) => a.utcSeg - b.utcSeg);
     return { estado: 'inexistente', opciones: todas, tentativo, zona };
 }

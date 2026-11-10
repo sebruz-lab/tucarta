@@ -1,0 +1,44 @@
+{
+    "_nota": "Lecturas del atlas de ACS (Shanks) consultadas con Solar Fire, provincia por provincia. Es la evidencia detras de las correcciones de time/correcciones.js para la Argentina de 1990-1993. 'sigla' es la etiqueta tal como la muestra Solar Fire y 'offset' el huso que aplica: el offset es el dato que vale, porque las siglas de Solar Fire para la Argentina son inconsistentes (usa BZT2 y BZ2D, de Brazil Zone 2, y ADT/AST del huso del Atlantico).",
+    "_fuente": "Solar Fire, consultado por Seba Bru el 10/11/2026",
+    "_verificado": "El offset es el campo autoritativo: coincide con tests/fixtures/solarfire/jujuy-1991.json, que registra -04:00 para Jujuy el 30/6/1991 leido de una carta entera.",
+    "lecturas": [
+        { "provincia": "Jujuy", "local": "1988-06-11", "sigla": "BZ2D", "offset": "-03:00" },
+        { "provincia": "Jujuy", "local": "1989-06-11", "sigla": "BZ2D", "offset": "-03:00" },
+        { "provincia": "Jujuy", "local": "1990-06-11", "sigla": "ADT", "offset": "-04:00" },
+        { "provincia": "Jujuy", "local": "1991-06-11", "sigla": "ADT", "offset": "-04:00" },
+        { "provincia": "Jujuy", "local": "1992-06-11", "sigla": "BZ2D", "offset": "-03:00" },
+
+        { "provincia": "Jujuy", "local": "1988-12-11", "sigla": "BZ2D", "offset": "-02:00" },
+        { "provincia": "Jujuy", "local": "1989-12-11", "sigla": "BZ2D", "offset": "-02:00" },
+        { "provincia": "Jujuy", "local": "1990-12-11", "sigla": "ADT", "offset": "-03:00" },
+        { "provincia": "Jujuy", "local": "1991-12-11", "sigla": "BZ2D", "offset": "-02:00" },
+        {
+            "provincia": "Jujuy", "local": "1992-12-11", "sigla": "BZ2D", "offset": "-03:00",
+            "_dudosa": "Es la unica lectura internamente incoherente de la tanda: BZ2D es la sigla del horario de verano (-02:00) y el offset dice -03:00. Ademas Wikipedia pone a Jujuy entre las siete provincias que si adhirieron en el verano 92-93. Por eso NO se corrigio Jujuy para ese verano: queda pendiente volver a leerla."
+        },
+
+        { "provincia": "Salta, Tucuman, Catamarca, Chubut", "local": "1988-12-11", "sigla": "BZ2D", "offset": "-02:00" },
+        { "provincia": "Salta, Tucuman, Catamarca, Chubut", "local": "1989-12-11", "sigla": "BZ2D", "offset": "-02:00" },
+        { "provincia": "Salta, Tucuman, Catamarca, Chubut", "local": "1990-12-11", "sigla": "BZT2", "offset": "-03:00" },
+        { "provincia": "Salta, Tucuman, Catamarca, Chubut", "local": "1991-12-11", "sigla": "BZT2", "offset": "-03:00" },
+        { "provincia": "Salta, Tucuman, Catamarca, Chubut", "local": "1992-12-11", "sigla": "BZT2", "offset": "-03:00" },
+
+        { "provincia": "La Rioja", "local": "1990-12-11", "sigla": "BZT2", "offset": "-03:00" },
+        { "provincia": "La Rioja", "local": "1991-12-11", "sigla": "BZT2", "offset": "-03:00" },
+        { "provincia": "La Rioja", "local": "1992-12-11", "sigla": "BZT2", "offset": "-03:00" },
+
+        { "provincia": "San Juan", "local": "1988-12-11", "sigla": "BZ2D", "offset": "-02:00" },
+        { "provincia": "San Juan", "local": "1989-12-11", "sigla": "BZ2D", "offset": "-02:00" },
+        { "provincia": "San Juan", "local": "1990-12-11", "sigla": "BZT2", "offset": "-02:00" },
+        { "provincia": "San Juan", "local": "1991-12-11", "sigla": "BZT2", "offset": "-03:00" },
+        { "provincia": "San Juan", "local": "1992-12-11", "sigla": "BZT2", "offset": "-03:00" }
+    ],
+    "_invierno_resto": "Para el 11 de junio de 1988 a 1992, Solar Fire da -03:00 en todas las demas provincias consultadas (Salta, Tucuman, Catamarca, Chubut, La Rioja y San Juan). Mendoza y San Luis no se consultaron: su -04:00 esta documentado por la ley mendocina 5566 y se deja como lo tiene tzdata.",
+    "_pendientes": [
+        "Jujuy el 11/12/1992: relectura, por la incoherencia de arriba.",
+        "Diciembre de 1990, 1991 y 1992 en Buenos Aires, Cordoba, Santa Cruz y Tierra del Fuego.",
+        "La Rioja y San Juan dentro de la ventana del 1/3 al 7/5/1991, y Santiago del Estero entre el 1 y el 26 de abril de 1991.",
+        "Mendoza y San Luis el 11/6 de 1990, 1991 y 1992, para confirmar la ley 5566."
+    ]
+}
