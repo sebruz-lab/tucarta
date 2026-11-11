@@ -14,8 +14,8 @@
         { "provincia": "Jujuy", "local": "1990-12-11", "sigla": "ADT", "offset": "-03:00" },
         { "provincia": "Jujuy", "local": "1991-12-11", "sigla": "BZ2D", "offset": "-02:00" },
         {
-            "provincia": "Jujuy", "local": "1992-12-11", "sigla": "BZ2D", "offset": "-03:00",
-            "_dudosa": "Es la unica lectura internamente incoherente de la tanda: BZ2D es la sigla del horario de verano (-02:00) y el offset dice -03:00. Ademas Wikipedia pone a Jujuy entre las siete provincias que si adhirieron en el verano 92-93. Por eso NO se corrigio Jujuy para ese verano: queda pendiente volver a leerla."
+            "provincia": "Jujuy", "local": "1992-12-11", "sigla": "BZT2", "offset": "-03:00",
+            "_releida": "La primera lectura decia BZ2D -03:00 y se contradecia a si misma: BZ2D es la sigla del horario de verano (-02:00). Releida da BZT2 -03:00, con la sigla de invierno y el offset de acuerdo, asi que Jujuy no adhirio al horario de verano 92-93. Contradice la lista de adherentes de Wikipedia, que la incluye, pero esa lista no esta citada."
         },
 
         { "provincia": "Salta, Tucuman, Catamarca, Chubut", "local": "1988-12-11", "sigla": "BZ2D", "offset": "-02:00" },
@@ -32,13 +32,47 @@
         { "provincia": "San Juan", "local": "1989-12-11", "sigla": "BZ2D", "offset": "-02:00" },
         { "provincia": "San Juan", "local": "1990-12-11", "sigla": "BZT2", "offset": "-02:00" },
         { "provincia": "San Juan", "local": "1991-12-11", "sigla": "BZT2", "offset": "-03:00" },
-        { "provincia": "San Juan", "local": "1992-12-11", "sigla": "BZT2", "offset": "-03:00" }
+        { "provincia": "San Juan", "local": "1992-12-11", "sigla": "BZT2", "offset": "-03:00" },
+
+        { "provincia": "Buenos Aires", "local": "1990-12-11", "sigla": "BZ2D", "offset": "-02:00" },
+        { "provincia": "Buenos Aires", "local": "1991-12-11", "sigla": "BZ2D", "offset": "-02:00" },
+        { "provincia": "Buenos Aires", "local": "1992-12-11", "sigla": "BZ2D", "offset": "-02:00" },
+        { "provincia": "Santa Cruz", "local": "1990-12-11", "sigla": "BZ2D", "offset": "-02:00" },
+        { "provincia": "Santa Cruz", "local": "1991-12-11", "sigla": "BZ2D", "offset": "-02:00" },
+        { "provincia": "Santa Cruz", "local": "1992-12-11", "sigla": "BZ2D", "offset": "-02:00" },
+        { "provincia": "Tierra del Fuego", "local": "1990-12-11", "sigla": "BZ2D", "offset": "-02:00" },
+        { "provincia": "Tierra del Fuego", "local": "1991-12-11", "sigla": "BZ2D", "offset": "-02:00" },
+        { "provincia": "Tierra del Fuego", "local": "1992-12-11", "sigla": "BZ2D", "offset": "-02:00" },
+
+        {
+            "provincia": "Cordoba", "local": "1990-12-11", "sigla": "BZT2", "offset": "-03:00",
+            "_zona_partida": "La zona America/Argentina/Cordoba cubre ocho provincias y en el verano 90-91 no fueron todas juntas: Cordoba no adhirio (-03:00) y Parana si (-02:00). La zona queda en el -02:00 nacional, que es lo que leyo Parana y el mejor pronostico para las seis provincias sin consultar, y se avisa en pantalla por Cordoba (ver time/avisos.js)."
+        },
+        { "provincia": "Cordoba", "local": "1991-12-11", "sigla": "BZT2", "offset": "-03:00" },
+        { "provincia": "Cordoba", "local": "1992-12-11", "sigla": "BZT2", "offset": "-03:00" },
+
+        { "provincia": "Entre Rios (Parana)", "local": "1988-12-11", "sigla": null, "offset": "-02:00" },
+        { "provincia": "Entre Rios (Parana)", "local": "1989-12-11", "sigla": null, "offset": "-02:00" },
+        { "provincia": "Entre Rios (Parana)", "local": "1990-12-11", "sigla": null, "offset": "-02:00" },
+        {
+            "provincia": "Entre Rios (Parana)", "local": "1991-12-11", "sigla": null, "offset": "-03:00",
+            "_nota": "Entre Rios tampoco adhirio en el 91-92 ni en el 92-93, igual que Cordoba. Contradice a Wikipedia, que pone a Entre Rios entre las siete provincias adherentes del 92-93."
+        },
+        { "provincia": "Entre Rios (Parana)", "local": "1992-12-11", "sigla": null, "offset": "-03:00" },
+
+        {
+            "provincia": "San Juan", "local": "1991-03-01", "sigla": null, "offset": "-04:00",
+            "_nota": "San Juan pasa a -04:00 el 1/3/1991 y vuelve a -03:00 el 7/5/1991. Es exactamente lo que tiene tzdata, asi que esa ventana no se toca."
+        },
+        {
+            "provincia": "Santiago del Estero", "local": "1991-04-01", "sigla": null, "offset": "-04:00",
+            "_nota": "Pasa a -04:00 el 1/4/1991 y a -03:00 el 28/4/1991. tzdata, citando a Shanks, dice 26 de abril. No se puede representar: Santiago del Estero no tiene zona propia en tzdata, esta dentro de America/Argentina/Cordoba."
+        }
     ],
     "_invierno_resto": "Para el 11 de junio de 1988 a 1992, Solar Fire da -03:00 en todas las demas provincias consultadas (Salta, Tucuman, Catamarca, Chubut, La Rioja y San Juan). Mendoza y San Luis no se consultaron: su -04:00 esta documentado por la ley mendocina 5566 y se deja como lo tiene tzdata.",
     "_pendientes": [
-        "Jujuy el 11/12/1992: relectura, por la incoherencia de arriba.",
-        "Diciembre de 1990, 1991 y 1992 en Buenos Aires, Cordoba, Santa Cruz y Tierra del Fuego.",
-        "La Rioja y San Juan dentro de la ventana del 1/3 al 7/5/1991, y Santiago del Estero entre el 1 y el 26 de abril de 1991.",
+        "Las seis provincias de la zona Cordoba que no se consultaron (Santa Fe, Santiago del Estero, Chaco, Corrientes, Formosa y Misiones), en el verano 90-91: es el unico tramo donde la zona quedo partida y se resolvio por pronostico.",
+        "Santiago del Estero: no tiene zona propia en tzdata y su ventana de abril del 91 no se puede representar sin inventar una. Solo se avisa.",
         "Mendoza y San Luis el 11/6 de 1990, 1991 y 1992, para confirmar la ley 5566."
     ]
 }

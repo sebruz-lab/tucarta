@@ -92,6 +92,23 @@ describe('correcciones', () => {
         expect(abril[3]).toBeUndefined();
     });
 
+    it('una correccion con codigo 0 corrige la hora y no deja marca', () => {
+        // La de La Rioja: mete el -4 hasta el 18/5/1991 y despues devuelve
+        // la zona al -3. No necesita aviso propio porque el de horario
+        // provincial ya salta solo, asi que ningun periodo lleva marca.
+        const ps = corregir('America/Argentina/La_Rioja', [
+            [utc(1991, 3, 1, 2), -4 * H, 0],
+            [utc(1991, 5, 7, 4), -3 * H, 0],
+            [utc(1991, 10, 20, 3), -2 * H, H]
+        ]);
+        const el = (t) => ps.filter((p) => p[0] <= t).pop();
+        expect(el(utc(1991, 5, 10, 15))[1]).toBe(-4 * H);
+        expect(el(utc(1991, 6, 15, 15))[1]).toBe(-3 * H);
+        for (const p of ps.filter((x) => x[0] >= utc(1991, 5, 7, 4) && x[0] < utc(1991, 10, 20, 3))) {
+            expect(p[3], String(p[0])).toBeUndefined();
+        }
+    });
+
     it('no quedan periodos consecutivos iguales', () => {
         // El invariante de la salida: nunca dos tramos seguidos con el mismo
         // huso, el mismo verano y la misma marca. Uno de los dos no diria

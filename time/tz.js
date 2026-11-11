@@ -12,6 +12,7 @@
 // contada como si fuera UTC, asi local - offset = instante UTC.
 
 import indice from './zonas.json';
+import { avisoDeZona } from './avisos.js';
 import { archivoDeZona } from './archivo.js';
 
 export const VERSION_TZ = indice.version;
@@ -134,7 +135,7 @@ export function partesUtc(utcSeg) {
 //   opciones: una lectura posible (o dos, si es ambigua o inexistente), cada
 //             una { utcSeg, utc, total, base, verano }
 //   tentativo: true antes de 1970
-export function localAUtc({ fecha, hora }, zona, correccion = null) {
+export function localAUtc({ fecha, hora }, zona, correccion = null, provincia = null) {
     const local = segundosLocales(fecha, hora);
     const tentativo = Number(fecha.slice(0, 4)) < ANIO_TENTATIVO;
     const lectura = (h) => ({ utcSeg: local - h.total, utc: partesUtc(local - h.total), ...h });
@@ -150,7 +151,13 @@ export function localAUtc({ fecha, hora }, zona, correccion = null) {
         const l = lectura(h);
         const real = husoEn(zona, l.utcSeg);
         const con = real.total === h.total ? { ...l, ...real } : l;
-        return { ...con, provincial: esProvincial(zona, l.utcSeg) };
+        return {
+            ...con,
+            provincial: esProvincial(zona, l.utcSeg),
+            // Una provincia de esta zona que tuvo otra hora y no se puede
+            // calcular aparte: solo se avisa (ver time/avisos.js).
+            aviso: avisoDeZona(zona, l.utcSeg, provincia)
+        };
     };
 
     if (correccion) {

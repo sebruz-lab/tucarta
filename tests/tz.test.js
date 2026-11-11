@@ -72,11 +72,13 @@ describe('base y horario de verano por separado', () => {
     });
     it('la corrección empieza y termina donde dice la hora oficial', () => {
         // Hasta las 24 h del 2/3/1991 rige el verano -2; desde las 0 h del
-        // 3/3, -3. Y el verano siguiente arranca a las 0 h del 20/10.
+        // 3/3, -3. Y desde el 20/10 sigue en -3, porque esta zona tampoco
+        // adhirió al horario de verano 91-92: ahí ya no hay cambio de hora.
         expect(caso('America/Argentina/Cordoba', '1991-03-02', '23:30').total).toBe(-2 * H);
         expect(caso('America/Argentina/Cordoba', '1991-03-03', '00:30').total).toBe(-3 * H);
         expect(caso('America/Argentina/Cordoba', '1991-10-19', '23:30').total).toBe(-3 * H);
-        expect(caso('America/Argentina/Cordoba', '1991-10-20', '01:30').total).toBe(-2 * H);
+        expect(caso('America/Argentina/Cordoba', '1991-10-20', '01:30'))
+            .toMatchObject({ total: -3 * H, correccion: 2 });
     });
     it('Buenos Aires y Jujuy no se tocan', () => {
         expect(caso('America/Argentina/Buenos_Aires', '1991-06-15', '12:00'))
@@ -150,16 +152,109 @@ describe('base y horario de verano por separado', () => {
         expect(caso(z, '1992-10-19', '12:00').correccion).toBe(2);   // verano 92-93
     });
 
-    it('lo documentado no se toca: Mendoza, San Luis y Jujuy', () => {
+    it('lo documentado no se toca: Mendoza y San Luis', () => {
         // Mendoza por su ley 5566 (invierno -4, verano -3).
         expect(caso('America/Argentina/Mendoza', '1991-06-11', '12:00'))
             .toMatchObject({ base: -4 * H, verano: 0, correccion: 0 });
         expect(caso('America/Argentina/San_Luis', '1990-06-11', '12:00'))
             .toMatchObject({ base: -4 * H, verano: 0, correccion: 0 });
-        // La lectura de Jujuy del 11/12/1992 se contradice a sí misma, así
-        // que no se corrigió: ver tests/fixtures/solarfire/.
+        // Y los inviernos del 90 y del 91 en Jujuy, que Solar Fire confirma
+        // en -4 y tzdata ya tiene con sus fechas propias.
+        expect(caso('America/Argentina/Jujuy', '1990-06-11', '12:00'))
+            .toMatchObject({ total: -4 * H, correccion: 0 });
+        expect(caso('America/Argentina/Jujuy', '1991-06-11', '12:00'))
+            .toMatchObject({ total: -4 * H, correccion: 0 });
+    });
+
+    it('la zona Córdoba no adhirió en el 91-92 ni en el 92-93', () => {
+        // Córdoba y Paraná, las dos puntas de la zona que pudimos leer,
+        // coinciden en -3 en esos dos veranos.
+        const z = 'America/Argentina/Cordoba';
+        expect(caso(z, '1991-12-11', '12:00')).toMatchObject({ base: -3 * H, verano: 0, correccion: 2 });
+        expect(caso(z, '1992-12-11', '12:00')).toMatchObject({ base: -3 * H, verano: 0, correccion: 2 });
+    });
+
+    it('el verano 90-91 parte la zona Córdoba: queda en -2 y avisa', () => {
+        // Ahí las lecturas se separan: Córdoba en -3 (no adhirió) y Paraná
+        // en -2 (sí). No hay un valor correcto para las dos, así que la zona
+        // se queda en el -2 nacional, que es el mejor pronóstico para las
+        // seis provincias que no pudimos consultar, y se avisa por Córdoba.
+        const z = 'America/Argentina/Cordoba';
+        const r = localAUtc({ fecha: '1990-12-11', hora: '12:00' }, z, null, 'Córdoba').opciones[0];
+        expect(r).toMatchObject({ total: -2 * H, correccion: 0 });
+        expect(r.aviso?.provincia).toBe('Córdoba');
+        // Entre Ríos sí adhirió, así que para Paraná el -2 es correcto y no
+        // lleva aviso ninguno.
+        expect(localAUtc({ fecha: '1990-12-11', hora: '12:00' }, z, null, 'Entre Ríos').opciones[0].aviso)
+            .toBeNull();
+        // Fuera de ese verano no avisa por Córdoba.
+        expect(localAUtc({ fecha: '1991-12-11', hora: '12:00' }, z, null, 'Córdoba').opciones[0].aviso)
+            .toBeNull();
+    });
+
+    it('La Rioja volvió a la hora oficial el 18/5/1991, no el 7/5', () => {
+        const z = 'America/Argentina/La_Rioja';
+        // Los once días que tzdata se come. No llevan aviso propio: ese -4
+        // difiere de la hora oficial, así que avisa el de horario provincial.
+        expect(caso(z, '1991-05-10', '12:00'))
+            .toMatchObject({ total: -4 * H, correccion: 0, provincial: true });
+        expect(caso(z, '1991-05-17', '23:30').total).toBe(-4 * H);
+        expect(caso(z, '1991-05-18', '01:30'))
+            .toMatchObject({ total: -3 * H, correccion: 0, provincial: false });
+        // Volver a la hora oficial es adelantar el reloj, así que la primera
+        // hora del 18/5 no existió: la app tiene que decirlo y no elegir sola.
+        expect(localAUtc({ fecha: '1991-05-18', hora: '00:30' }, z).estado).toBe('inexistente');
+        // San Juan sí volvió el 7/5, y no se toca.
+        expect(caso('America/Argentina/San_Juan', '1991-05-10', '12:00'))
+            .toMatchObject({ total: -3 * H, correccion: 0 });
+    });
+
+    it('Jujuy tampoco adhirió en el verano 92-93', () => {
         expect(caso('America/Argentina/Jujuy', '1992-12-11', '12:00'))
-            .toMatchObject({ total: -2 * H, correccion: 0 });
+            .toMatchObject({ base: -3 * H, verano: 0, correccion: 2 });
+        // Y las que sí adhirieron siguen en -2.
+        for (const z of ['America/Argentina/Buenos_Aires', 'America/Argentina/Rio_Gallegos',
+            'America/Argentina/Ushuaia']) {
+            for (const f of ['1990-12-11', '1991-12-11', '1992-12-11']) {
+                expect(caso(z, f, '12:00').total, `${z} ${f}`).toBe(-2 * H);
+            }
+        }
+    });
+
+    // El aviso sale solo en la provincia afectada, no en toda la zona.
+    const enProvincia = (zona, fecha, hora, provincia) =>
+        localAUtc({ fecha, hora }, zona, null, provincia).opciones[0];
+
+    it('Santiago del Estero: no se puede calcular aparte, pero se avisa', () => {
+        const z = 'America/Argentina/Cordoba';
+        // Del 1 al 28 de abril del 91 esa provincia estuvo en -4 y el resto
+        // de la zona en -3. No tiene zona propia en tzdata, así que la hora
+        // sale la de Córdoba y el aviso lo dice.
+        const r = enProvincia(z, '1991-04-10', '12:00', 'Santiago del Estero');
+        expect(r.aviso?.provincia).toBe('Santiago del Estero');
+        expect(r.total).toBe(-3 * H);
+        // Las otras siete provincias de la zona no ven nada: para ellas la
+        // hora que calculamos es la correcta.
+        for (const p of ['Córdoba', 'Santa Fe', 'Entre Ríos', 'Chaco']) {
+            expect(enProvincia(z, '1991-04-10', '12:00', p).aviso, p).toBeNull();
+        }
+        // Fuera de la ventana tampoco.
+        expect(enProvincia(z, '1991-03-20', '12:00', 'Santiago del Estero').aviso).toBeNull();
+        expect(enProvincia(z, '1991-05-10', '12:00', 'Santiago del Estero').aviso).toBeNull();
+        // Alcanza a los alias de la zona.
+        expect(enProvincia('America/Rosario', '1991-04-10', '12:00', 'Santiago del Estero').aviso?.provincia)
+            .toBe('Santiago del Estero');
+        // Sin provincia (coordenadas a mano) no se avisa: no sabríamos si
+        // el lugar es de esa provincia y nombraríamos una que no es.
+        expect(caso(z, '1991-04-10', '12:00').aviso).toBeNull();
+    });
+
+    it('la provincia se compara sin acentos ni mayúsculas', () => {
+        // Por si una carta vieja guardó el nombre de otra manera.
+        const z = 'America/Argentina/Cordoba';
+        for (const p of ['Córdoba', 'cordoba', 'CÓRDOBA', ' Cordoba ']) {
+            expect(enProvincia(z, '1990-12-11', '12:00', p).aviso?.provincia, p).toBe('Córdoba');
+        }
     });
 
     // Toda hora distinta de la oficial argentina se avisa, la hayamos
