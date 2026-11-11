@@ -1,0 +1,90 @@
+To: tz@iana.org
+Subject: Re: Argentina 1991-1993: per-province readings, and a request to split Santiago del Estero
+
+Hello again,
+
+Following up on my earlier message with the per-province data I offered.
+I checked the ACS Atlas (via Solar Fire) one city per province, on fixed
+dates, so the readings are comparable. Below is what it gives, what the
+current file gives, and the one structural problem I ran into.
+
+1. Winter 1991 (reading taken 1991-06-11, 12:00 local)
+
+  ACS gives -03 for Salta, Tucuman, Catamarca and Chubut.
+  The file gives -04 for all of them, from 1991-03-03 to 1991-10-20,
+  in lines identical to Cordoba's.
+
+  Only Jujuy reads -04 that winter (and in 1990), which the file already
+  has, with its own dates.
+
+  The national legal time was -03 throughout, per the Servicio de
+  Hidrografia Naval, which publishes it.
+
+2. Summers (reading taken on 11 December of each year, 12:00 local)
+
+  Did not observe DST (ACS gives -03 where national time was -02):
+
+    1990-91: Cordoba, Salta, Tucuman, Catamarca, Chubut, La Rioja
+    1991-92: the same, plus San Juan and Entre Rios
+    1992-93: the same, plus Jujuy
+
+  Did observe it (-02): Buenos Aires, Santa Cruz and Tierra del Fuego,
+  in all three summers. San Juan also observed it in 1990-91, and Entre
+  Rios in 1988-89, 1989-90 and 1990-91.
+
+  This splits America/Argentina/Cordoba in the 1990-91 summer: Cordoba
+  reads -03 and Parana (Entre Rios) reads -02, so no single value for
+  that Zone is right for both. In the other two summers they agree on
+  -03. We default that Zone to the national -02 for 1990-91 and warn
+  users born in Cordoba province, for the same reason as item 4 below.
+
+  The Entre Rios readings for 1991-92 and 1992-93 contradict the list of
+  adopting provinces that Argentine secondary sources give, which names
+  Entre Rios. I mention it so the disagreement is on the record.
+
+  The Jujuy 1992-93 reading is worth flagging because it contradicts the
+  list of adopting provinces that circulates in Argentine secondary
+  sources, which includes Jujuy. I read it twice to be sure.
+
+3. La Rioja returned to -03 on 1991-05-18, not 1991-05-07
+
+  The file has La_Rioja and San_Juan both leaving -04 on 1991-05-07.
+  ACS agrees for San Juan and gives 1991-05-18 for La Rioja.
+
+4. The request: Santiago del Estero needs its own Zone
+
+  southamerica already records the claim, in the comment above
+  America/Argentina/Cordoba:
+
+    # - Santiago del Estero switched to -04:00 on 1991-04-01,
+    #   then to -03:00 on 1991-04-26.
+
+  ACS gives the same start and 1991-04-28 for the return. Either way,
+  the province was an hour behind the rest of its Zone for about four
+  weeks, and because Santiago del Estero is grouped into
+  America/Argentina/Cordoba the file cannot express it: whatever the
+  comment says, every consumer computes -03 there.
+
+  The same comment records Formosa, Misiones and Chaco leaving -04
+  between 1990-12-29 and 1991-01-07, which the grouping also cannot
+  express.
+
+  For birth times an hour is not a rounding error -- it moves the
+  Ascendant by roughly 15 degrees, often a whole sign -- so we currently
+  warn our users for that window and ask them to set the offset by hand.
+  A separate Zone would let us compute it instead. If splitting it is
+  not warranted on the strength of the present evidence, I understand;
+  in that case it would still help to know whether the maintainers read
+  the Shanks claim as credible, since right now the file says it and
+  then cannot act on it.
+
+I can send the chart data behind any of these readings. I should be
+clear about what they are and are not: the ACS Atlas is a secondary
+compilation, like tzdata itself, and I am reporting what it says rather
+than a decree. Where the two differ it seemed worth noting that tzdata
+cites Shanks & Pottenger for Argentina before 1992, so in these cases
+the Atlas is the unsimplified version of the file's own source.
+
+Best regards,
+[tu nombre]
+[sebabru.com]
