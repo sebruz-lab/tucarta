@@ -48,7 +48,6 @@ const estado = {
     tz: null,           // resultado de localAUtc
     carta: null,
     seleccion: null,    // punto tocado en la rueda ("t-..." si esta en transito)
-    corrigiendoHuso: false,
     // 'natal' | 'revolucion-sola' | 'revolucion' | 'transitos' | 'calendario'
     // | 'progresion-sola' | 'progresion' | 'lunacion'
     modo: 'natal',
@@ -298,7 +297,6 @@ form.addEventListener('submit', async (e) => {
     modoDelFormulario();
     estado.datos = datos;
     estado.seleccion = null;
-    estado.corrigiendoHuso = false;
     await calcular({ nueva: true });
 });
 
@@ -315,7 +313,7 @@ configurarHusos((archivo) =>
 async function calcular({ nueva = false } = {}) {
     const d = datosVista();
     await cargarZona(d.lugar.zona);
-    estado.tz = localAUtc({ fecha: d.fecha, hora: d.hora }, d.lugar.zona, d.correccion);
+    estado.tz = localAUtc({ fecha: d.fecha, hora: d.hora }, d.lugar.zona, d.correccion, d.lugar.provincia);
     const opcion = estado.tz.opciones[d.eleccion] || estado.tz.opciones[0];
 
     $('#cargando').hidden = false;
@@ -384,7 +382,7 @@ function pintar({ liviano = false } = {}) {
         ` · Casas ${sistema}`;
 
     pintarControlesTransito();
-    if (!liviano) $('#huso-contenido').innerHTML = panelHuso(estado.tz, d.eleccion, estado.corrigiendoHuso);
+    if (!liviano) $('#huso-contenido').innerHTML = panelHuso(estado.tz, d.eleccion);
     pintarAdvertencia();
     pintarEsquinas(sistema);
     pintarFichasImpresion(sistema);
@@ -1271,7 +1269,7 @@ const CLAVE_PAREJA = 'tucarta:ultima-pareja';
 // carta principal: zona, hora local a UTC y calculo en el worker.
 async function cartaDeDatos(datos) {
     await cargarZona(datos.lugar.zona);
-    const tz = localAUtc({ fecha: datos.fecha, hora: datos.hora }, datos.lugar.zona, datos.correccion);
+    const tz = localAUtc({ fecha: datos.fecha, hora: datos.hora }, datos.lugar.zona, datos.correccion, datos.lugar.provincia);
     const opcion = tz.opciones[datos.eleccion] || tz.opciones[0];
     const carta = await calcularEnWorker({
         utc: opcion.utc, lat: datos.lugar.lat, lon: datos.lugar.lon, ajustes: estado.ajustes
@@ -1725,7 +1723,7 @@ function momentoAnimado() {
 async function recalcularMomento({ liviano = false } = {}) {
     const d = datosVista();
     await cargarZona(d.lugar.zona);
-    estado.tz = localAUtc({ fecha: d.fecha, hora: d.hora }, d.lugar.zona, d.correccion);
+    estado.tz = localAUtc({ fecha: d.fecha, hora: d.hora }, d.lugar.zona, d.correccion, d.lugar.provincia);
     const opcion = estado.tz.opciones[d.eleccion] || estado.tz.opciones[0];
     try {
         estado.carta = await calcularEnWorker({
@@ -2360,12 +2358,12 @@ $('#huso-contenido').addEventListener('click', (e) => {
     const accion = e.target.closest('[data-accion]')?.dataset.accion;
     const d = estado.datos;
     if (accion === 'corregir-huso') {
-        estado.corrigiendoHuso = true;
+        // La roldanita de los avisos: el corrector ya esta desplegado mas
+        // abajo, asi que alcanza con abrir el panel y llevar el foco.
         $('#huso').open = true;
-        pintar();
-    } else if (accion === 'cancelar-huso') {
-        estado.corrigiendoHuso = false;
-        pintar();
+        const sel = $('#huso-contenido [name="huso-base"]');
+        sel?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        sel?.focus();
     } else if (accion === 'aplicar-huso') {
         const c = $('#huso-contenido');
         d.correccion = {
@@ -2373,8 +2371,7 @@ $('#huso-contenido').addEventListener('click', (e) => {
             verano: Number(c.querySelector('[name="huso-verano"]').value)
         };
         d.eleccion = 0;
-        estado.corrigiendoHuso = false;
-        evento('huso_corregido', { tentativo: estado.tz.tentativo });
+            evento('huso_corregido', { tentativo: estado.tz.tentativo });
         calcular();
     } else if (accion === 'huso-iana') {
         d.correccion = null;
@@ -2888,7 +2885,6 @@ async function abrirGuardada(c, { mismaVista = false, origen = 'lista' } = {}) {
         correccion: c.correccion || null, eleccion: c.eleccion || 0, tipo: c.tipo, grupo: c.grupo
     };
     estado.seleccion = null;
-    estado.corrigiendoHuso = false;
     estado.animacion = null;
     if (mismaVista) {
         form.elements.tipo.value = estado.modo;
@@ -3267,7 +3263,6 @@ async function abrirVista(vista) {
     modoDelFormulario();
     estado.datos = datos;
     estado.seleccion = null;
-    estado.corrigiendoHuso = false;
     estado.animacion = null;
     await calcular({ nueva: true });
     evento('vista_desde_enlace', { vista });

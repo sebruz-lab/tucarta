@@ -410,6 +410,49 @@ details > summary {
     padding-left: 12px;
     font-size: 0.92rem;
 }
+/* El triangulito al lado del huso total: avisa que ese huso puede no ser
+   el que marcaba el reloj del lugar, y al tocarlo abre el globo con el
+   aviso entero. Es un <details> para que ande igual con el dedo. */
+.alerta-huso {
+    display: inline-block;
+    position: relative;
+    margin-left: 5px;
+}
+.alerta-huso > summary {
+    display: inline-flex;
+    vertical-align: -1px;
+    color: var(--amarillo);
+    cursor: pointer;
+    list-style: none;
+}
+.alerta-huso > summary::-webkit-details-marker { display: none; }
+.alerta-huso > summary::marker { content: ''; }
+.globo-huso {
+    position: absolute;
+    z-index: 5;
+    top: calc(100% + 8px);
+    left: -8px;
+    width: min(16rem, calc(100vw - 72px));
+    background: var(--superficie);
+    border: 1px solid var(--amarillo);
+    border-radius: var(--radio);
+    padding: 12px 14px;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+/* La roldanita que abre el formulario para corregir el huso a mano. */
+.rueda-huso {
+    display: inline-flex;
+    vertical-align: -3px;
+    margin-left: 2px;
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--turquesa);
+    cursor: pointer;
+}
+.rueda-huso:hover { color: var(--texto); }
 .eleccion {
     border: none;
     padding: 0;
