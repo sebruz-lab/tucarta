@@ -43,7 +43,17 @@ pintaban ahí adentro, oculta. Ahora todo ese menú se busca dentro de
 `tests/selectores.test.js` controla que ningún `$('.clase')` de `ui/` apunte a
 una clase que esté más de una vez en el HTML, que es lo que escondía el error.
 
-Falta publicarlo: sería una v1.19.1.
+## Un solo color por familia de aspecto
+
+Las líneas se dibujaban más transparentes cuanto más abierto el orbe (de 1 a
+0,5), así que dos trígonos se veían de dos azules distintos. Ahora van todas al
+100% y lo único que atenúa es elegir un punto (`ui/wheel.js`, el `op` de las
+líneas de aspecto). Decisión de Seba del 2026-11-12: un solo tono, parejo.
+
+El semisextil sigue compartiendo el azul de los armónicos, distinguido por el
+punteado: también es decisión suya.
+
+Falta publicar las dos cosas: sería una v1.19.1.
 
 ---
 
