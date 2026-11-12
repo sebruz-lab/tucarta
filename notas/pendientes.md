@@ -2,12 +2,6 @@
 
 Lo que Seba pidió y todavía no está hecho. Se van tachando a medida que salen.
 
-## Cambiar la carta visualizada
-
-El botoncito de texto "Cambiar la carta visualizada", el que aparece cuando ya
-estás mirando una carta, despliega una cajita pero no deja elegir nada. Hay que
-hacer que se pueda elegir. Es un error, no una mejora.
-
 ## Mailing
 
 El mailing con Brevo (doble opt-in, contactos sincronizados) salió a producción
@@ -33,6 +27,23 @@ Dos cosas que quedaron distintas del resto de las ruedas, porque ahí no entra:
 - Para subirle el anillo de casas hubo que juntar sus columnas de 64 a 58 de
   profundidad. Si alguna vez hay que darle más aire, el límite es el borde de
   la carta de adentro, en 182,3.
+
+---
+
+# Arreglado, sin publicar
+
+## Cambiar la carta visualizada
+
+El menú de la cabecera se abría vacío: la ventana de la otra persona usa la
+clase `lista-cambiar` para su estilo (`ui/index.html:166`) y está antes en el
+documento, así que `$('.lista-cambiar')` devolvía esa lista y las cartas se
+pintaban ahí adentro, oculta. Ahora todo ese menú se busca dentro de
+`#cambiar-carta` (`enCambiarCarta` en `ui/app.js`).
+
+`tests/selectores.test.js` controla que ningún `$('.clase')` de `ui/` apunte a
+una clase que esté más de una vez en el HTML, que es lo que escondía el error.
+
+Falta publicarlo: sería una v1.19.1.
 
 ---
 

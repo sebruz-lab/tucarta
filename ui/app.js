@@ -738,13 +738,18 @@ function actualizarCambiarCarta() {
     if (caja.hidden) abrirCambiarCarta(false);
 }
 
+// Ojo: la ventana de la otra persona usa la clase `lista-cambiar` para su
+// estilo y esta antes en el documento, asi que todo lo de este menu se busca
+// adentro de #cambiar-carta o se pinta en la lista equivocada.
+const enCambiarCarta = (sel) => document.querySelector(`#cambiar-carta ${sel}`);
+
 function abrirCambiarCarta(abrir) {
     $('#menu-cambiar-carta').hidden = !abrir;
-    $('.abrir-cambiar').setAttribute('aria-expanded', String(abrir));
+    enCambiarCarta('.abrir-cambiar').setAttribute('aria-expanded', String(abrir));
     if (abrir) {
-        $('.buscar-cambiar').value = '';
-        pintarSaltoCartas($('.buscar-cambiar'), $('.lista-cambiar'), 'data-abrir-cabecera');
-        $('.buscar-cambiar').focus();
+        enCambiarCarta('.buscar-cambiar').value = '';
+        pintarSaltoCartas(enCambiarCarta('.buscar-cambiar'), enCambiarCarta('.lista-cambiar'), 'data-abrir-cabecera');
+        enCambiarCarta('.buscar-cambiar').focus();
     }
 }
 
@@ -759,12 +764,12 @@ $('#cambiar-carta').addEventListener('click', (e) => {
         abrirGuardada(guardadas.find((c) => c.id === id), { mismaVista: true, origen: 'cabecera' });
     }
 });
-$('.buscar-cambiar').addEventListener('input', () =>
-    pintarSaltoCartas($('.buscar-cambiar'), $('.lista-cambiar'), 'data-abrir-cabecera'));
-$('.buscar-cambiar').addEventListener('keydown', (e) => {
+enCambiarCarta('.buscar-cambiar').addEventListener('input', () =>
+    pintarSaltoCartas(enCambiarCarta('.buscar-cambiar'), enCambiarCarta('.lista-cambiar'), 'data-abrir-cabecera'));
+enCambiarCarta('.buscar-cambiar').addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    $('.lista-cambiar .coincide button')?.click();
+    enCambiarCarta('.lista-cambiar .coincide button')?.click();
 });
 // Se cierra al tocar afuera o con Escape.
 document.addEventListener('click', (e) => {
