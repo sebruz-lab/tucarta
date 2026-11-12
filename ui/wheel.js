@@ -446,8 +446,10 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         const clase = CLASE_ASPECTO[a.aspecto];
         const activo = seleccion && (a.a === seleccion || a.b === seleccion);
         const atenuado = seleccion && !activo;
-        // Mas opaco cuanto mas exacto.
-        const op = `opacity="${(atenuado ? 0.08 : Math.max(0.5, 1 - a.orbe / a.orbeMax * 0.5)).toFixed(2)}"`;
+        // Un solo tono por familia de aspecto: sin degradar por el orbe (si no,
+        // dos trigonos se ven de dos azules distintos). Lo unico que cambia la
+        // opacidad es la atenuacion al elegir un punto.
+        const op = atenuado ? 'opacity="0.08"' : '';
         // La linea se corta en el medio y ahi va el glifo del aspecto.
         const largo = Math.hypot(x2 - x1, y2 - y1);
         const mx = (x1 + x2) / 2;

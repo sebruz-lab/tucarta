@@ -100,6 +100,36 @@ describe('la R de retrógrado', () => {
     });
 });
 
+describe('el color de los aspectos', () => {
+    // Dos trigonos del mismo color: uno casi exacto y otro bien abierto.
+    const conAspectos = {
+        ...CARTA,
+        puntos: [
+            { id: 'sol', ...pos(15), casa: 1, vel: 1, retro: false },
+            { id: 'luna', ...pos(135.2), casa: 5, vel: 13, retro: false },
+            { id: 'marte', ...pos(250), casa: 9, vel: 0.5, retro: false }
+        ],
+        aspectos: [
+            { a: 'sol', b: 'luna', aspecto: 'trigono', menor: false, orbe: 0.2, orbeMax: 9 },
+            { a: 'sol', b: 'marte', aspecto: 'trigono', menor: false, orbe: 5, orbeMax: 9 }
+        ]
+    };
+    const lineas = (svg) => svg.match(/<line class="asp-[^>]*>/g) || [];
+
+    it('un solo tono: ninguna linea se degrada por el orbe', () => {
+        const l = lineas(dibujarRueda(conAspectos, {}));
+        expect(l.length).toBeGreaterThan(0);
+        expect(l.filter((x) => x.includes('opacity'))).toEqual([]);
+    });
+
+    it('al elegir un punto, lo que no le toca se atenua', () => {
+        const l = lineas(dibujarRueda(conAspectos, { seleccion: 'marte' }));
+        const atenuadas = l.filter((x) => x.includes('opacity="0.08"'));
+        expect(atenuadas.length).toBeGreaterThan(0);
+        expect(atenuadas.length).toBeLessThan(l.length);
+    });
+});
+
 describe('los palitos de cada planeta', () => {
     const svg = dibujarRueda(CARTA, {});
     const marcas = [...svg.matchAll(
