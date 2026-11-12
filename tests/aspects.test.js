@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calcularAspectos, distancia, orbeEntre } from '../engine/aspects.js';
+import { ORBES_ASPECTO } from '../engine/config.js';
 
 describe('distancia', () => {
     it('cruza 0° Aries', () => {
@@ -28,9 +29,12 @@ describe('calcularAspectos', () => {
         expect(r[0].orbe).toBeCloseTo(8);
     });
 
-    it('Urano–Neptuno a 6° de trígono queda afuera', () => {
-        const p = [{ id: 'urano', lon: 0 }, { id: 'neptuno', lon: 126 }];
+    it('Urano–Neptuno a 7° de trígono queda afuera', () => {
+        // Los dos se llevan el 70% del orbe del trígono: 6,3°.
+        const p = [{ id: 'urano', lon: 0 }, { id: 'neptuno', lon: 127 }];
         expect(calcularAspectos(p, p, { mismaCarta: true })).toHaveLength(0);
+        const justo = [{ id: 'urano', lon: 0 }, { id: 'neptuno', lon: 126 }];
+        expect(calcularAspectos(justo, justo, { mismaCarta: true })[0]).toMatchObject({ orbeMax: 6.3 });
     });
 
     it('conjunción a través de 0° Aries', () => {
@@ -53,16 +57,16 @@ describe('aspectos menores', () => {
         { mismaCarta: true, ...opciones });
 
     it('semisextil y quincuncio activos por defecto, con orbe propio', () => {
-        // Sol-Marte: el orbe menor del Sol (7°) manda.
-        expect(par(36.5)[0]).toMatchObject({ aspecto: 'semisextil', menor: true, orbeMax: 7 });
-        expect(par(152.5)[0]).toMatchObject({ aspecto: 'quincuncio', orbeMax: 7 });
-        expect(par(37.5)).toHaveLength(0); // fuera del orbe de 7°
+        // Sol-Marte: el semisextil mide 3° y el Sol se lo lleva entero.
+        expect(par(32.5)[0]).toMatchObject({ aspecto: 'semisextil', menor: true, orbeMax: 3 });
+        expect(par(33.5)).toHaveLength(0); // fuera del orbe de 3°
+        expect(par(154)[0]).toMatchObject({ aspecto: 'quincuncio', orbeMax: 5 });
     });
 
-    it('el orbe menor sale de los dos puntos, el mayor gana', () => {
+    it('a mano, el orbe menor sale de los dos puntos y el mayor gana', () => {
         const p = (idA, idB, lonB) => calcularAspectos(
             [{ id: idA, lon: 0 }, { id: idB, lon: lonB }],
-            [{ id: idA, lon: 0 }, { id: idB, lon: lonB }], { mismaCarta: true });
+            [{ id: idA, lon: 0 }, { id: idB, lon: lonB }], { mismaCarta: true, modoOrbes: 'punto' });
         expect(p('urano', 'pluton', 33)[0]).toMatchObject({ aspecto: 'semisextil', orbeMax: 3 });
         expect(p('urano', 'pluton', 33.5)).toHaveLength(0);
         expect(p('venus', 'pluton', 34.5)[0]).toMatchObject({ orbeMax: 5 });
@@ -70,15 +74,15 @@ describe('aspectos menores', () => {
 
     it('semicuadratura y sesquicuadratura solo si se activan', () => {
         expect(par(45)).toHaveLength(0);
-        const menores = { semisextil: true, quincuncio: true, semicuadratura: true, sesquicuadratura: true };
-        expect(par(45, { menores })[0].aspecto).toBe('semicuadratura');
-        expect(par(136, { menores })[0].aspecto).toBe('sesquicuadratura');
+        const aspectos = { semisextil: true, quincuncio: true, semicuadratura: true, sesquicuadratura: true };
+        expect(par(45, { aspectos })[0].aspecto).toBe('semicuadratura');
+        expect(par(136, { aspectos })[0].aspecto).toBe('sesquicuadratura');
     });
 
     it('si entra en dos aspectos, gana el más exacto', () => {
-        // 134°: trígono a 14° (entra con orbe 15) y sesquicuadratura a 1°.
-        const orbes = { sol: 15, marte: 15 };
-        const menores = { sesquicuadratura: true };
-        expect(par(134, { orbes, menores })[0]).toMatchObject({ aspecto: 'sesquicuadratura', orbe: 1 });
+        // 134°: trígono a 14° (entra con un orbe de 15) y sesquicuadratura a 1°.
+        const orbesAspecto = { ...ORBES_ASPECTO, trigono: 15 };
+        const aspectos = { sesquicuadratura: true };
+        expect(par(134, { orbesAspecto, aspectos })[0]).toMatchObject({ aspecto: 'sesquicuadratura', orbe: 1 });
     });
 });

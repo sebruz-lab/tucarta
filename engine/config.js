@@ -40,9 +40,24 @@ export const PUNTOS_OPCIONALES = [
     { id: 'fortuna', nombre: 'Parte de Fortuna',  calculado: true, grupo: 'punto' }
 ];
 
-// Ninguno viene prendido: la carta sale como siempre hasta que se elijan.
-export const PUNTOS_ACTIVOS_POR_DEFECTO =
-    Object.fromEntries(PUNTOS_OPCIONALES.map((p) => [p.id, false]));
+// Que puntos entran en la carta. Los de siempre vienen prendidos y los
+// opcionales apagados: la carta sale como siempre hasta que alguien toque
+// la lista. Cualquiera se puede apagar, incluso el Sol.
+export const PUNTOS_ACTIVOS_POR_DEFECTO = {
+    ...Object.fromEntries(PUNTOS.map((p) => [p.id, true])),
+    ...Object.fromEntries(PUNTOS_OPCIONALES.map((p) => [p.id, false]))
+};
+
+const ES_OPCIONAL = new Set(PUNTOS_OPCIONALES.map((p) => p.id));
+
+// Si un punto entra en la carta. Los ajustes que se guardaron antes de que
+// los puntos de siempre se pudieran apagar no los nombran, asi que lo que
+// falta en la lista entra, salvo que sea de los opcionales.
+export const enLaCarta = (ajustes, id) => {
+    const elegidos = ajustes && ajustes.puntos;
+    if (!elegidos || !(id in elegidos)) return !ES_OPCIONAL.has(id);
+    return Boolean(elegidos[id]);
+};
 
 export const ANGULOS = [
     { id: 'asc', nombre: 'Ascendente' },
@@ -74,9 +89,49 @@ export const ASPECTOS = [
     { id: 'oposicion',        nombre: 'Oposición',        angulo: 180 }
 ];
 
-// Menores activos por defecto: semisextil y quincuncio.
+// Que aspectos se miran. Cualquiera se puede apagar, los mayores
+// incluidos; de los menores vienen prendidos el semisextil y el
+// quincuncio.
+export const ASPECTOS_POR_DEFECTO = {
+    conjuncion: true, sextil: true, cuadratura: true, trigono: true, oposicion: true,
+    semisextil: true, quincuncio: true, semicuadratura: false, sesquicuadratura: false
+};
+
+// Los menores que vienen prendidos. Queda por los ajustes guardados antes
+// de que los mayores se pudieran apagar, que solo nombran a los menores.
 export const MENORES_POR_DEFECTO = {
     semisextil: true, quincuncio: true, semicuadratura: false, sesquicuadratura: false
+};
+
+// ---------- Orbes ----------
+//
+// Hay dos maneras de darle un orbe a un aspecto entre dos puntos, y la
+// persona elige cual usa (ajustes.modoOrbes):
+//
+// 'factor'  el orbe sale del aspecto (ORBES_ASPECTO, que es el orbe de las
+//           luminarias) y cada punto se lleva un porcentaje de ese orbe
+//           (FACTORES_POR_DEFECTO). Es como lo hace Solar Fire.
+// 'punto'   el orbe sale del punto (ORBES_POR_DEFECTO para los aspectos
+//           mayores, ORBES_MENORES para los menores) y el aspecto solo
+//           decide cual de las dos tablas se mira. Es como lo hacia esta
+//           calculadora hasta ahora.
+//
+// En los dos casos, entre dos puntos manda el orbe mas grande de los dos.
+
+// El orbe de cada aspecto: el que les toca al Sol y a la Luna.
+export const ORBES_ASPECTO = {
+    conjuncion: 9, sextil: 9, cuadratura: 9, trigono: 9, oposicion: 9,
+    semisextil: 3, semicuadratura: 3, sesquicuadratura: 3, quincuncio: 5
+};
+
+// Que porcentaje del orbe de las luminarias se lleva cada punto.
+export const FACTORES_POR_DEFECTO = {
+    sol: 1, luna: 1,
+    mercurio: 0.8, venus: 0.8, marte: 0.8, jupiter: 0.8, saturno: 0.8,
+    urano: 0.7, neptuno: 0.7, pluton: 0.7, quiron: 0.75, nodo: 0.7,
+    lilith: 0.5, asc: 0.5, mc: 0.5,
+    ceres: 0.5, palas: 0.5, juno: 0.5, vesta: 0.5, sedna: 0.5, eris: 0.5,
+    nodosur: 0.5, tierra: 0.5, fortuna: 0.5
 };
 
 // Orbe por punto. Entre dos puntos se usa el mayor de los dos.
@@ -100,8 +155,12 @@ export const ORBES_MENORES = {
     nodosur: 3, tierra: 3, fortuna: 2
 };
 
+// Que aspectos se miran en los transitos. Van aparte de los de la carta:
+// en un transito no siempre se quiere mirar lo mismo.
+export const ASPECTOS_TRANSITO_POR_DEFECTO = { ...ASPECTOS_POR_DEFECTO };
+
 // Transitos: transitan todos los puntos de la carta, con orbe por
-// aspecto y no por punto. Los menores activos son los mismos de la natal.
+// aspecto y no por punto.
 export const PUNTOS_TRANSITO = PUNTOS.map((p) => p.id);
 export const ORBES_TRANSITO = {
     conjuncion: 3, oposicion: 3, trigono: 2, cuadratura: 2, sextil: 2, menor: 1
@@ -126,7 +185,15 @@ export const AJUSTES_POR_DEFECTO = {
     casas: 'P',
     orbes: ORBES_POR_DEFECTO,
     aspectosAngulos: false,
-    menores: MENORES_POR_DEFECTO,
+    // Que aspectos se miran y como se les saca el orbe.
+    aspectos: ASPECTOS_POR_DEFECTO,
+    aspectosTransito: ASPECTOS_TRANSITO_POR_DEFECTO,
+    // En la rueda doble, que aspectos se dibujan: los del transito a la
+    // natal ('transito') o los de la carta natal entre si ('natal').
+    graficaTransitos: 'transito',
+    modoOrbes: 'factor',
+    orbesAspecto: ORBES_ASPECTO,
+    factores: FACTORES_POR_DEFECTO,
     orbesMenores: ORBES_MENORES,
     orbesTransito: ORBES_TRANSITO,
     orbesSinastria: ORBES_SINASTRIA,

@@ -68,7 +68,7 @@ export function calcularProgresion(swe, { natal, jdObjetivo, ajustes = AJUSTES_P
     const lonCorrida = dif(lon + avance, 0);
     const casas = swe.houses(jdNatal, lat, lonCorrida, ajustes.casas);
     const carta = calcularCarta(swe, { utc, lat, lon, ajustes, casas });
-    const opciones = { orbesPorAspecto: ORBES_PROGRESION, menores: ajustes.menores };
+    const opciones = { orbesPorAspecto: ORBES_PROGRESION, aspectos: ajustes.aspectos };
     const participantes = ajustes.aspectosAngulos ? [...carta.puntos, ...carta.angulos] : carta.puntos;
     carta.aspectos = calcularAspectos(participantes, participantes, { ...opciones, mismaCarta: true });
     // Progresada -> natal (la natal quieta, con sus angulos).

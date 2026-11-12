@@ -51,8 +51,11 @@ describe('carta compuesta por puntos medios', () => {
         for (let i = 1; i < desde.length; i++) expect(desde[i]).toBeGreaterThan(desde[i - 1]);
     });
 
-    it('no se mueve: sin velocidad ni retrogradación', () => {
-        expect(c.puntos.every((p) => p.vel === 0 && p.retro === false)).toBe(true);
+    it('no se mueve: sin velocidad, sin retrogradación y sin aplicativo', () => {
+        // Con velocidad 0 todos los aspectos saldrían separativos, que
+        // sería mentir: en una compuesta nada se aplica ni se separa.
+        expect(c.puntos.every((p) => p.vel === null && p.retro === false)).toBe(true);
+        expect(c.aspectos.every((a) => a.aplicativo === null)).toBe(true);
     });
 
     it('cada planeta trae la casa de la propia compuesta', () => {

@@ -1,6 +1,7 @@
 // Tablas de posiciones y de aspectos.
 
-import { SIGNOS as G_SIGNOS, PUNTOS as G_PUNTOS, ASPECTOS as G_ASPECTOS, iconoSvg } from './glyphs.js';
+import { SIGNOS as G_SIGNOS, PUNTOS as G_PUNTOS, ASPECTOS as G_ASPECTOS,
+    RETROGRADO, iconoSvg } from './glyphs.js';
 import { NOMBRE_SIGNO, NOMBRE_PUNTO, NOMBRE_ASPECTO, gradoMin, orbeTexto, escapar } from './textos.js';
 import { SIGNOS, casaDe } from '../engine/chart.js';
 
@@ -13,9 +14,13 @@ function filaPunto(p, glifoPunto) {
         <td>${iconoSigno(p.signo)}<span>${NOMBRE_SIGNO[p.signo]}</span></td>
         <td class="num">${gradoMin(p)}</td>
         <td class="num">${p.casa ?? ''}</td>
-        <td class="retro">${p.retro ? '<abbr title="Retrógrado">R</abbr>' : ''}</td>
+        <td class="retro">${p.retro ? marcaRetro : ''}</td>
     </tr>`;
 }
+
+// La R de retrogrado, el dibujo de Seba. El <abbr> es el que dice que
+// significa; el dibujo va sin etiqueta para que no se lea dos veces.
+const marcaRetro = `<abbr title="Retrógrado">${iconoSvg(RETROGRADO, 15)}</abbr>`;
 
 export function tablaPosiciones(carta) {
     const filas = [
@@ -84,7 +89,7 @@ export function tablaPosicionesRevolucion(rs, natal, e = { titulo: 'Revolución'
             <td class="num">${gradoMin(p)}</td>
             <td class="num">${p.casa}</td>
             <td class="num">${casaDe(p.lon, cusps)}</td>
-            <td class="retro">${p.retro ? '<abbr title="Retrógrado">R</abbr>' : ''}</td>
+            <td class="retro">${p.retro ? marcaRetro : ''}</td>
         </tr>`).join('')}${rs.angulos.map((p) => `<tr>
             <th scope="row"><span>${NOMBRE_PUNTO[p.id]}</span></th>
             <td>${iconoSigno(p.signo)}<span>${NOMBRE_SIGNO[p.signo]}</span></td>
@@ -155,7 +160,7 @@ export function tablaPosicionesTransito(transitos, adentro = DE_ADENTRO) {
             <td>${iconoSigno(p.signo)}<span>${NOMBRE_SIGNO[p.signo]}</span></td>
             <td class="num">${gradoMin(p)}</td>
             <td class="num">${p.casa}</td>
-            <td class="retro">${p.retro ? '<abbr title="Retrógrado">R</abbr>' : ''}</td>
+            <td class="retro">${p.retro ? marcaRetro : ''}</td>
         </tr>`).join('')}</tbody>
     </table>`;
 }
@@ -184,7 +189,7 @@ export function detalleTransito(transitos, idT, adentro = DE_ADENTRO) {
     if (!p) return '';
     const asp = transitos.aspectos.filter((a) => a.a === id).map((a) =>
         `${NOMBRE_ASPECTO[a.aspecto].toLowerCase()} a ${NOMBRE_PUNTO[a.b]} ${adentro} (${orbeTexto(a.orbe)})`);
-    return `<strong>${NOMBRE_PUNTO[id]} en tránsito</strong> en ${gradoMin(p)} de ${NOMBRE_SIGNO[p.signo]}, por tu casa ${p.casa}` +
+    return `<strong>${NOMBRE_PUNTO[id]} en tránsito</strong> en ${gradoMin(p)} de ${NOMBRE_SIGNO[p.signo]}, por la casa ${p.casa}` +
         `${p.retro ? ', retrógrado' : ''}.` +
         (asp.length ? `<br><span class="nota">${asp.join(' · ')}</span>` : '');
 }

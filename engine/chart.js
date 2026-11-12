@@ -2,8 +2,8 @@
 // hora local la hace time/tz.js) y sale un modelo en JSON puro, que la
 // interfaz dibuja y que los tests comparan contra Solar Fire.
 
-import { PUNTOS, PUNTOS_OPCIONALES, AJUSTES_POR_DEFECTO } from './config.js';
-import { calcularAspectos } from './aspects.js';
+import { PUNTOS, PUNTOS_OPCIONALES, AJUSTES_POR_DEFECTO, enLaCarta } from './config.js';
+import { calcularAspectos, opcionesDeOrbe } from './aspects.js';
 
 // Flags de Swiss Ephemeris (swephexp.h).
 const SEFLG_SWIEPH = 2;
@@ -19,6 +19,9 @@ const SWE_VESTA = 20;
 const SWE_ASTEROIDE = 10000; // de aca en adelante, asteroides numerados
 const conArchivo = (swe) => swe === SWE_CHIRON || (swe >= SWE_CERES && swe <= SWE_VESTA) || swe >= SWE_ASTEROIDE;
 export const flagsDe = (swe) => (conArchivo(swe) ? SEFLG_SWIEPH : SEFLG_MOSEPH) | SEFLG_SPEED;
+
+// Diferencia mas corta entre dos longitudes, en (-180, 180].
+const dif = (x) => ((((x % 360) + 540) % 360) - 180);
 
 export const SIGNOS = ['aries', 'tauro', 'geminis', 'cancer', 'leo', 'virgo',
     'libra', 'escorpio', 'sagitario', 'capricornio', 'acuario', 'piscis'];
@@ -53,13 +56,18 @@ export function diaJuliano(swe, utc) {
 // Swiss Ephemeris se piden como cualquier otro; el resto sale de los que
 // ya estan calculados. Si a alguno le falta su archivo de efemerides se lo
 // saltea en silencio: vale mas una carta sin ese punto que ninguna carta.
-function puntosOpcionales(swe, jd, { puntos, casas, ajustes }) {
-    const elegidos = ajustes.puntos || {};
-    const activos = PUNTOS_OPCIONALES.filter((p) => elegidos[p.id]);
+function puntosOpcionales(swe, jd, { puntos, casas, velAsc, ajustes }) {
+    const activos = PUNTOS_OPCIONALES.filter((p) => enLaCarta(ajustes, p.id));
     if (!activos.length) return [];
 
     const lonDe = (id) => puntos.find((p) => p.id === id)?.lon;
+    const velDe = (id) => puntos.find((p) => p.id === id)?.vel;
     const norm = (x) => ((x % 360) + 360) % 360;
+    // Cada uno se lleva la velocidad de lo que lo define, para que tambien
+    // ellos digan si el aspecto es aplicativo o separativo. Si el
+    // Ascendente no trae velocidad (las progresiones mueven sus angulos de
+    // otra manera), la Fortuna se queda sin ella y no dice nada.
+    const suma = (...vs) => (vs.some((v) => v == null) ? null : vs.reduce((x, y) => x + y));
     // De dia la Fortuna es Asc + Luna - Sol; de noche se da vuelta. Es de
     // noche cuando el Sol esta sobre el horizonte... al reves: cuando esta
     // debajo, o sea en las casas 1 a 6 contando desde el Ascendente.
@@ -68,11 +76,13 @@ function puntosOpcionales(swe, jd, { puntos, casas, ajustes }) {
         const luna = lonDe('luna');
         if (sol === undefined || luna === undefined) return undefined;
         const deNoche = ajustes.fortunaNocturna !== false && norm(sol - casas.asc) < 180;
-        return deNoche ? norm(casas.asc + sol - luna) : norm(casas.asc + luna - sol);
+        return deNoche
+            ? { lon: norm(casas.asc + sol - luna), vel: suma(velAsc, velDe('sol'), -velDe('luna')) }
+            : { lon: norm(casas.asc + luna - sol), vel: suma(velAsc, velDe('luna'), -velDe('sol')) };
     };
     const calculados = {
-        nodosur: () => { const n = lonDe('nodo'); return n === undefined ? undefined : norm(n + 180); },
-        tierra: () => { const s = lonDe('sol'); return s === undefined ? undefined : norm(s + 180); },
+        nodosur: () => { const n = lonDe('nodo'); return n === undefined ? undefined : { lon: norm(n + 180), vel: velDe('nodo') }; },
+        tierra: () => { const s = lonDe('sol'); return s === undefined ? undefined : { lon: norm(s + 180), vel: velDe('sol') }; },
         fortuna
     };
 
@@ -81,7 +91,9 @@ function puntosOpcionales(swe, jd, { puntos, casas, ajustes }) {
         let lon;
         let vel = 0;
         if (p.calculado) {
-            lon = calculados[p.id]?.();
+            const c = calculados[p.id]?.();
+            lon = c?.lon;
+            vel = c?.vel ?? null;
         } else {
             try {
                 const r = swe.calc(jd, p.swe, flagsDe(p.swe));
@@ -93,7 +105,7 @@ function puntosOpcionales(swe, jd, { puntos, casas, ajustes }) {
         }
         if (lon === undefined || !Number.isFinite(lon)) continue;
         salida.push({
-            id: p.id, lon, vel, retro: vel < 0, opcional: true,
+            id: p.id, lon, vel, retro: vel != null && vel < 0, opcional: true,
             casa: casaDe(lon, casas.cusps), ...enSigno(lon)
         });
     }
@@ -107,7 +119,21 @@ export function calcularCarta(swe, { utc, lat, lon, ajustes = AJUSTES_POR_DEFECT
 
     const casas = dadas || swe.houses(jd, lat, lon, ajustes.casas);
 
-    const puntos = PUNTOS.map((p) => {
+    // La velocidad del Ascendente y el Medio Cielo: no hay formula
+    // directa, asi que se los mira un minuto despues. Con eso los angulos
+    // tambien dicen si el aspecto es aplicativo o separativo. Cuando las
+    // casas vienen dadas no se puede: los angulos de una progresion no se
+    // mueven con el dia, y entonces se quedan sin velocidad.
+    const DT = 1 / 1440;
+    const despues = dadas ? null : swe.houses(jd + DT, lat, lon, ajustes.casas);
+    const velAngulo = (antes, luego) =>
+        (luego === undefined || luego === null ? null : dif(luego - antes) / DT);
+    const velAsc = velAngulo(casas.asc, despues?.asc);
+
+    // Se calculan todos y se filtra despues: los puntos que salen de otros
+    // necesitan a esos otros calculados aunque esten apagados (la Parte de
+    // Fortuna necesita el Sol y la Luna, y el Nodo Sur al Nodo Norte).
+    const todos = PUNTOS.map((p) => {
         const r = swe.calc(jd, p.swe, flagsDe(p.swe));
         return {
             id: p.id,
@@ -120,11 +146,14 @@ export function calcularCarta(swe, { utc, lat, lon, ajustes = AJUSTES_POR_DEFECT
     });
 
     const angulos = [
-        { id: 'asc', lon: casas.asc, ...enSigno(casas.asc) },
-        { id: 'mc', lon: casas.mc, ...enSigno(casas.mc) }
+        { id: 'asc', lon: casas.asc, vel: velAsc, ...enSigno(casas.asc) },
+        { id: 'mc', lon: casas.mc, vel: velAngulo(casas.mc, despues?.mc), ...enSigno(casas.mc) }
     ];
 
-    puntos.push(...puntosOpcionales(swe, jd, { puntos, casas, ajustes }));
+    const puntos = [
+        ...todos.filter((p) => enLaCarta(ajustes, p.id)),
+        ...puntosOpcionales(swe, jd, { puntos: todos, casas, velAsc, ajustes })
+    ];
 
     // Quien entra en los aspectos: lo que la persona haya elegido. El
     // Ascendente y el Medio Cielo siguen atados a aspectosAngulos para no
@@ -137,8 +166,7 @@ export function calcularCarta(swe, { utc, lat, lon, ajustes = AJUSTES_POR_DEFECT
         ...(conAngulos ? angulos.filter((a) => entra(a.id)) : [])
     ];
     const aspectos = calcularAspectos(participantes, participantes, {
-        orbes: ajustes.orbes, mismaCarta: true,
-        menores: ajustes.menores, orbesMenores: ajustes.orbesMenores
+        ...opcionesDeOrbe(ajustes), mismaCarta: true
     });
 
     return {

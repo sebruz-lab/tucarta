@@ -18,7 +18,7 @@
 
 import { AJUSTES_POR_DEFECTO } from './config.js';
 import { enSigno, casaDe } from './chart.js';
-import { calcularAspectos } from './aspects.js';
+import { calcularAspectos, opcionesDeOrbe } from './aspects.js';
 
 const norm = (x) => ((x % 360) + 360) % 360;
 
@@ -45,8 +45,10 @@ export function calcularCompuesta(swe, { a, b, ajustes = AJUSTES_POR_DEFECTO }) 
     const enB = new Map(b.puntos.map((p) => [p.id, p]));
     const puntos = a.puntos.filter((p) => enB.has(p.id)).map((p) => {
         const lon = puntoMedio(p.lon, enB.get(p.id).lon);
-        // La compuesta no se mueve: no hay velocidad ni retrogradacion.
-        return { id: p.id, lon, vel: 0, retro: false, casa: casaDe(lon, cusps), ...enSigno(lon) };
+        // La compuesta no se mueve: no hay velocidad ni retrogradacion, y
+        // por eso tampoco hay aplicativo ni separativo (con velocidad 0
+        // todo saldria separativo, que seria mentir).
+        return { id: p.id, lon, vel: null, retro: false, casa: casaDe(lon, cusps), ...enSigno(lon) };
     });
 
     const angulos = [
@@ -62,8 +64,7 @@ export function calcularCompuesta(swe, { a, b, ajustes = AJUSTES_POR_DEFECTO }) 
         ...(conAngulos ? angulos.filter((x) => entra(x.id)) : [])
     ];
     const aspectos = calcularAspectos(participantes, participantes, {
-        orbes: ajustes.orbes, mismaCarta: true,
-        menores: ajustes.menores, orbesMenores: ajustes.orbesMenores
+        ...opcionesDeOrbe(ajustes), mismaCarta: true
     });
 
     return {

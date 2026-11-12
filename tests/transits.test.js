@@ -4,7 +4,7 @@ import { cargarSwe } from '../engine/ephe.js';
 import { calcularCarta } from '../engine/chart.js';
 import { calcularTransitos } from '../engine/transits.js';
 import { calcularAspectos } from '../engine/aspects.js';
-import { AJUSTES_POR_DEFECTO, ORBES_TRANSITO } from '../engine/config.js';
+import { AJUSTES_POR_DEFECTO, ORBES_TRANSITO, ASPECTOS } from '../engine/config.js';
 
 let swe;
 beforeAll(async () => {
@@ -26,8 +26,12 @@ describe('tránsitos', () => {
         }
     });
 
-    it('los ángulos natales reciben aspectos aunque la natal no los use', () => {
-        const natal = calcularCarta(swe, nacimiento); // aspectosAngulos: false
+    it('los ángulos natales reciben tránsitos si están entre los puntos aspectados', () => {
+        // La natal no los aspecta entre sí, pero igual pueden recibir
+        // tránsitos: eso lo decide "Puntos aspectados".
+        const ajustes = { ...AJUSTES_POR_DEFECTO,
+            puntosAspectados: { ...AJUSTES_POR_DEFECTO.puntosAspectados, asc: true } };
+        const natal = calcularCarta(swe, nacimiento);
         // Un instante en que el Sol en tránsito pisa el Ascendente natal.
         const asc = natal.angulos.find((x) => x.id === 'asc').lon;
         const sol = natal.puntos.find((x) => x.id === 'sol').lon;
@@ -35,16 +39,16 @@ describe('tránsitos', () => {
         const fecha = new Date(Date.UTC(1984, 2, 1, 16, 15) + dias * 864e5);
         const utc = { anio: fecha.getUTCFullYear(), mes: fecha.getUTCMonth() + 1, dia: fecha.getUTCDate(),
             hora: fecha.getUTCHours(), minuto: fecha.getUTCMinutes() };
-        const t = calcularTransitos(swe, { utc, natal });
+        const t = calcularTransitos(swe, { utc, natal, ajustes });
         expect(t.aspectos.find((a) => a.a === 'sol' && a.b === 'asc')?.aspecto).toBe('conjuncion');
         expect(t.aspectos.every((a) => a.orbe <= a.orbeMax)).toBe(true);
     });
 });
 
 describe('orbes por aspecto', () => {
-    const asp = (dist, menores = AJUSTES_POR_DEFECTO.menores) => calcularAspectos(
+    const asp = (dist, aspectos = AJUSTES_POR_DEFECTO.aspectos) => calcularAspectos(
         [{ id: 'saturno', lon: dist, vel: 0.05 }], [{ id: 'sol', lon: 0, vel: 0 }],
-        { orbesPorAspecto: ORBES_TRANSITO, menores });
+        { orbesPorAspecto: ORBES_TRANSITO, aspectos });
 
     it('conjunción y oposición 3°, trígono, cuadratura y sextil 2°, menores 1°', () => {
         expect(asp(2.9)[0]).toMatchObject({ aspecto: 'conjuncion', orbeMax: 3 });
@@ -60,5 +64,41 @@ describe('orbes por aspecto', () => {
     it('aplicativo según el movimiento del planeta en tránsito', () => {
         expect(asp(-2)[0].aplicativo).toBe(true);  // se acerca al Sol
         expect(asp(2)[0].aplicativo).toBe(false);  // ya pasó
+    });
+});
+
+describe('qué entra en los tránsitos', () => {
+    const AHORA = { anio: 2026, mes: 11, dia: 12, hora: 15, minuto: 0 };
+    const con = (extra) => {
+        const ajustes = { ...AJUSTES_POR_DEFECTO, ...extra };
+        const natal = calcularCarta(swe, { ...nacimiento, ajustes });
+        return calcularTransitos(swe, { utc: AHORA, natal, ajustes });
+    };
+    const aLosAngulos = (t) => t.aspectos.filter((a) => a.b === 'asc' || a.b === 'mc');
+
+    it('los ángulos reciben tránsitos solo si están en "Puntos aspectados"', () => {
+        // Antes los recibían siempre, aunque no se aspectaran en la carta.
+        expect(aLosAngulos(con({}))).toHaveLength(0);
+        const prendidos = { ...AJUSTES_POR_DEFECTO.puntosAspectados, asc: true, mc: true };
+        expect(aLosAngulos(con({ puntosAspectados: prendidos })).length).toBeGreaterThan(0);
+    });
+
+    it('los aspectos de los tránsitos se eligen aparte de los de la carta', () => {
+        const soloConjuncion = Object.fromEntries(ASPECTOS.map((x) => [x.id, x.id === 'conjuncion']));
+        const t = con({ aspectosTransito: soloConjuncion });
+        expect(t.aspectos.length).toBeGreaterThan(0);
+        expect([...new Set(t.aspectos.map((a) => a.aspecto))]).toEqual(['conjuncion']);
+        // Y la carta de adentro sigue con los suyos.
+        const natal = calcularCarta(swe, { ...nacimiento, ajustes: { ...AJUSTES_POR_DEFECTO, aspectosTransito: soloConjuncion } });
+        expect([...new Set(natal.aspectos.map((a) => a.aspecto))].length).toBeGreaterThan(1);
+    });
+
+    it('sin la lista nueva valen los aspectos de la carta', () => {
+        // Unos ajustes guardados antes de que los tránsitos tuvieran la suya.
+        const viejos = { ...AJUSTES_POR_DEFECTO };
+        delete viejos.aspectosTransito;
+        const natal = calcularCarta(swe, { ...nacimiento, ajustes: viejos });
+        const t = calcularTransitos(swe, { utc: AHORA, natal, ajustes: viejos });
+        expect(t.aspectos.length).toBeGreaterThan(0);
     });
 });

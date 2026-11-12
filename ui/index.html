@@ -110,8 +110,8 @@
 <main>
     <section class="intro">
         <h1>Calculadora de Cartas Astrales</h1>
-        <p id="pregunta-intro" class="bajada-intro">¿Cómo estaba el cielo cuando naciste?</p>
-        <p id="texto-intro">Completá tus datos y mirá tu carta: la rueda, dónde estaba cada planeta y qué dicen tu Sol, tu Luna y tu Ascendente.</p>
+        <p id="pregunta-intro" class="bajada-intro">¿Cómo estaba el cielo al nacer?</p>
+        <p id="texto-intro">Completá los datos y mirá la carta: la rueda, dónde estaba cada planeta y qué dicen el Sol, la Luna y el Ascendente.</p>
     </section>
 
     <details id="mis-cartas" class="mis-cartas" hidden>
@@ -272,34 +272,34 @@
 
         <div class="campo lugar">
             <div class="fila-etiqueta">
-                <label for="lugar">¿Dónde naciste?</label>
+                <label for="lugar">Lugar de nacimiento</label>
                 <button type="button" class="boton-ayuda" data-ayuda="lugar" aria-expanded="false"
-                    aria-controls="ayuda-lugar" aria-label="Ayuda para encontrar tu lugar">?</button>
+                    aria-controls="ayuda-lugar" aria-label="Ayuda para encontrar el lugar">?</button>
             </div>
             <input id="lugar" type="text" name="lugar" autocomplete="off"
-                placeholder="Escribí las primeras letras de tu ciudad o tu pueblo y elegilo de la lista"
+                placeholder="Escribí las primeras letras de la ciudad o el pueblo y elegilo de la lista"
                 role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias">
             <ul id="sugerencias" class="sugerencias" role="listbox" hidden></ul>
         </div>
 
         <div id="ayuda-lugar" class="ayuda-lugar" hidden>
-            <h3>Si no encontrás tu lugar puede ser que:</h3>
+            <h3>Si no encontrás el lugar puede ser que:</h3>
             <ul>
                 <li><strong>Haya muchos lugares con ese nombre.</strong> Agregá la provincia o el país después del
                     nombre: escribí <em>Potrerillos, Mendoza</em> en vez de <em>Potrerillos</em> solo. La lista muestra
-                    ocho a la vez, y si tu pueblo es chico queda más abajo y no lo vas a ver.</li>
+                    ocho a la vez, y si el pueblo es chico queda más abajo y no lo vas a ver.</li>
                 <li><strong>El pueblo sea muy chico.</strong> Probá con la ciudad o la cabecera más cercana: unos pocos
                     kilómetros no mueven sustancialmente la carta.</li>
                 <li><strong>Hayas escrito el nombre completo de una.</strong> Con las primeras letras alcanza. Si te
                     pasaste, borrá un poco y mirá la lista de nuevo.</li>
-                <li><strong>Sencillamente no esté.</strong> Abrí <em>¿No encontrás tu lugar? Cargá las coordenadas</em>,
+                <li><strong>Sencillamente no esté.</strong> Abrí <em>¿No encontrás el lugar? Cargá las coordenadas</em>,
                     acá abajo, y poné la latitud y la longitud. Las sacás buscando el lugar en Google Maps y tocando
                     el punto.</li>
             </ul>
         </div>
 
         <details class="manual" id="manual">
-            <summary>¿No encontrás tu lugar? Cargá las coordenadas</summary>
+            <summary>¿No encontrás el lugar? Cargá las coordenadas</summary>
             <div class="fila">
                 <label class="campo">Latitud <input type="text" name="lat" inputmode="decimal" placeholder="-34.65 o 34°39'S"></label>
                 <label class="campo">Longitud <input type="text" name="lon" inputmode="decimal" placeholder="-58.62 o 58°37'O"></label>
@@ -328,7 +328,7 @@
         </div>
 
         <div id="campos-revolucion" class="campo lugar" hidden>
-            <label for="lugar-rs" id="etiqueta-lugar-rs">¿Dónde pasás tu cumpleaños?</label>
+            <label for="lugar-rs" id="etiqueta-lugar-rs">¿Dónde pasa el cumpleaños?</label>
             <input id="lugar-rs" type="text" name="lugarRS" autocomplete="off" placeholder="Si lo dejás vacío, el lugar de nacimiento"
                 role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias-rs">
             <ul id="sugerencias-rs" class="sugerencias" role="listbox" hidden></ul>
@@ -357,7 +357,7 @@
     <section id="resultado" class="resultado" hidden>
         <button type="button" class="volver" data-accion="volver">‹ Volver</button>
         <header class="resultado-cabecera">
-            <h2 id="titulo-carta">Tu carta</h2>
+            <h2 id="titulo-carta">La carta</h2>
             <p id="resumen-datos" class="nota visualmente-oculto"></p>
             <div id="cambiar-carta" class="cambiar-carta-caja" hidden>
                 <button type="button" class="boton-texto abrir-cambiar" aria-expanded="false" aria-controls="menu-cambiar-carta">Cambiar la carta visualizada</button>
@@ -565,7 +565,7 @@
         </figure>
 
         <div id="panel-lugar-rs" class="campo lugar panel-lugar-rs" hidden>
-            <label for="lugar-rs-nuevo" id="etiqueta-lugar-rs-nuevo">¿Dónde pasás tu cumpleaños?</label>
+            <label for="lugar-rs-nuevo" id="etiqueta-lugar-rs-nuevo">¿Dónde pasa el cumpleaños?</label>
             <input id="lugar-rs-nuevo" type="text" autocomplete="off" placeholder="Escribí la ciudad o el pueblo"
                 role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias-rs-nuevo">
             <ul id="sugerencias-rs-nuevo" class="sugerencias" role="listbox" hidden></ul>
@@ -589,7 +589,7 @@
 
         <section id="calendario" class="calendario" aria-labelledby="titulo-calendario" hidden>
             <h2 id="titulo-calendario">Calendario de tránsitos</h2>
-            <p class="nota">Júpiter, Saturno, Urano, Neptuno, Plutón, Quirón y el Nodo sobre tu carta. Tocá un tránsito para verlo en la rueda.</p>
+            <p class="nota">Júpiter, Saturno, Urano, Neptuno, Plutón, Quirón y el Nodo sobre la carta. Tocá un tránsito para verlo en la rueda.</p>
             <div class="cal-periodo">
                 <button type="button" data-cal="-6" aria-label="6 meses antes">‹ 6 meses</button>
                 <span id="cal-periodo"></span>
@@ -637,17 +637,17 @@
         </section>
         <div id="para-imagen" class="para-imagen" aria-hidden="true"></div>
 
-        <section class="interpretaciones" aria-label="Tu Sol, tu Luna y tu Ascendente">
+        <section class="interpretaciones" aria-label="El Sol, la Luna y el Ascendente">
             <details class="desplegable-interp">
                 <summary>¿Querés saber algo de lo que esto significa?
-                    <span class="bajada">Acá encontrarás textos para tu sol, luna y ascendente</span></summary>
+                    <span class="bajada">Acá encontrarás textos para el sol, la luna y el ascendente</span></summary>
                 <div id="interpretaciones"></div>
             </details>
         </section>
 
         <section class="consultar" aria-labelledby="titulo-consultar">
-            <h2 id="titulo-consultar">¿Querés profundizar en tu carta?</h2>
-            <p>Una lectura completa mira la carta entera: cómo se combinan los planetas, las casas y los aspectos, y qué momento estás atravesando.</p>
+            <h2 id="titulo-consultar">¿Querés profundizar en la carta?</h2>
+            <p>Una lectura completa mira la carta entera: cómo se combinan los planetas, las casas y los aspectos, y qué momento está atravesando.</p>
             <div class="botones-consulta">
                 <a id="cta-seba" class="boton boton-principal" href="https://wa.me/5493544559877?text=Quisiera%20coordinar%20una%20consulta%20con%20Seba" target="_blank" rel="noopener" data-destino="seba">Consultar con Seba</a>
                 <a id="cta-egresadxs" class="boton" href="https://wa.me/5493544559877?text=Quisiera%20coordinar%20una%20consulta%20con%20Seba" target="_blank" rel="noopener" data-destino="egresadxs">Consultar con egresadxs</a>

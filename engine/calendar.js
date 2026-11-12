@@ -6,7 +6,8 @@
 // recorrido arranca y termina dos anios por fuera del periodo pedido, para
 // encontrar la entrada y la salida reales de los transitos largos.
 
-import { PUNTOS, ASPECTOS, AJUSTES_POR_DEFECTO } from './config.js';
+import { PUNTOS, AJUSTES_POR_DEFECTO } from './config.js';
+import { aspectosActivos } from './aspects.js';
 import { flagsDe } from './chart.js';
 import { biseccion } from './raices.js';
 
@@ -26,9 +27,12 @@ const dif = (a, b) => {
 // margen recorrido.
 export function calendarioTransitos(swe, { natal, desde, hasta, ajustes = AJUSTES_POR_DEFECTO, planetas = PUNTOS_CALENDARIO }) {
     const orbes = ajustes.orbesTransito || AJUSTES_POR_DEFECTO.orbesTransito;
-    const menores = ajustes.menores || AJUSTES_POR_DEFECTO.menores;
-    const activos = ASPECTOS.filter((x) => !x.menor || menores[x.id]);
-    const natales = [...natal.puntos, ...natal.angulos];
+    const activos = aspectosActivos(ajustes.aspectosTransito || ajustes.aspectos
+        || AJUSTES_POR_DEFECTO.aspectosTransito);
+    // Lo mismo que en los transitos: solo los puntos que se aspectan.
+    const elegidos = ajustes.puntosAspectados;
+    const natales = [...natal.puntos, ...natal.angulos]
+        .filter((p) => (elegidos ? elegidos[p.id] !== false : true));
     const inicio = Math.floor(desde) - MARGEN;
     const dias = Math.ceil(hasta) + MARGEN - inicio;
     const res = [];

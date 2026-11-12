@@ -10,7 +10,7 @@ import {
     tablaPosicionesSinastria, tablaCasasSinastria
 } from './tables.js';
 import { husoEn } from '../time/tz.js';
-import { panelHuso } from './huso.js';
+import { panelHuso, trianguloHuso } from './huso.js';
 import { panelAjustes, ajustesDesde, leerAjustes, guardarAjustes, orbesModificados } from './settings.js';
 import { conectarBuscador, opcionesZonas, parsearCoordenada, descripcionLugar } from './form.js';
 import { bloquesInterpretacion, idsInterpretacion } from './interp.js';
@@ -249,7 +249,7 @@ function tipoElegido() {
     $('#campos-revolucion').hidden = !(esRS(tipo) || esRL(tipo));
     $('#campos-pareja').hidden = !esDeDos(tipo);
     pintarResumenPareja();
-    $('#etiqueta-lugar-rs').textContent = esRL(tipo) ? '¿En qué lugar?' : '¿Dónde pasás tu cumpleaños?';
+    $('#etiqueta-lugar-rs').textContent = esRL(tipo) ? '¿En qué lugar?' : '¿Dónde pasa el cumpleaños?';
     $('#etiqueta-fechaT').textContent = sinRueda(tipo) ? 'Desde'
         : esPR(tipo) ? 'Progresar al'
             : esLN(tipo) ? 'Lunación más cercana a'
@@ -373,7 +373,7 @@ function pintar({ liviano = false } = {}) {
     const dosNombres = () => `${d.nombre || 'una carta'} y ${estado.pareja?.datos?.nombre || 'la otra'}`;
     $('#titulo-carta').textContent = (esSIN(estado.modo) && estado.pareja?.datos ? `Sinastría: ${dosNombres()}`
         : esCOM(estado.modo) && estado.pareja?.datos ? `Carta compuesta: ${dosNombres()}`
-            : d.nombre ? `Carta de ${d.nombre}` : 'Tu carta') +
+            : d.nombre ? `Carta de ${d.nombre}` : 'La carta') +
         (corrida ? ' · momento animado' : '');
     const [a, m, dia] = d.fecha.split('-');
     const sistema = SISTEMAS_CASAS.find((s) => s.id === estado.ajustes.casas)?.nombre;
@@ -429,6 +429,10 @@ function pintarEsquinas(sistema) {
     // desconcertaba a quien no tenia por que dudar de su hora.
     const botonHuso = `<button type="button" class="huso-engranaje" data-accion="editar-huso" `
         + `aria-label="Ajustar el huso horario" title="Ajustar el huso horario">${ENGRANAJE(13)}</button>`;
+    // Entre el huso y la roldanita, cuando hay algo que avisar. Es lo unico
+    // que se ve sin abrir el panel del huso, que esta oculto hasta que
+    // alguien lo abre.
+    const triangulo = trianguloHuso(estado.tz, d.eleccion);
     const verano = o.verano === null ? '' : o.verano ? `verano +${duracionTexto(o.verano)}` : 'sin horario de verano';
     const { sola, externa } = cartasVista();
     const otra = sola || externa;
@@ -453,7 +457,7 @@ function pintarEsquinas(sistema) {
     // La natal: el huso se edita tocando el UTC (o desde la Carta Natal).
     const natal = (titulo = 'Carta Natal') => [
         renglon(titulo, 'titulo-esquina'), renglon(`${dia}/${m}/${a}`, 'principal'),
-        `<span class="principal">${escapar(d.hora)} h (<button type="button" class="enlace-huso" data-accion="editar-huso">${utcTexto(o.total)}</button>)</span>`,
+        `<span class="principal linea-huso">${escapar(d.hora)} h (<button type="button" class="enlace-huso" data-accion="editar-huso">${utcTexto(o.total)}</button>)${triangulo}</span>`,
         ...renglonesLugar(l).map((t) => renglon(t))
     ];
 
@@ -542,7 +546,7 @@ function pintarEsquinas(sistema) {
     ].join('');
     $('#esquina-der').innerHTML = [
         `<span class="principal linea-huso">${escapar([utcTexto(o.total), d.correccion ? 'corregido a mano' : '']
-            .filter(Boolean).join(' · '))}${botonHuso}</span>`,
+            .filter(Boolean).join(' · '))}${triangulo}${botonHuso}</span>`,
         renglon(`${coordTexto(l.lat, 'N', 'S')} ${coordTexto(l.lon, 'E', 'O')}`),
         renglon(sistema),
         acciones
@@ -827,7 +831,22 @@ document.addEventListener('click', (e) => {
     if (e.target.closest('[data-accion="abrir-ajustes"]')) abrirAjustes();
 });
 
+// La roldanita de los avisos, que esta en dos lugares: adentro del panel
+// del huso y adentro del globo del triangulito de la esquina de la rueda.
+// El panel esta oculto hasta que se lo abre, asi que primero se abre y
+// recien despues se busca el corrector para ir hasta el.
+function irAlCorrectorDelHuso() {
+    $('#huso').open = true;
+    const sel = $('#huso-contenido [name="huso-base"]');
+    if (!sel) { $('#huso').scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
+    sel.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    sel.focus({ preventScroll: true });
+}
+
 $('.figura-rueda').addEventListener('click', (e) => {
+    // El engranaje de la esquina abre el panel; el de un aviso del globo
+    // baja derecho hasta el corrector.
+    if (e.target.closest('[data-accion="corregir-huso"]')) { irAlCorrectorDelHuso(); return; }
     if (!e.target.closest('[data-accion="editar-huso"]')) return;
     $('#huso').open = true;
     $('#huso').scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -891,13 +910,18 @@ const etiquetaExterna = () => (esPR(estado.modo)
         }
             : { titulo: 'Revolución', sigla: 'RS', de: 'de la revolución' });
 
+// Quien entra en los aspectos entre dos cartas: lo elegido en "Puntos
+// aspectados". El Ascendente y el Medio Cielo entran solo si estan
+// prendidos ahi, tambien para recibir transitos.
+const seAspecta = (id) => estado.ajustes.puntosAspectados?.[id] !== false;
+
 function pintarRueda() {
     const transitos = transitosDeLaVista();
     const { sola, externa } = cartasVista();
     const base = sola || estado.carta;
     $('#rueda').innerHTML = dibujarRueda(base, {
         nombres: NOMBRE_PUNTO, seleccion: estado.seleccion,
-        clara: tema === 'claro', transitos, revolucion: externa,
+        clara: tema === 'claro', transitos, revolucion: externa, aspectosDe: estado.ajustes.graficaTransitos,
         aspectosCruzados: esSIN(estado.modo) ? estado.sinastria?.aspectos || null : null
     });
     acomodarLuego();
@@ -1243,11 +1267,11 @@ async function calcularDraconica() {
     const nodo = estado.ajustes.nodoDraconica === 'medio' ? 'medio' : 'real';
     try {
         const carta = await calcularEnWorker({ tipo: 'draconica', natal: estado.carta, nodo });
-        const pts = (c) => [...c.puntos, ...c.angulos];
+        const pts = (c) => [...c.puntos, ...c.angulos].filter((p) => seAspecta(p.id));
         estado.draconica = {
             carta,
             aspectosNatal: calcularAspectos(pts(carta), pts(estado.carta),
-                { orbesPorAspecto: estado.ajustes.orbesTransito, menores: estado.ajustes.menores })
+                { orbesPorAspecto: estado.ajustes.orbesTransito, aspectos: estado.ajustes.aspectosTransito })
         };
     } catch (err) {
         console.error(err);
@@ -1284,10 +1308,10 @@ async function calcularSinastria() {
     if (!estado.pareja?.datos) { estado.sinastria = null; return; }
     try {
         estado.pareja = await cartaDeDatos(estado.pareja.datos);
-        const pts = (c) => [...c.puntos, ...c.angulos];
+        const pts = (c) => [...c.puntos, ...c.angulos].filter((p) => seAspecta(p.id));
         estado.sinastria = {
             aspectos: calcularAspectos(pts(estado.pareja.carta), pts(estado.carta),
-                { orbesPorAspecto: estado.ajustes.orbesSinastria, menores: estado.ajustes.menores })
+                { orbesPorAspecto: estado.ajustes.orbesSinastria, aspectos: estado.ajustes.aspectos })
         };
     } catch (err) {
         console.error(err);
@@ -1542,10 +1566,10 @@ async function calcularRevolucionSolar() {
             ahora: jdDeFecha(new Date()), lat: l.lat, lon: l.lon, ajustes: estado.ajustes
         });
         estado.revolucion.anio = estado.revolucion.resultado.anio;
-        const pts = (c) => [...c.puntos, ...c.angulos];
+        const pts = (c) => [...c.puntos, ...c.angulos].filter((p) => seAspecta(p.id));
         estado.revolucion.resultado.aspectosNatal = calcularAspectos(
             pts(estado.revolucion.resultado.carta), pts(estado.carta),
-            { orbesPorAspecto: estado.ajustes.orbesTransito, menores: estado.ajustes.menores });
+            { orbesPorAspecto: estado.ajustes.orbesTransito, aspectos: estado.ajustes.aspectosTransito });
     } catch (err) {
         console.error(err);
         estado.revolucion.resultado = null;
@@ -1574,7 +1598,7 @@ function pintarControlesRevolucion() {
     const r = esRS(estado.modo) && estado.revolucion?.resultado;
     $('#controles-rs').hidden = !r;
     $('#etiqueta-lugar-rs-nuevo').textContent = esRL(estado.modo) ? '¿En qué lugar?'
-        : esAhora(estado.modo) ? '¿Dónde estás?' : '¿Dónde pasás tu cumpleaños?';
+        : esAhora(estado.modo) ? '¿Dónde estás?' : '¿Dónde pasa el cumpleaños?';
     $('#mi-ubicacion').hidden = !esAhora(estado.modo);
     if (!esAhora(estado.modo)) { $('#nota-ubicacion').hidden = true; $('#nota-ubicacion').textContent = ''; }
     if (!r && !esRL(estado.modo) && !esAhora(estado.modo)) $('#panel-lugar-rs').hidden = true;
@@ -2041,7 +2065,7 @@ function pintarAvisoLunacion() {
     const l = laLunacion();
     caja.hidden = !l;
     if (!l) return;
-    caja.innerHTML = `<span class="lunacion-casa">Esta ${escapar(tituloLunacion())} cae en tu casa ${l.casa}</span>`
+    caja.innerHTML = `<span class="lunacion-casa">Esta ${escapar(tituloLunacion())} cae en la casa ${l.casa}</span>`
         + `<span class="lunacion-grado">${gradoMin(l)} de ${escapar(NOMBRE_SIGNO[l.signo])}</span>`
         + `<a class="lunacion-link" href="${PAGINA_LUNACION[l.tipo]}" target="_blank" rel="noopener">`
         + 'Acá encontrás más info de qué significa</a>';
@@ -2358,12 +2382,7 @@ $('#huso-contenido').addEventListener('click', (e) => {
     const accion = e.target.closest('[data-accion]')?.dataset.accion;
     const d = estado.datos;
     if (accion === 'corregir-huso') {
-        // La roldanita de los avisos: el corrector ya esta desplegado mas
-        // abajo, asi que alcanza con abrir el panel y llevar el foco.
-        $('#huso').open = true;
-        const sel = $('#huso-contenido [name="huso-base"]');
-        sel?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        sel?.focus();
+        irAlCorrectorDelHuso();
     } else if (accion === 'aplicar-huso') {
         const c = $('#huso-contenido');
         d.correccion = {
@@ -2435,10 +2454,15 @@ $('#form-ajustes').addEventListener('click', (e) => {
         const [prefijo, que] = marcar.split(':');
         // "Solo asteroides": Ceres, Palas, Juno y Vesta, y nada mas.
         const soloAsteroides = ['ceres', 'palas', 'juno', 'vesta'];
+        // "Puntos mas frecuentes": los diez planetas, el Nodo, Lilith y
+        // Quiron, o sea la carta como sale sin tocar nada.
+        const deSiempre = PUNTOS.map((p) => p.id);
         $('#form-ajustes').querySelectorAll(`input[type="checkbox"][name^="${prefijo}-"]`)
             .forEach((c) => {
                 const id = c.name.slice(prefijo.length + 1);
-                c.checked = que === 'todos' || (que === 'asteroides' && soloAsteroides.includes(id));
+                c.checked = que === 'todos'
+                    || (que === 'asteroides' && soloAsteroides.includes(id))
+                    || (que === 'siempre' && deSiempre.includes(id));
             });
         estado.ajustes = ajustesDesde($('#form-ajustes'), estado.ajustes);
         return ajusteCambiado();
@@ -2987,7 +3011,7 @@ function anexoActual() {
     const { sola, externa } = cartasVista();
     const transitos = transitosDeLaVista();
     const base = sola || estado.carta;
-    const pts = (c) => [...c.puntos, ...c.angulos];
+    const pts = (c) => [...c.puntos, ...c.angulos].filter((p) => seAspecta(p.id));
     const ids = (c) => pts(c).map((p) => p.id);
     let filas, columnas, aspectos, triangular, tituloGrilla = '';
     if (transitos) {
@@ -3003,7 +3027,7 @@ function anexoActual() {
             ? (estado.progresion?.resultado?.aspectosNatal || [])
             : esDR(estado.modo) ? (estado.draconica?.aspectosNatal || [])
             : esSIN(estado.modo) ? (estado.sinastria?.aspectos || [])
-            : calcularAspectos(pts(externa), pts(estado.carta), { orbesPorAspecto: estado.ajustes.orbesTransito, menores: estado.ajustes.menores });
+            : calcularAspectos(pts(externa), pts(estado.carta), { orbesPorAspecto: estado.ajustes.orbesTransito, aspectos: estado.ajustes.aspectosTransito });
         triangular = false;
         tituloGrilla = esSIN(estado.modo)
             ? `${nombrePareja()} a ${nombreAdentro()}`
@@ -3050,7 +3074,7 @@ async function descargarImagen() {
     const sin = esSIN(estado.modo) && externa;
     const com = esCOM(estado.modo) && sola;
     caja.innerHTML = dibujarRueda(sola || estado.carta, {
-        nombres: NOMBRE_PUNTO, clara: tema === 'claro', transitos, revolucion: externa,
+        nombres: NOMBRE_PUNTO, clara: tema === 'claro', transitos, revolucion: externa, aspectosDe: estado.ajustes.graficaTransitos,
         aspectosCruzados: sin ? estado.sinastria?.aspectos || null : null
     }) + anexoActual();
     const cs = getComputedStyle(document.body);
@@ -3062,7 +3086,7 @@ async function descargarImagen() {
             : transitos || mom ? estado.transito.fecha.split('-').reverse().join('/') : '';
         const blob = await imagenCarta(caja.querySelector('svg.rueda'), {
             anexo: caja.querySelector('svg.anexo'),
-            titulo: ln ? `${tituloLunacion()} del ${fechaT} en tu casa ${laLunacion().casa}`
+            titulo: ln ? `${tituloLunacion()} del ${fechaT} en la casa ${laLunacion().casa}`
                 : esAhora(estado.modo) && sola ? `Los astros el ${fechaT}`
                 : trd ? `Tránsitos dracónicos del ${fechaT}`
                 : drt ? `Dracónica + tránsitos dracónicos del ${fechaT}`

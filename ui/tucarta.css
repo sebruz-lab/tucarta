@@ -6,7 +6,7 @@
 @font-face {
     font-family: 'Outfit';
     font-style: normal;
-    font-weight: 300 600;
+    font-weight: 100 900;
     font-display: swap;
     src: url('/cartas/fonts/outfit-latin-ext.woff2') format('woff2');
     unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
@@ -14,7 +14,7 @@
 @font-face {
     font-family: 'Outfit';
     font-style: normal;
-    font-weight: 300 600;
+    font-weight: 100 900;
     font-display: swap;
     src: url('/cartas/fonts/outfit-latin.woff2') format('woff2');
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
@@ -427,20 +427,34 @@ details > summary {
 }
 .alerta-huso > summary::-webkit-details-marker { display: none; }
 .alerta-huso > summary::marker { content: ''; }
+/* El globo vive adentro de la esquina de la rueda, que esta alineada a la
+   derecha y fuerza nowrap: hay que desarmar las dos cosas. Se abre hacia
+   adentro de la rueda para no escaparse de la pantalla. */
 .globo-huso {
     position: absolute;
-    z-index: 5;
+    z-index: 6;
     top: calc(100% + 8px);
-    left: -8px;
-    width: min(16rem, calc(100vw - 72px));
+    right: 0;
+    width: min(17rem, calc(100vw - 32px));
     background: var(--superficie);
     border: 1px solid var(--amarillo);
     border-radius: var(--radio);
     padding: 12px 14px;
-    font-size: 0.88rem;
-    line-height: 1.45;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    font-weight: 400;
+    letter-spacing: normal;
+    white-space: normal;
+    text-align: left;
+    color: var(--texto-suave);
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
 }
+.esquina-izq .globo-huso { right: auto; left: 0; }
+.globo-huso p { margin: 0; }
+.globo-huso p + p { margin-top: 10px; }
+.globo-huso strong { color: var(--texto); font-weight: 500; }
+/* La esquina subraya todos sus botones; la roldanita no. */
+.esquina .globo-huso .rueda-huso { text-decoration: none; color: var(--turquesa); padding: 0; }
 /* La roldanita que abre el formulario para corregir el huso a mano. */
 .rueda-huso {
     display: inline-flex;
@@ -556,6 +570,9 @@ details > summary {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
     gap: 8px 18px; margin: 6px 0 12px;
 }
+/* Rotulo que separa los puntos de siempre de los opcionales. */
+.rotulo-puntos { margin: 18px 0 0; font-size: 0.9rem; color: var(--texto-suave); }
+.rotulo-puntos.primero { margin-top: 4px; }
 .punto-opcional {
     display: grid;
     grid-template-columns: auto 22px 1fr;
@@ -781,12 +798,20 @@ body.sin-scroll { overflow: hidden; }
 .rueda .eje { stroke: var(--texto); stroke-width: 2.6; }
 .rueda .rotulo-cuspide {
     fill: var(--texto-suave);
+    /* Lo mas fino que da la Outfit son 300; abajo de eso el navegador
+       recorta. Si el archivo de la fuente no trae los pesos livianos, el
+       240 se ve igual que el 300 y hay que bajarla de nuevo con el rango
+       entero. */
+    font-weight: 240;
     text-anchor: middle;
     dominant-baseline: central;
 }
 .rueda .num-casa {
     fill: var(--texto-suave);
-    font-size: 14.4px;
+    font-size: 13.7px;
+    /* Mas cuerpo que el resto, para distinguirse del grado de la cuspide,
+       que comparte anillo. */
+    font-weight: 480;
     text-anchor: middle;
     dominant-baseline: central;
 }
@@ -819,8 +844,9 @@ body.sin-scroll { overflow: hidden; }
 .rueda .rotulo-ac { fill: var(--ac); }
 .rueda .punto .toque { fill: transparent; }
 .rueda .punto.sel .toque { fill: rgba(247, 210, 57, 0.12); }
-.rueda .marca-punto { stroke: currentColor; stroke-width: 2; }
-.rueda .marca-punto[class*="marca-"] { stroke: var(--linea-fuerte); }
+.rueda .marca-punto { stroke: var(--linea-fuerte); stroke-width: 2; }
+/* El palito de cada planeta en el circulo de adentro, de su color. */
+.rueda .marca-punto[data-punto] { stroke: var(--p, var(--linea-fuerte)); }
 .rueda .punto.transito.sel .toque { fill: rgba(159, 196, 144, 0.18); }
 .rueda .grado-punto {
     fill: currentColor;
@@ -828,7 +854,9 @@ body.sin-scroll { overflow: hidden; }
     text-anchor: middle;
     dominant-baseline: central;
 }
-.rueda .retro { fill: var(--rosa); font-size: 9.5px; }
+/* La R de retrogrado es un dibujo relleno con currentColor: va por
+   color, no por fill. */
+.rueda .retro { color: var(--rosa); }
 
 .detalle-punto {
     text-align: center;
@@ -1011,6 +1039,7 @@ body.sin-scroll { overflow: hidden; }
 .tabla .icono.elem-aire { color: var(--aire); }
 .tabla .icono.elem-agua { color: var(--agua); }
 .tabla .retro, .tabla .ap { color: var(--rosa); text-align: center; width: 1.5em; }
+.tabla .retro .icono { margin: 0; color: inherit; vertical-align: -2px; }
 .tabla abbr { text-decoration: none; }
 /* Celulares angostos: menos aire para que la tabla no se salga de la pantalla. */
 @media (max-width: 420px) {
@@ -1476,6 +1505,9 @@ body.sin-scroll { overflow: hidden; }
     gap: 10px;
     font-size: 0.9rem;
 }
+/* Fila de un solo valor: aspecto y su orbe, o punto y su porcentaje. */
+.orbe.simple { grid-template-columns: 1fr 5.5em; }
+.orbe.simple .menor { min-width: 0; }
 .orbe .valor { white-space: nowrap; text-align: right; }
 .orbe input { width: 4.2em; padding: 8px; text-align: right; }
 .orbe.encabezado { font-size: 0.8rem; color: var(--texto-suave); }
@@ -1709,19 +1741,24 @@ body.sin-scroll { overflow: hidden; }
         position: relative !important;
         inset: auto;
         margin: 0 !important;
-        padding: 50mm 12mm 0 !important;
+        /* 5mm de margen a los lados: la rueda llega casi al borde del
+           papel. Las esquinas de su caja estan vacias, asi que no se
+           pierde nada si la impresora no llega tan al borde. */
+        padding: 50mm 5mm 0 !important;
         height: 297mm;
         box-sizing: border-box;
         overflow: hidden;
         display: block;
         background: #fff;
     }
-    .figura-rueda #rueda { width: 186mm; margin: 0 auto; }
+    .figura-rueda #rueda { width: 200mm; margin: 0 auto; }
     .figura-rueda .rueda { max-width: none; }
     /* Con referencias: la rueda (del mismo tamaño) sube y abajo van, en una
        fila, la grilla de aspectos y las tablas de planetas y signos. */
-    body.con-anexo .figura-rueda, body.con-anexo .figura-rueda.completa { padding-top: 24mm !important; }
-    body.con-anexo .anexo-impresion { display: block; width: 186mm; margin: 1mm auto 0; }
+    /* Con referencias entra todo justo: 16 arriba + 200 de rueda + 64 del
+       anexo = 281mm, y el pie empieza en 285. */
+    body.con-anexo .figura-rueda, body.con-anexo .figura-rueda.completa { padding-top: 16mm !important; }
+    body.con-anexo .anexo-impresion { display: block; width: 200mm; margin: 1mm auto 0; }
     .anexo-impresion svg { display: block; width: 100%; height: auto; }
     /* Sin fondo: solo las lineas, los glifos y los numeros. */
     .rueda .fondo-rueda { fill: none !important; }
