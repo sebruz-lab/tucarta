@@ -30,7 +30,7 @@ Dos cosas que quedaron distintas del resto de las ruedas, porque ahí no entra:
 
 ---
 
-# Arreglado, sin publicar
+# Lo que salió en v1.19.1 (2026-11-12)
 
 ## Cambiar la carta visualizada
 
@@ -53,7 +53,11 @@ líneas de aspecto). Decisión de Seba del 2026-11-12: un solo tono, parejo.
 El semisextil sigue compartiendo el azul de los armónicos, distinguido por el
 punteado: también es decisión suya.
 
-Falta publicar las dos cosas: sería una v1.19.1.
+## Las casillas de novedades
+
+Decían "novedades de Seba Bru", que no dice nada de lo que llega. Ahora dicen
+"contenido astrológico gratuito, regalos y descuentos para talleres y
+formaciones", el mismo texto que el resto del sitio y el modal de la escuela.
 
 ---
 
