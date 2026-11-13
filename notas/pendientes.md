@@ -24,11 +24,14 @@ Dos cosas que quedaron distintas del resto de las ruedas, porque ahí no entra:
 
 ---
 
-# Lo que entra en v1.20.0
+# Lo que salió en v1.20.0 (2026-11-13)
 
-Sin publicar todavía. Va de v1.19.1 a v1.20.0 y no a v1.19.2 porque además de
-los arreglos entran dos cosas nuevas: la suscripción por mail y poder instalar
-la calculadora.
+Publicado y verificado por contenido en sebabru.com/cartas. Va de v1.19.1 a
+v1.20.0 y no a v1.19.2 porque además de los arreglos entran dos cosas nuevas:
+la suscripción por mail y poder instalar la calculadora.
+
+El orden salió bien: los 36 textos ya estaban servidos desde el sitio, después
+`functions:suscribir` con el origen `cartas`, y la calculadora al final.
 
 ## Compartir y descargar son dos botones
 
