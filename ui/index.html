@@ -581,6 +581,7 @@
 
         <div class="barra-carta">
             <button type="button" class="boton" data-accion="pantalla-completa">Pantalla completa</button>
+            <button type="button" class="boton boton-compartir" data-accion="compartir">Compartir</button>
             <button type="button" class="boton" data-accion="descargar">Descargar imagen</button>
             <button type="button" class="boton" data-accion="imprimir">Imprimir</button>
             <button type="button" class="boton" data-accion="guardar">Guardar en mis cartas</button>
@@ -631,6 +632,7 @@
             <p id="ef-detalle" class="ef-detalle" aria-live="polite"></p>
             <div class="barra-carta ef-acciones">
                 <button type="button" class="boton" data-ef-accion="completa">Pantalla completa</button>
+                <button type="button" class="boton boton-compartir" data-ef-accion="compartir">Compartir</button>
                 <button type="button" class="boton" data-ef-accion="descargar">Descargar imagen</button>
                 <button type="button" class="boton" data-ef-accion="imprimir">Imprimir</button>
             </div>
@@ -676,17 +678,28 @@
         <div class="acciones">
             <button type="button" class="boton-texto" data-accion="otra-carta">Calcular otra carta</button>
             <button type="button" class="boton-texto" data-accion="borrar">Borrar mis datos de este dispositivo</button>
-            <button type="button" class="boton-texto" data-accion="sin-internet">Guardar los lugares para usar sin internet</button>
-            <p class="nota" id="aviso-sin-internet" role="status" hidden></p>
         </div>
     </section>
 
     <section class="comunidad" aria-labelledby="titulo-comunidad">
-        <h2 id="titulo-comunidad">Sumate a la Comunidad Astrológica</h2>
-        <p>Si querés recibir los contenidos que crea Seba cada semana, sumate a la comunidad.</p>
+        <h2 id="titulo-comunidad">Cerca del cielo, por mail</h2>
+        <!-- El formulario lo arma ui/suscribirse.js: no tocar el div. -->
+        <div class="comunidad-mail" data-suscribirse></div>
+        <p class="nota comunidad-o">Y si preferís el celular:</p>
         <div class="comunidad-botones">
-            <a class="boton" href="https://chat.whatsapp.com/JK6IVY51OdtKoP0rulrm4G" target="_blank" rel="noopener noreferrer" data-comunidad="whatsapp">WhatsApp</a>
-            <a class="boton" href="https://t.me/sebastianbru" target="_blank" rel="noopener noreferrer" data-comunidad="telegram">Telegram</a>
+            <a class="boton" href="https://chat.whatsapp.com/JK6IVY51OdtKoP0rulrm4G" target="_blank" rel="noopener noreferrer" data-comunidad="whatsapp">Comunidad de WhatsApp</a>
+        </div>
+    </section>
+
+    <!-- Llevarse la calculadora: el cuerpo lo arma ui/instalar.js. -->
+    <section class="instalar" aria-labelledby="titulo-instalar" hidden>
+        <h2 id="titulo-instalar">Llevate la calculadora</h2>
+        <p>Se instala como una app: se abre sola, sin la barra del navegador, y
+            <strong>anda sin internet</strong> — el cálculo ya pasa entero en tu dispositivo.</p>
+        <div class="instalar-cuerpo"></div>
+        <div class="instalar-lugares">
+            <button type="button" class="boton-texto" data-accion="sin-internet">Guardar los lugares para usar sin internet</button>
+            <p class="nota" id="aviso-sin-internet" role="status" hidden></p>
         </div>
     </section>
 </main>
@@ -698,6 +711,16 @@
     <p>Contacto: <a href="mailto:info@sebabru.com">info@sebabru.com</a> ·
         <a href="https://sebabru.com">sebabru.com</a></p>
 </footer>
+
+<!-- El aviso para instalarla. No sale en frio: lo prende ui/instalar.js
+     recien cuando alguien ya calculo una carta y dio una segunda senal. -->
+<div class="aviso-instalar" role="region" aria-label="Instalar la calculadora" hidden>
+    <p data-instalar-texto></p>
+    <div class="aviso-instalar-botones">
+        <button type="button" class="boton boton-principal" data-instalar="aviso">Instalar</button>
+        <button type="button" class="aviso-instalar-cerrar" data-instalar="cerrar" aria-label="Cerrar este aviso">&times;</button>
+    </div>
+</div>
 
 <script type="module" src="./app.js"></script>
 </body>

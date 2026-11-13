@@ -16,6 +16,15 @@ export const PERILLAS = (t = 19) =>
     + `<path d="M7 4v5M7 13v7M12 4v11M12 19v1M17 4v3M17 11v9"/>`
     + `<circle cx="7" cy="11" r="2"/><circle cx="12" cy="17" r="2"/><circle cx="17" cy="9" r="2"/></svg>`;
 
+// Compartir. En el celular, el boton de descargar abre el menu de compartir
+// del sistema (ver entregarImagen en descarga.js), asi que ahi se muestra
+// con este icono y con ese nombre.
+export const COMPARTIR = (t = 16) =>
+    `<svg viewBox="0 0 24 24" width="${t}" height="${t}" aria-hidden="true" fill="none" stroke="currentColor"`
+    + ` stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">`
+    + `<circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/>`
+    + `<path d="M8.4 10.7l7.2-4.4M8.4 13.3l7.2 4.4"/></svg>`;
+
 // Pantalla completa.
 export const COMPLETA = (t = 17) =>
     `<svg viewBox="0 0 24 24" width="${t}" height="${t}" aria-hidden="true" fill="none" stroke="currentColor"`

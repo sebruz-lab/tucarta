@@ -37,7 +37,7 @@ No construir nada de las etapas 2 a 4 todavía, pero la arquitectura no tiene qu
 - **Cálculo en el navegador:** Swiss Ephemeris compilado a WASM con Emscripten (fuente en `engine/swisseph/`), en un Web Worker. Planetas, Luna y Nodo con Moshier (sin archivos); Quirón con `seas_18.se1`.
   - Moshier da hasta ~47" de error en el Nodo verdadero (22" en `jujuy-1991`). Queda dentro de la tolerancia de 1', y Seba decidió no sumar `semo_18.se1` (1,3 MB) para que la app sea más liviana.
 - **Integración:** el CI publica `dist/` como release con tag. El workflow de deploy del repo privado baja la release fijada y la copia en `public/tucarta/` antes de `firebase deploy`. Mismo origen: sebabru.com/tucarta.
-- **Textos:** en Firestore (base `cursos`), colección `tucarta_textos/{sol-aries|luna-tauro|asc-geminis…}` con `{titulo, texto, publicado}`. Links de consulta en `tucarta_config/general`. Nunca en este repo.
+- **Textos:** se editan en Firestore (base `cursos`), colección `tucarta_textos/{sol-aries|luna-tauro|asc-geminis…}` con `{titulo, texto, publicado}`, pero **la calculadora los lee del sitio**: `sebabru.com/textos/<id>.json`, un archivo por texto (ver `ui/interpretaciones.js`). Los genera `paginas-textos.js` de `herramientas-sebabru` junto con las 36 páginas de `/sol/`, `/lunas/` y `/ascendente/`; después de editar un texto hay que volver a correrlo y pushear el sitio. Es lo que evita que un clon de `/cartas` en otro dominio se lleve los textos: desde otro origen el fetch no pasa. Links de consulta sí siguen en `tucarta_config/general`. Nunca en este repo.
 - **Husos horarios:** cada localidad trae su zona IANA (Argentina varía por provincia).
   - `time/zonas.json` se genera con `time/build/zonas.mjs` desde el fuente IANA (versión fija, hoy 2025b). Cubre Argentina, Uruguay, España y países vecinos, con huso base y horario de verano por separado (`Intl` no los distingue).
   - Las demás zonas usan `Intl` y solo muestran el offset total.
@@ -71,7 +71,8 @@ No construir nada de las etapas 2 a 4 todavía, pero la arquitectura no tiene qu
 - `places/`: buscador de lugares. El índice `ui/public/lugares/` se genera con `npm run lugares` y **no se versiona** (unos 20 MB).
 - `ui/`: página (Vite, JS sin framework).
   - `app.js` orquesta; `worker.js` calcula; `wheel.js` dibuja la rueda; `glyphs.js` tiene los glifos SVG; `huso.js`, `tables.js`, `settings.js`, `interp.js` y `form.js` arman cada parte.
-  - `firestore.js` lee textos y links por la API REST, sin el SDK.
+  - `firestore.js` lee los links y las cartas guardadas por la API REST, sin el SDK.
+  - `interpretaciones.js` trae los textos del sitio (mismo origen, un JSON por texto).
 - Las posiciones se muestran **truncadas** al minuto, como Solar Fire.
 
 ## Comandos

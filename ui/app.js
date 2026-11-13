@@ -14,21 +14,25 @@ import { panelHuso, trianguloHuso } from './huso.js';
 import { panelAjustes, ajustesDesde, leerAjustes, guardarAjustes, orbesModificados } from './settings.js';
 import { conectarBuscador, opcionesZonas, parsearCoordenada, descripcionLugar } from './form.js';
 import { bloquesInterpretacion, idsInterpretacion } from './interp.js';
-import { textosInterpretacion, configRemota } from './firestore.js';
+import { configRemota } from './firestore.js';
+import { textosInterpretacion } from './interpretaciones.js';
 import { CONFIG_POR_DEFECTO } from './config.js';
 import { evento } from './analytics.js';
 import { NOMBRE_PUNTO, NOMBRE_ASPECTO, NOMBRE_SIGNO, gradoMin, escapar, utcTexto, duracionTexto, coordTexto } from './textos.js';
-import { ENGRANAJE, PERILLAS, COMPLETA } from './iconos.js';
+import { ENGRANAJE, PERILLAS, COMPLETA, COMPARTIR } from './iconos.js';
 import { SISTEMAS_CASAS, PUNTOS, ANGULOS } from '../engine/config.js';
 import { almacenLocal, igualQue } from './miscartas.js';
-import { imagenCarta, imagenEfemerides, entregarImagen } from './descarga.js';
+import { imagenCarta, imagenEfemerides, entregarImagen, compartirImagen } from './descarga.js';
 import { listaCalendario, jdDeFecha, fechaDeJd, fechaCorta, fechaParaVer } from './calendario.js';
 import { dibujarEfemerides, geometria } from './efemerides.js';
 import { normalizarFecha, completarFecha, completarHora } from './fecha.js';
 import { dibujarAnexo } from './anexo.js';
 import { calcularAspectos } from '../engine/aspects.js';
 import { TRANSITAN_EFEMERIDES } from '../engine/efemerides.js';
-import { conectarCuenta, sesionIniciada, conCuenta, abrirEntrar, esAdmin } from './panelCuenta.js';
+import { conectarCuenta, sesionIniciada, conCuenta, abrirEntrar, esAdmin,
+    estadoDeNovedades, avisarmeDeLaCuenta } from './panelCuenta.js';
+import { montarSuscripcion, yaEstaEnLaLista } from './suscribirse.js';
+import { montarInstalar, prepararAviso, senal } from './instalar.js';
 import { leerArchivoCartas, textoDeArchivo, completarLugares } from './importar.js';
 import { buscar as buscarLugar } from './form.js';
 import { TIPOS, buscarEnLista } from './miscartas.js';
@@ -350,6 +354,9 @@ async function calcular({ nueva = false } = {}) {
             orbes_modificados: orbesModificados(estado.ajustes),
             huso_corregido: Boolean(d.correccion)
         });
+        // Para el aviso de instalar: no sale en frio, hace falta esto y una
+        // segunda senal de que la calculadora le sirve.
+        senal('carta');
         $('#huso').open = false;
         $('#aviso-carta').hidden = true;
         form.hidden = true;
@@ -2234,7 +2241,7 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && $('#efemerides').classList.contains('completa')) efPantallaCompleta(false);
 });
 
-async function descargarEfemerides(boton) {
+async function descargarEfemerides(boton, modo = 'descargar') {
     const d = estado.datos;
     const { desde, hasta } = periodoEfemerides();
     const cs = getComputedStyle(document.body);
@@ -2247,8 +2254,11 @@ async function descargarEfemerides(boton) {
             colores: { fondo: color('--bg'), texto: color('--texto'), suave: color('--texto-suave') }
         });
         const anio = estado.efemerides.anio;
-        const como = await entregarImagen(blob, `efemerides-${slug(d.nombre || 'natal') || 'natal'}-${anio}-${anio + ef.anios - 1}.png`, 'Efemérides gráficas');
-        if (como !== 'cancelada') evento('imagen_descargada', { vista: 'efemerides', fondo: tema, como });
+        const nombre = `efemerides-${slug(d.nombre || 'natal') || 'natal'}-${anio}-${anio + ef.anios - 1}.png`;
+        const como = modo === 'compartir'
+            ? await compartirImagen(blob, nombre, 'Efemérides gráficas')
+            : await entregarImagen(blob, nombre);
+        if (como !== 'cancelada') evento('imagen_descargada', { vista: 'efemerides', fondo: tema, como, modo });
     } catch (err) {
         console.error(err);
         $('#ef-detalle').textContent = 'No pudimos armar la imagen. Probá de nuevo.';
@@ -2264,7 +2274,7 @@ $('#efemerides').addEventListener('click', async (e) => {
         evento('carta_impresa', { tipo: 'efemerides' });
         return window.print();
     }
-    if (accion === 'descargar') return descargarEfemerides(e.target.closest('button'));
+    if (accion === 'descargar' || accion === 'compartir') return descargarEfemerides(e.target.closest('button'), accion);
     const paso = e.target.closest('[data-ef]')?.dataset.ef;
     const cruce = e.target.closest('[data-cruce]')?.dataset.cruce;
     if (paso) {
@@ -2945,6 +2955,7 @@ document.querySelector('.barra-carta').addEventListener('click', async (e) => {
         try {
             await almacen.guardar(estado.datos);
             evento('carta_guardada', {});
+            senal('guardar');
             avisar(almacen === almacenLocal
                 ? 'Listo: la vas a encontrar en "Mis cartas", en este dispositivo.'
                 : 'Listo: la vas a encontrar en "Mis cartas", desde cualquier dispositivo.');
@@ -2953,7 +2964,7 @@ document.querySelector('.barra-carta').addEventListener('click', async (e) => {
             avisar('No pudimos guardarla. Probá de nuevo en un rato.');
         }
         pintarBotonGuardar();
-    } else if (accion === 'imprimir' || accion === 'descargar') {
+    } else if (accion === 'imprimir' || accion === 'descargar' || accion === 'compartir') {
         // Antes, que referencias van debajo de la rueda (planetas, signos,
         // grilla de aspectos).
         abrirAnexo(accion, e.target.closest('button'));
@@ -2981,7 +2992,8 @@ function abrirAnexo(accion, boton) {
     for (const cual of ['planetas', 'signos']) {
         v.querySelector(`[data-incluir="${cual}"]`).closest('.casilla').hidden = esLN(estado.modo);
     }
-    v.querySelector('[data-anexo="seguir"]').textContent = accion === 'imprimir' ? 'Imprimir' : 'Descargar imagen';
+    v.querySelector('[data-anexo="seguir"]').textContent =
+        accion === 'imprimir' ? 'Imprimir' : accion === 'compartir' ? 'Compartir' : 'Descargar imagen';
     v.showModal();
 }
 
@@ -2998,10 +3010,11 @@ $('#ventana-anexo').addEventListener('click', async (e) => {
     if (que === 'imprimir') {
         evento('carta_impresa', { tipo: estado.modo, referencias });
         imprimirCarta();
-    } else if (que === 'descargar') {
+    } else if (que === 'descargar' || que === 'compartir') {
         if (boton) boton.disabled = true;
         try {
-            await descargarImagen();
+            await descargarImagen(que);
+            senal(que);
         } catch (err) {
             console.error(err);
             avisar('No pudimos armar la imagen. Probá de nuevo.');
@@ -3064,7 +3077,7 @@ window.addEventListener('afterprint', () => {
 const slug = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
     .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-async function descargarImagen() {
+async function descargarImagen(modo = 'descargar') {
     // Rueda limpia, sin el planeta tocado, en un contenedor fuera de la vista.
     const caja = $('#para-imagen');
     const transitos = transitosDeLaVista();
@@ -3128,8 +3141,13 @@ async function descargarImagen() {
             : transitos
             ? `transitos-${slug(d.nombre || 'natal') || 'natal'}-${estado.transito.fecha}.png`
             : `carta-${slug(d.nombre || 'natal') || 'natal'}-${d.fecha}.png`;
-        const como = await entregarImagen(blob, archivo, $('#titulo-carta').textContent);
-        if (como !== 'cancelada') evento('imagen_descargada', { fondo: tema, como });
+        const titulo = $('#titulo-carta').textContent;
+        const como = modo === 'compartir'
+            ? await compartirImagen(blob, archivo, titulo)
+            : await entregarImagen(blob, archivo);
+        if (como === 'enlace-copiado') avisar('Tu dispositivo no puede compartir la imagen. Te copiamos el enlace.');
+        if (como === 'sin-soporte') avisar('Tu dispositivo no puede compartir desde aca. Descargala y mandala a mano.');
+        if (como !== 'cancelada') evento('imagen_descargada', { fondo: tema, como, modo });
     } finally {
         caja.innerHTML = '';
     }
@@ -3332,7 +3350,47 @@ async function abrirEnlace() {
         else console.error(err);
     }
 }
+// El icono del boton de compartir. Va por JS porque los iconos son cadenas
+// de SVG en iconos.js; el boton existe en el HTML y se ve en todos los
+// dispositivos, no solo en el celular.
+document.querySelectorAll('[data-accion="compartir"], [data-ef-accion="compartir"]').forEach((b) => {
+    b.innerHTML = `${COMPARTIR(15)}<span>${b.textContent.trim()}</span>`;
+});
+
 abrirEnlace();
+
+// ---------- Suscripcion por mail e instalar la app ----------
+// Las dos cosas van al pie y no participan del calculo, asi que se montan al
+// final.
+//
+// En la hoja que arma el PDF del mail (#hoja=) no se monta nada: esa pagina no
+// la ve nadie, la imprime un navegador sin cabeza. El CSS de impresion ya las
+// esconde, pero asi tampoco se carga el captcha ni puede asomar el aviso.
+const paraElPDF = location.hash.startsWith('#hoja=');
+
+// A quien ya dijo que si en su cuenta no se le vuelve a preguntar; a quien
+// entro pero no dijo nada, el mail ya puesto. Se vuelve a mirar cada vez que
+// la sesion cambia, porque esto se monta antes de que Firebase conteste.
+{
+    const caja = document.querySelector('[data-suscribirse]');
+    let montadoCon = null;
+    const poner = ({ dentro, mail, novedades }) => {
+        const clave = `${dentro}|${mail}|${novedades}`;
+        if (clave === montadoCon) return;
+        montadoCon = clave;
+        if (dentro && novedades) yaEstaEnLaLista(caja);
+        else montarSuscripcion(caja, { origen: 'cartas', mail: dentro ? mail : '' });
+    };
+    if (caja && !paraElPDF) {
+        poner(estadoDeNovedades());
+        avisarmeDeLaCuenta(poner);
+    }
+}
+
+if (!paraElPDF) {
+    montarInstalar(document.querySelector('.instalar'));
+    prepararAviso(document.querySelector('.aviso-instalar'));
+}
 
 // El cielo de este momento, debajo del formulario. Va al final y sin apuro:
 // primero que la pagina este lista para escribir. Con un enlace de carta (o

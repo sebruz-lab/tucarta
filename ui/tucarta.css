@@ -1592,6 +1592,153 @@ body.sin-scroll { overflow: hidden; }
 .comunidad p { color: var(--texto-suave); max-width: 30em; margin: 0 auto 18px; }
 .comunidad-botones { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 .comunidad-botones .boton { text-decoration: none; min-width: 130px; }
+.comunidad-o { margin-top: 26px !important; font-size: 0.88rem; }
+
+/* ---------- Suscripcion por mail (ui/suscribirse.js) ----------
+   Con los tokens del tema: el del sitio tiene los colores a mano, pero aca el
+   fondo puede ser claro u oscuro. */
+
+.suscribirse { text-align: left; max-width: 30em; margin: 0 auto; }
+.suscribirse .sus-intro { margin: 0 0 22px; font-size: 0.95rem; }
+.suscribirse .sus-campo { margin-bottom: 18px; }
+.suscribirse label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+}
+.suscribirse label .sus-opcional { text-transform: none; letter-spacing: 0; opacity: 0.75; }
+.suscribirse input[type="email"], .suscribirse input[type="text"] {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 2px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--linea);
+    border-radius: 0;
+    color: var(--texto);
+    font: inherit;
+    /* 16px para que el iPhone no haga zoom al tocar el campo. */
+    font-size: 16px;
+}
+.suscribirse input[type="email"]:focus, .suscribirse input[type="text"]:focus {
+    outline: none;
+    border-bottom-color: var(--texto);
+}
+.suscribirse .sus-canje { margin: 0 0 20px; font-size: 0.85rem; line-height: 1.6; }
+.suscribirse .sus-canje a { color: inherit; text-decoration: underline; }
+/* La trampa para los bots: no se ve y no se puede tabular hasta ella. */
+.suscribirse .sus-trampa { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.suscribirse .sus-captcha:not(:empty) { margin-bottom: 16px; }
+.suscribirse button[type="submit"] { width: 100%; }
+.suscribirse .sus-error {
+    margin: 0 0 16px;
+    padding: 11px 13px;
+    border-radius: 9px;
+    /* El rgba va primero de respaldo: color-mix no existe en los navegadores
+       un poco viejos, y sin fondo el aviso de error no se lee como un error. */
+    background: rgba(245, 109, 150, 0.12);
+    background: color-mix(in srgb, var(--rosa) 12%, transparent);
+    border: 1px solid rgba(245, 109, 150, 0.45);
+    border: 1px solid color-mix(in srgb, var(--rosa) 45%, transparent);
+    color: var(--texto);
+    font-size: 0.88rem;
+    line-height: 1.6;
+}
+.suscribirse .sus-error button {
+    font: inherit;
+    font-size: 0.88rem;
+    margin-top: 9px;
+    padding: 7px 14px;
+    border-radius: 50px;
+    background: transparent;
+    color: var(--texto);
+    border: 1px solid var(--linea-fuerte);
+    cursor: pointer;
+}
+/* Acotado a .comunidad porque `.comunidad p` le ganaria el color y el
+   margen: yaEstaEnLaLista() saca la clase .suscribirse de la caja. */
+.comunidad .sus-listo, .suscribirse .sus-listo {
+    margin: 0 auto;
+    max-width: 30em;
+    color: var(--texto);
+    font-size: 0.95rem;
+    line-height: 1.7;
+}
+.sus-listo strong { font-weight: 400; }
+.sus-listo .sus-nota { display: block; margin-top: 12px; color: var(--texto-suave); font-size: 0.85rem; }
+
+/* ---------- Llevate la calculadora (ui/instalar.js) ---------- */
+
+.instalar {
+    margin: 28px 0 0;
+    padding: 28px 20px;
+    border: 1px solid var(--linea);
+    border-radius: var(--radio);
+    text-align: center;
+}
+.instalar h2 { font-size: 1.3rem; font-weight: 400; margin: 0 0 10px; }
+.instalar > p { color: var(--texto-suave); max-width: 32em; margin: 0 auto 20px; }
+.instalar-cuerpo { max-width: 32em; margin: 0 auto; }
+.instalar-cuerpo .boton-principal { min-width: 240px; }
+.instalar-cuerpo .boton-principal:disabled { opacity: 0.5; cursor: default; }
+.instalar-mio { margin-top: 24px; text-align: left; }
+.instalar-mio h3, .instalar-otra h3 {
+    font-size: 0.8rem;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+    margin: 0 0 8px;
+}
+.instalar-pasos { margin: 0; padding-left: 1.3em; color: var(--texto-suave); font-size: 0.92rem; line-height: 1.7; }
+.instalar-pasos li { margin-bottom: 4px; }
+.instalar-otras { margin-top: 22px; text-align: left; }
+.instalar-otras summary { cursor: pointer; color: var(--turquesa); font-size: 0.9rem; }
+.instalar-otra { margin-top: 18px; }
+.instalar-lugares { margin-top: 24px; }
+
+/* El aviso, abajo y por encima de todo. Angosto en el celular, chico en el
+   escritorio: no tiene que tapar la rueda. */
+.aviso-instalar {
+    position: fixed;
+    z-index: 60;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--superficie);
+    border: 1px solid var(--linea-fuerte);
+    border-radius: var(--radio);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+.aviso-instalar p { margin: 0; font-size: 0.92rem; flex: 1 1 14em; }
+.aviso-instalar-botones { display: flex; align-items: center; gap: 8px; }
+.aviso-instalar .boton { padding: 10px 20px; min-height: 42px; }
+.aviso-instalar-cerrar {
+    font: inherit;
+    font-size: 1.4rem;
+    line-height: 1;
+    background: none;
+    border: none;
+    color: var(--texto-suave);
+    cursor: pointer;
+    padding: 6px 10px;
+}
+.aviso-instalar-cerrar:hover { color: var(--texto); }
+@media (min-width: 700px) {
+    .aviso-instalar { left: auto; right: 20px; bottom: 20px; max-width: 30em; }
+}
+@media print {
+    .aviso-instalar, .instalar, .comunidad { display: none; }
+}
 
 /* ---------- Pie ---------- */
 
@@ -1838,3 +1985,11 @@ body.sin-scroll { overflow: hidden; }
 }
 .titulo-tabla:first-child { margin-top: 0; }
 .titulo-tabla .nota { font-size: 0.8rem; }
+
+/* El boton de compartir (en el celular; ver nombrarBotonesDeImagen en
+   app.js) lleva icono y texto en la misma linea. */
+.boton-compartir {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}

@@ -2,8 +2,10 @@
 // ~100 KB y aca solo hacen falta unas pocas lecturas publicas).
 //
 // Colecciones (base "cursos" del proyecto sebabru-e5563), lectura publica:
-//   tucarta_textos/{sol-aries...}  { titulo, texto, publicado }
 //   tucarta_config/general         { linkSeba, linkEgresadxs }
+// Los textos de las interpretaciones tambien se leian de aca
+// (tucarta_textos); desde la 1.19.2 los sirve el sitio, ver
+// interpretaciones.js.
 // Con sesion iniciada, solo la persona duena (ver firestore.rules del sitio):
 //   tucarta_usuarios/{uid}               { email, novedades, aceptado }
 //   tucarta_usuarios/{uid}/cartas/{id}   carta guardada (ver miscartas.js)
@@ -53,24 +55,6 @@ export async function leerDocumentos(coleccion, ids) {
         if (item.found) res[item.found.name.split('/').pop()] = plano(item.found);
     }
     return res;
-}
-
-// Cache por sesion: cada texto se pide una vez por visita.
-const CLAVE = 'tucarta:textos';
-export async function textosInterpretacion(ids) {
-    let cache = {};
-    try { cache = JSON.parse(sessionStorage.getItem(CLAVE)) || {}; } catch {}
-    const faltan = ids.filter((id) => !(id in cache));
-    if (faltan.length) {
-        try {
-            const nuevos = await leerDocumentos('tucarta_textos', faltan);
-            for (const id of faltan) cache[id] = nuevos[id]?.publicado ? nuevos[id] : null;
-            try { sessionStorage.setItem(CLAVE, JSON.stringify(cache)); } catch {}
-        } catch {
-            // Sin conexion o sin permisos: se muestra el aviso de proximamente.
-        }
-    }
-    return Object.fromEntries(ids.map((id) => [id, cache[id] || null]));
 }
 
 export async function configRemota() {

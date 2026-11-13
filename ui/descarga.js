@@ -139,19 +139,53 @@ export async function imagenEfemerides(svg, { titulo, datos, colores }) {
     return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
 }
 
-// En el celular abre el menu de compartir (WhatsApp, galeria...); en la
-// compu, o si no se puede compartir, descarga el archivo.
-export async function entregarImagen(blob, nombreArchivo, titulo) {
+// La imagen lleva "sebabru.com/cartas" impreso, pero el texto impreso no se
+// toca: quien recibia la carta por WhatsApp no tenia nada para apretar. Asi
+// que el compartir va ademas con el enlace, y con utm para poder medir si las
+// cartas compartidas traen gente (lo lee /origen.js en el sitio).
+export const ENLACE_COMPARTIR = 'https://sebabru.com/cartas/?utm_source=compartir&utm_medium=imagen';
+const INVITACION = 'Calcula tu carta natal gratis:';
+
+// Abre el menu de compartir del sistema con la imagen, el texto y el enlace.
+//
+// Son dos acciones separadas y dos botones separados a proposito. Antes habia
+// un solo boton que decia "Descargar imagen" y en el celular abria el menu de
+// compartir: decia una cosa y hacia otra, y encima no habia forma de probarlo
+// desde una computadora.
+//
+// Devuelve 'compartida', 'cancelada', 'enlace-copiado' o 'sin-soporte'.
+export async function compartirImagen(blob, nombreArchivo, titulo) {
     const archivo = new File([blob], nombreArchivo, { type: 'image/png' });
-    const celular = matchMedia('(pointer: coarse)').matches;
-    if (celular && navigator.canShare?.({ files: [archivo] })) {
-        try {
-            await navigator.share({ files: [archivo], title: titulo });
-            return 'compartida';
-        } catch (e) {
-            if (e.name === 'AbortError') return 'cancelada';
+    if (navigator.canShare) {
+        // Primero con el enlace. Si la plataforma no acepta archivo + texto +
+        // url juntos, se comparte solo la imagen: nunca menos que antes.
+        const intentos = [
+            { files: [archivo], title: titulo, text: INVITACION, url: ENLACE_COMPARTIR },
+            { files: [archivo], title: titulo }
+        ];
+        for (const envio of intentos) {
+            if (!navigator.canShare(envio)) continue;
+            try {
+                await navigator.share(envio);
+                return 'compartida';
+            } catch (e) {
+                if (e.name === 'AbortError') return 'cancelada';
+                // Otro error: se prueba el envio mas simple.
+            }
         }
     }
+    // Sin menu de compartir (Firefox y Safari de escritorio no comparten
+    // archivos): al menos que se lleve el enlace.
+    try {
+        await navigator.clipboard.writeText(`${INVITACION} ${ENLACE_COMPARTIR}`);
+        return 'enlace-copiado';
+    } catch {
+        return 'sin-soporte';
+    }
+}
+
+// Descarga el archivo. Siempre descarga: el boton dice eso.
+export async function entregarImagen(blob, nombreArchivo) {
     const url = URL.createObjectURL(blob);
     const a = Object.assign(document.createElement('a'), { href: url, download: nombreArchivo });
     document.body.append(a);

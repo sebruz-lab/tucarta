@@ -24,6 +24,9 @@ export default defineConfig({
                 name: 'Calculadora de Cartas Astrales · Seba Bru',
                 short_name: 'Cartas',
                 description: 'Cartas natales, revoluciones solares, tránsitos y progresiones.',
+                // `id` fija la identidad de la app instalada: sin esto, cambiar
+                // `start_url` alguna vez la haria pasar por otra app distinta.
+                id: '/cartas/',
                 start_url: '/cartas/',
                 scope: '/cartas/',
                 display: 'standalone',
@@ -69,8 +72,23 @@ export default defineConfig({
                         },
                     },
                     {
-                        // Textos y config: si hay internet se piden de nuevo, y
-                        // si no, vale lo ultimo que se vio.
+                        // Los textos de las interpretaciones: los sirve el
+                        // sitio, fuera de /cartas/ (ver interpretaciones.js).
+                        // Estan fuera del precache, asi que si hay internet se
+                        // piden de nuevo y si no vale lo ultimo que se leyo.
+                        urlPattern: ({ url }) => url.pathname.startsWith('/textos/'),
+                        handler: 'NetworkFirst',
+                        options: {
+                            cacheName: 'textos',
+                            networkTimeoutSeconds: 5,
+                            expiration: { maxEntries: 60, maxAgeSeconds: 90 * 24 * 60 * 60 },
+                            cacheableResponse: { statuses: [0, 200] },
+                        },
+                    },
+                    {
+                        // La config (links de consulta) y las cartas
+                        // guardadas: si hay internet se piden de nuevo, y si
+                        // no, vale lo ultimo que se vio.
                         urlPattern: ({ url }) => url.hostname === 'firestore.googleapis.com',
                         handler: 'NetworkFirst',
                         options: {
@@ -85,6 +103,14 @@ export default defineConfig({
             devOptions: { enabled: false },
         }),
     ],
+    // Los textos de las interpretaciones viven en el sitio, no en este repo.
+    // En desarrollo se piden al sitio publicado para poder verlos de verdad;
+    // en produccion es el mismo dominio y no hay proxy ninguno.
+    server: {
+        proxy: {
+            '/textos/': { target: 'https://sebabru.com', changeOrigin: true },
+        },
+    },
     build: {
         outDir: '../dist',
         emptyOutDir: true,

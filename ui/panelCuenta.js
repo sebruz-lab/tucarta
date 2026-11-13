@@ -25,6 +25,18 @@ export const sesionIniciada = () => cuenta.estado === 'adentro' || cuenta.estado
 // compara ningún email, solo se confirma lo que dijo chequearAdmin().
 export const esAdmin = () => conCuenta() && cuenta.admin === true;
 
+// Para el formulario de suscripcion del pie: a quien ya dijo que si en su
+// cuenta no se le vuelve a preguntar, y a quien entro pero no dijo nada se le
+// ahorra tipear el mail. `avisarmeDeLaCuenta` repite el aviso cada vez que la
+// sesion cambia, porque el formulario se monta antes de que Firebase conteste.
+export const estadoDeNovedades = () => ({
+    dentro: conCuenta(),
+    mail: cuenta.email || '',
+    novedades: Boolean(cuenta.novedades),
+});
+const oyentesDeCuenta = new Set();
+export const avisarmeDeLaCuenta = (fn) => { oyentesDeCuenta.add(fn); };
+
 // alCambiarAlmacen(almacen): se llama cada vez que cambia donde se guardan
 // las cartas.
 export function conectarCuenta({ alCambiarAlmacen, alPedirAjustes }) {
@@ -212,6 +224,7 @@ async function aceptar() {
 // ---------- Cabecera y panel en Mis cartas ----------
 
 function pintar() {
+    oyentesDeCuenta.forEach((f) => { try { f(estadoDeNovedades()); } catch (e) { console.error(e); } });
     const b = $('#boton-cuenta');
     b.hidden = cuenta.estado === 'cargando';
     b.textContent = sesionIniciada() ? 'Mi cuenta' : 'Entrar';
@@ -300,6 +313,7 @@ function conectarPanel() {
         try {
             await cuenta.datos.cambiarNovedades(e.target.checked);
             cuenta.novedades = e.target.checked;
+            oyentesDeCuenta.forEach((g) => { try { g(estadoDeNovedades()); } catch (err2) { console.error(err2); } });
         } catch (err) {
             console.error(err);
             e.target.checked = cuenta.novedades;
