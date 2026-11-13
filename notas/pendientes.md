@@ -32,6 +32,8 @@ Dos cosas que quedaron distintas del resto de las ruedas, porque ahí no entra:
 
 # Lo que salió en v1.19.1 (2026-11-12)
 
+Publicado y verificado por contenido en sebabru.com/cartas.
+
 ## Cambiar la carta visualizada
 
 El menú de la cabecera se abría vacío: la ventana de la otra persona usa la
