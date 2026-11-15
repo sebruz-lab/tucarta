@@ -11,6 +11,30 @@ Lo que Seba pidió y todavía no está hecho. Se van tachando a medida que salen
 - La respuesta de IANA al primer mail, con el borrador listo en
   `notas/mail-iana-argentina-2.txt`.
 
+## Enlazar a /carta-natal/ desde los textos
+
+Entra en el próximo cambio que se publique, no amerita una release propia
+(pedido de Seba, 15/11/2026).
+
+El 15/11/2026 el sitio pasó a tener los textos de la carta natal en páginas
+propias bajo `sebabru.com/carta-natal/`: los 36 largos del Sol, la Luna y el
+Ascendente (los mismos que muestra la calculadora), más los once planetas y
+las doce casas, 196 páginas en total. La calculadora no enlaza a ninguna.
+
+Es el enlace interno que más le falta al sitio: `/cartas/` es la página con
+más visitas y la única que sabe los signos exactos de quien la está usando.
+
+Qué hay que hacer: al lado del bloque de interpretaciones, un enlace a
+`https://sebabru.com/carta-natal/`. El texto se sigue mostrando acá mismo
+como ahora; es un enlace, no un reemplazo. El patrón ya está en `ui/app.js`
+con `PAGINA_LUNACION`, que es como se enlaza a /lunanueva y /lunallena.
+
+Lo que NO hay que hacer: mover de dónde salen los textos.
+`ui/interpretaciones.js` los pide a `sebabru.com/textos/<id>.json` y esos
+archivos no se movieron ni se van a mover. Si algún día se enlaza a la página
+de cada signo en vez de a la madre, las rutas son
+`/carta-natal/{sol,lunas,ascendente}/<signo>/` (ojo: `lunas` en plural).
+
 ## El anillo de afuera de la revolución
 
 Dos cosas que quedaron distintas del resto de las ruedas, porque ahí no entra:
@@ -104,9 +128,13 @@ con el botón nativo (cuando el navegador lo da) y el paso a mano del dispositiv
 de quien está mirando, con los otros tres atrás de un detalle. El botón de
 guardar los lugares se mudó ahí, que es donde tiene sentido.
 
-**En Safari de iPhone el botón no existe**, por más que la página lo quiera: ahí
-va el paso a mano (Compartir → Agregar a inicio) y nada más. En Firefox de
-escritorio tampoco se promete una instalación que no existe.
+**En el iPhone el botón no existe en ningún navegador**, por más que la página
+lo quiera: todos son WebKit por dentro y WebKit no da `beforeinstallprompt`.
+Ahí va el paso a mano y nada más. Pero ese paso **no es solo de Safari**:
+Compartir → Agregar a inicio anda desde cualquier navegador del iPhone a partir
+de iOS 16.4, y Seba lo comprobó en Chrome el 2026-11-13 (el texto decía "tiene
+que ser desde Safari", que estaba mal). En Firefox de escritorio tampoco se
+promete una instalación que no existe.
 
 El aviso **no sale en frío** (decisión de Seba): hacen falta dos señales, la
 primera carta y después otra carta, compartir o guardar. Se muestra una sola
