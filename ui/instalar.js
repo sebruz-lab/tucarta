@@ -11,10 +11,15 @@
 //     carta y dio una segunda senal de que le sirve (otra carta, compartir o
 //     guardar). Decision de Seba: no pedirle instalar a quien recien llego.
 //
-// Safari de iPhone es el caso que hay que cuidar: ahi el boton de instalar NO
-// EXISTE, por mas que la pagina lo quiera. Un boton que diga "Instalar" en un
-// iPhone es una promesa que el navegador no puede cumplir, asi que ahi se
-// muestra el paso a mano y nada mas.
+// El iPhone es el caso que hay que cuidar: ahi el boton de instalar NO EXISTE
+// en ningun navegador, porque todos son WebKit por dentro y WebKit no da
+// `beforeinstallprompt`. Un boton que diga "Instalar" en un iPhone es una
+// promesa que el navegador no puede cumplir, asi que ahi se muestra el paso a
+// mano y nada mas.
+//
+// Lo que SI se puede desde cualquier navegador del iPhone, y no solo desde
+// Safari, es Compartir -> Agregar a inicio (desde iOS 16.4). Seba lo comprobo
+// en Chrome el 2026-11-13.
 
 import { evento } from './analytics.js';
 
@@ -32,6 +37,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
 window.addEventListener('appinstalled', () => {
     promptNativo = null;
+    mostrarAccesosInstalar();
     evento('instalar', { paso: 'instalada', plataforma: plataforma() });
     alCambiar.forEach((f) => f());
 });
@@ -90,9 +96,9 @@ const PASOS = {
         nombre: 'iPhone o iPad',
         nativo: false,
         pasos: [
-            'Tiene que ser desde Safari.',
-            'Tocá el botón de compartir, abajo en el medio: el cuadrado con la flecha para arriba.',
-            'Bajá en la lista y elegí "Agregar a inicio".',
+            'En Safari: el botón de compartir está abajo en el medio, el cuadrado con la flecha para arriba.',
+            'En Chrome o en otro navegador: el botón de compartir, o el menú de los tres puntos.',
+            'Bajá en la lista y elegí "Agregar a inicio" o "Añadir a pantalla de inicio".',
             'Tocá "Agregar", arriba a la derecha.',
         ],
     },
@@ -113,12 +119,11 @@ function listaDePasos(clave) {
     return `<ol class="instalar-pasos">${p.pasos.map((x) => `<li>${x}</li>`).join('')}</ol>`;
 }
 
-// Monta la seccion del pie. `caja` es donde van las instrucciones y el boton.
-export function montarInstalar(seccion) {
-    if (!seccion) return;
-    if (estaInstalada()) { seccion.hidden = true; return; }
-    seccion.hidden = false;
-
+// El cuerpo: el boton nativo (si en ese dispositivo puede existir), el paso a
+// mano de quien esta mirando, y los otros tres atras de un detalle. Es el
+// mismo en la seccion del pie y en la ventana.
+// `lugares` dice si abajo esta el boton de guardar los lugares (solo el pie).
+function cuerpoInstalar({ lugares = false } = {}) {
     const yo = plataforma();
     const mia = PASOS[yo];
     const otras = ORDEN.filter((k) => k !== yo);
@@ -131,11 +136,10 @@ export function montarInstalar(seccion) {
     // sirve es guardar los lugares para usar sin internet.
     const sinInstalar = esFirefox() && (yo === 'windows' || yo === 'mac')
         ? '<p class="nota">Firefox no instala aplicaciones web. Podés abrirla en Chrome o Edge para '
-          + 'instalarla, o guardar los lugares acá abajo y usarla sin internet igual.</p>'
+          + `instalarla${lugares ? ', o guardar los lugares acá abajo y usarla sin internet igual' : ''}.</p>`
         : '';
 
-    const caja = seccion.querySelector('.instalar-cuerpo');
-    caja.innerHTML = `${boton}
+    return `${boton}
         <p class="nota" data-instalar-aviso role="status" hidden></p>
         ${sinInstalar}
         ${mia ? `<div class="instalar-mio"><h3>En ${mia.nombre}</h3>${listaDePasos(yo)}</div>` : ''}
@@ -143,34 +147,63 @@ export function montarInstalar(seccion) {
             <summary>¿La querés en otro dispositivo?</summary>
             ${otras.map((k) => `<div class="instalar-otra"><h3>En ${PASOS[k].nombre}</h3>${listaDePasos(k)}</div>`).join('')}
         </details>`;
+}
 
+// El boton nativo solo sirve si el navegador nos dio el prompt: mientras no
+// llegue queda apagado, porque apretarlo no haria nada. Y el aviso de cuando
+// no se puede. Lo comparten la seccion y la ventana.
+function engancharCuerpo(caja, alEsconder) {
     const avisar = (txt) => {
         const a = caja.querySelector('[data-instalar-aviso]');
+        if (!a) return;
         a.hidden = !txt;
         a.textContent = txt || '';
     };
-
-    // El boton nativo solo sirve si el navegador nos dio el prompt. Mientras no
-    // llegue queda apagado, porque apretarlo no haria nada.
     const refrescar = () => {
         const b = caja.querySelector('[data-instalar="ahora"]');
-        if (!b) return;
-        b.disabled = !promptNativo;
-        if (estaInstalada()) seccion.hidden = true;
+        if (b) b.disabled = !promptNativo;
+        if (estaInstalada() && alEsconder) alEsconder();
     };
     alCambiar.add(refrescar);
     refrescar();
-
     caja.addEventListener('click', async (e) => {
         if (!e.target.closest('[data-instalar="ahora"]')) return;
         const r = await pedirInstalar();
-        if (r === 'sin-prompt') {
-            avisar('Tu navegador no ofrece el botón. Mirá los pasos de acá abajo.');
-        } else if (r === 'dismissed') {
-            avisar('Cuando quieras, está acá.');
-        }
+        if (r === 'sin-prompt') avisar('Tu navegador no ofrece el botón. Mirá los pasos de acá abajo.');
+        else if (r === 'dismissed') avisar('Cuando quieras, está acá.');
     });
 }
+
+// Monta la seccion del pie. `caja` es donde van las instrucciones y el boton.
+export function montarInstalar(seccion) {
+    if (!seccion) return;
+    if (estaInstalada()) { seccion.hidden = true; return; }
+    seccion.hidden = false;
+    const caja = seccion.querySelector('.instalar-cuerpo');
+    caja.innerHTML = cuerpoInstalar({ lugares: true });
+    engancharCuerpo(caja, () => { seccion.hidden = true; });
+}
+
+// La ventana, que es la misma explicacion al alcance de la mano: desde la
+// cabecera, desde la esquina de la carta y desde la barra de abajo. Quien
+// esta mirando su carta no se va a ir hasta el pie a buscar como instalarla.
+// `desde` es solo para medir.
+export function abrirVentanaInstalar(desde) {
+    const v = document.querySelector('#ventana-instalar');
+    if (!v) return;
+    const caja = v.querySelector('.instalar-cuerpo');
+    caja.innerHTML = cuerpoInstalar();
+    engancharCuerpo(caja, () => v.close());
+    evento('instalar', { paso: 'ventana', desde, plataforma: plataforma() });
+    v.showModal();
+}
+
+// Los accesos no tienen sentido si la app ya esta instalada.
+export function mostrarAccesosInstalar() {
+    const hay = !estaInstalada();
+    document.querySelectorAll('[data-instalar="abrir"]').forEach((b) => { b.hidden = !hay; });
+}
+
 
 // Dispara el prompt nativo. Devuelve 'accepted', 'dismissed' o 'sin-prompt'.
 export async function pedirInstalar() {

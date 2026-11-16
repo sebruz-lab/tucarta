@@ -19,10 +19,10 @@ import { textosInterpretacion } from './interpretaciones.js';
 import { CONFIG_POR_DEFECTO } from './config.js';
 import { evento } from './analytics.js';
 import { NOMBRE_PUNTO, NOMBRE_ASPECTO, NOMBRE_SIGNO, gradoMin, escapar, utcTexto, duracionTexto, coordTexto } from './textos.js';
-import { ENGRANAJE, PERILLAS, COMPLETA, COMPARTIR } from './iconos.js';
+import { ENGRANAJE, PERILLAS, COMPLETA, COMPARTIR, INSTALAR } from './iconos.js';
 import { SISTEMAS_CASAS, PUNTOS, ANGULOS } from '../engine/config.js';
 import { almacenLocal, igualQue } from './miscartas.js';
-import { imagenCarta, imagenEfemerides, entregarImagen, compartirImagen } from './descarga.js';
+import { imagenCarta, imagenEfemerides, entregarImagen, compartirImagen, ENLACE_COMPARTIR } from './descarga.js';
 import { listaCalendario, jdDeFecha, fechaDeJd, fechaCorta, fechaParaVer } from './calendario.js';
 import { dibujarEfemerides, geometria } from './efemerides.js';
 import { normalizarFecha, completarFecha, completarHora } from './fecha.js';
@@ -32,7 +32,7 @@ import { TRANSITAN_EFEMERIDES } from '../engine/efemerides.js';
 import { conectarCuenta, sesionIniciada, conCuenta, abrirEntrar, esAdmin,
     estadoDeNovedades, avisarmeDeLaCuenta } from './panelCuenta.js';
 import { montarSuscripcion, yaEstaEnLaLista } from './suscribirse.js';
-import { montarInstalar, prepararAviso, senal } from './instalar.js';
+import { montarInstalar, prepararAviso, senal, abrirVentanaInstalar, estaInstalada } from './instalar.js';
 import { leerArchivoCartas, textoDeArchivo, completarLugares } from './importar.js';
 import { buscar as buscarLugar } from './form.js';
 import { TIPOS, buscarEnLista } from './miscartas.js';
@@ -59,6 +59,7 @@ const estado = {
     revolucion: null,   // { anio (null: el cumpleanios mas cercano), lugar (null: el de nacimiento), resultado }
     progresion: null,   // { fecha: 'AAAA-MM-DD' (a la que se progresa), resultado }
     lunacion: null,     // { referencia: { fecha, hora } }; el resultado va en estado.transitos
+    lunacionProgresada: null, // { cual: 'prenatal' | 'actual', resultado }
     transito: null,     // { fecha: 'AAAA-MM-DD', hora: 'HH:MM' } en la hora del dispositivo
     transitos: null,    // resultado de engine/transits.js
     delMomento: null,   // { carta, lugar } la carta del cielo de un momento
@@ -229,15 +230,22 @@ const esMomento = (m) => esTRD(m) || esAhora(m);
 const esDR = (m) => m === 'draconica' || m === 'draconica-sola' || esDRT(m);
 const esRL = (m) => m === 'reubicacion';
 const esLN = (m) => m === 'lunacion';
+// Luna nueva progresada: el momento en que el Sol y la Luna progresados se
+// conjuntan. La pre-natal abre el ciclo que estaba vigente al nacer (cae
+// antes del nacimiento); la actual es la ultima cumplida. Las dos son una
+// carta sola: la progresion a ese momento.
+const esLNPpre = (m) => m === 'lunacion-progresada-prenatal';
+const esLNP = (m) => m === 'lunacion-progresada' || esLNPpre(m);
 // Sinastria: dos cartas de dos personas, una adentro y otra afuera.
 const esSIN = (m) => m === 'sinastria';
 // Carta compuesta: los puntos medios de las dos, una carta sola.
 const esCOM = (m) => m === 'compuesta';
 // Las dos vistas que necesitan a la otra persona.
 const esDeDos = (m) => esSIN(m) || esCOM(m);
-const esSola = (m) => m === 'revolucion-sola' || m === 'progresion-sola' || m === 'draconica-sola' || m === 'reubicacion' || esDRT(m) || esMomento(m) || esCOM(m);
+const esSola = (m) => m === 'revolucion-sola' || m === 'progresion-sola' || m === 'draconica-sola' || m === 'reubicacion' || esDRT(m) || esMomento(m) || esCOM(m) || esLNP(m);
 const MODOS = ['natal', 'revolucion-sola', 'revolucion', 'astros-ahora', 'transitos', 'lunacion', 'calendario', 'efemerides', 'progresion-sola',
-    'progresion', 'reubicacion', 'draconica-sola', 'draconica', 'transitos-draconicos', 'draconica-transitos', 'sinastria', 'compuesta'];
+    'progresion', 'lunacion-progresada-prenatal', 'lunacion-progresada', 'reubicacion', 'draconica-sola', 'draconica',
+    'transitos-draconicos', 'draconica-transitos', 'sinastria', 'compuesta'];
 // Los transitos que se dibujan afuera de la natal: en la vista de transitos
 // y en la de la lunacion, que es el cielo del instante de la lunacion.
 const adentroDeLaVista = () => (esDRT(estado.modo) ? 'dracónica' : 'natal');
@@ -284,6 +292,7 @@ function modoDelFormulario() {
     if (esPR(estado.modo)) estado.progresion = { fecha: transitoDelFormulario().fecha, hora: HORA_PR_POR_DEFECTO };
     if (esRL(estado.modo)) estado.reubicacion = { lugar: lugarRS };
     if (esLN(estado.modo)) estado.lunacion = { referencia: transitoDelFormulario() };
+    if (esLNP(estado.modo)) estado.lunacionProgresada = { cual: esLNPpre(estado.modo) ? 'prenatal' : 'actual' };
 }
 
 form.addEventListener('submit', async (e) => {
@@ -340,6 +349,7 @@ async function calcular({ nueva = false } = {}) {
     if (esPR(estado.modo)) await calcularProgresion();
     if (esRL(estado.modo)) await calcularReubicacion();
     if (esLN(estado.modo)) await calcularLunacion();
+    if (esLNP(estado.modo)) await calcularLunacionProgresada();
     if (esSIN(estado.modo)) await calcularSinastria();
     if (esCOM(estado.modo)) await calcularCompuesta();
     $('#cargando').hidden = true;
@@ -455,6 +465,7 @@ function pintarEsquinas(sistema) {
     // debajo del huso, las coordenadas y las casas.
     const acciones = '<span class="acciones-esquina">'
         + `<button type="button" data-accion="abrir-ajustes" aria-label="Ajustes del cálculo" title="Ajustes del cálculo">${PERILLAS(17)}</button>`
+        + (instalable() ? `<button type="button" data-instalar="abrir" data-desde="esquina" aria-label="Instalar la calculadora" title="Instalar la calculadora">${INSTALAR(17)}</button>` : '')
         + `<button type="button" data-completa="entrar" aria-label="Ver en pantalla completa" title="Pantalla completa">${COMPLETA(17)}</button>`
         + '</span>';
     const poner = (izq, der) => {
@@ -542,6 +553,14 @@ function pintarEsquinas(sistema) {
         else poner([...dr, renglon(`${dia}/${m}/${a}`), renglon(`${d.hora} h`), ...renglonesLugar(l).map((t) => renglon(t))], [renglon(sistema)]);
         return;
     }
+    if (otra && esLNP(estado.modo) && laLunacionProg()) {
+        const l = laLunacionProg();
+        const [cuando, edad] = textoLunacionProg();
+        poner([renglon(tituloLunacionProg(), 'titulo-esquina'), renglon(cuando, 'principal'), renglon(edad, 'principal'),
+            renglon(`${gradoMin(l)} de ${NOMBRE_SIGNO[l.signo]}`), renglon(`En la casa ${l.casa} natal`)],
+        [...natal('Natal'), renglon(sistema)]);
+        return;
+    }
     if (otra && esPR(estado.modo)) {
         const pr = [renglon('Progresiones', 'titulo-esquina'), ...textoProgresion().map((t) => renglon(t, 'principal'))];
         if (externa) poner([renglon('Carta de adentro', 'leyenda'), ...natal()], [renglon('Carta de afuera', 'leyenda'), ...pr]);
@@ -627,6 +646,13 @@ function pintarFichasImpresion(sistema) {
         if (externa) der = dr;
         else izq = [linea(d.nombre, 'nombre'), ...dr, linea(fecha(d.fecha)), linea(`${d.hora} ${utcTexto(o.total)}`),
             ...lugar(d.lugar).map((t) => linea(t)), linea(coords(d.lugar))];
+    } else if (sola && esLNP(estado.modo) && laLunacionProg()) {
+        const l = laLunacionProg();
+        const [cuando, edad] = textoLunacionProg();
+        izq = [linea(d.nombre, 'nombre'), linea(tituloLunacionProg()), linea(cuando), linea(edad),
+            ...lugar(d.lugar).map((t) => linea(t)), linea(coords(d.lugar))];
+        der = [linea('Nacimiento'), linea(fecha(d.fecha)), linea(`${d.hora} ${utcTexto(o.total)}`),
+            linea(`${gradoMin(l)} de ${NOMBRE_SIGNO[l.signo]}`), linea(`En la casa ${l.casa} natal`)];
     } else if (esLN(estado.modo) && laLunacion()) {
         const ln = momentoLunacionLocal();
         der = [linea(tituloLunacion()), linea(fecha(ln.fecha)), linea(`${ln.hora} h`), linea(`En la casa ${laLunacion().casa}`)];
@@ -898,7 +924,8 @@ const datosVista = () => (animando()
 // Que se dibuja: la otra carta (revolucion o progresion) sola, o afuera
 // de la natal.
 function cartasVista() {
-    const otra = esRS(estado.modo) ? estado.revolucion?.resultado?.carta
+    const otra = esLNP(estado.modo) ? estado.lunacionProgresada?.resultado?.carta
+        : esRS(estado.modo) ? estado.revolucion?.resultado?.carta
         : esPR(estado.modo) ? estado.progresion?.resultado?.carta
             : esRL(estado.modo) ? estado.reubicacion?.carta
                 : esMomento(estado.modo) ? estado.delMomento?.carta
@@ -1083,6 +1110,10 @@ async function aplicarModo(modo) {
         estado.lunacion ||= { referencia: momentoLocal(new Date()) };
         await calcularLunacion();
         evento('lunacion_vista', { tipo: laLunacion()?.tipo || 'ninguna' });
+    }
+    if (esLNP(modo)) {
+        await calcularLunacionProgresada();
+        evento('lunacion_progresada_vista', { cual: esLNPpre(modo) ? 'prenatal' : 'actual' });
     }
     if (esDeDos(modo)) {
         $('#cargando').hidden = false;
@@ -1724,6 +1755,47 @@ formProgresion.addEventListener('change', (e) => {
 });
 formProgresion.addEventListener('submit', (e) => e.preventDefault());
 
+// ---------- Luna nueva progresada ----------
+//
+// El Sol y la Luna progresados en conjuncion: el arranque del ciclo de
+// lunaciones progresadas, que dura unos 29 anios y medio de vida. La cuenta
+// esta en engine/lunacionProgresada.js; aca va solo como se muestra.
+
+const laLunacionProg = () => (esLNP(estado.modo) ? estado.lunacionProgresada?.resultado?.lunacion || null : null);
+const tituloLunacionProg = (m = estado.modo) =>
+    (esLNPpre(m) ? 'Luna nueva progresada pre-natal' : 'Luna nueva progresada');
+// El dia de la vida al que corresponde, en la hora del dispositivo.
+const momentoLunacionProgLocal = () => momentoLocal(fechaDeJd(laLunacionProg().jdObjetivo));
+
+async function calcularLunacionProgresada() {
+    estado.lunacionProgresada ||= { cual: esLNPpre(estado.modo) ? 'prenatal' : 'actual' };
+    const ahora = new Date();
+    try {
+        estado.lunacionProgresada.resultado = await calcularEnWorker({
+            tipo: 'lunacion-progresada', natal: estado.carta, cual: estado.lunacionProgresada.cual,
+            utc: {
+                anio: ahora.getUTCFullYear(), mes: ahora.getUTCMonth() + 1, dia: ahora.getUTCDate(),
+                hora: ahora.getUTCHours(), minuto: ahora.getUTCMinutes()
+            },
+            ajustes: estado.ajustes
+        });
+    } catch (err) {
+        console.error(err);
+        estado.lunacionProgresada.resultado = null;
+    }
+}
+
+// ['12/03/1971', '13,2 anios antes de nacer'] o ['...', 'a los 16,4 anios']
+function textoLunacionProg() {
+    const l = laLunacionProg();
+    const edad = estado.lunacionProgresada.resultado.edad;
+    const n = Math.abs(edad).toFixed(1).replace('.', ',');
+    return [
+        momentoLunacionProgLocal().fecha.split('-').reverse().join('/'),
+        edad < 0 ? `${n} años antes de nacer` : `a los ${n} años`
+    ];
+}
+
 // ---------- Animar la carta en el tiempo ----------
 //
 // Como la pagina animada de Solar Fire: se elige un paso y la carta se
@@ -2074,6 +2146,18 @@ function pintarControlesLunacion() {
 // significa. Se ve en pantalla, en pantalla completa y en la hoja impresa.
 function pintarAvisoLunacion() {
     const caja = $('#aviso-lunacion');
+    const lp = laLunacionProg();
+    if (lp) {
+        // Quien tiene menos de 29 anios y medio sigue en el ciclo que abrio la
+        // pre-natal: las dos vistas dan la misma carta, y eso se dice.
+        const mismo = lp.cual === 'actual' && lp.antesDeNacer;
+        caja.hidden = false;
+        caja.innerHTML = `<span class="lunacion-casa">Esta luna nueva progresada cae en la casa ${lp.casa}</span>`
+            + `<span class="lunacion-grado">${gradoMin(lp)} de ${escapar(NOMBRE_SIGNO[lp.signo])} · ${escapar(textoLunacionProg()[0])}</span>`
+            + (mismo ? '<span class="lunacion-grado">Seguís en el ciclo que abrió tu luna nueva progresada pre-natal: '
+                + 'todavía no cumpliste la primera.</span>' : '');
+        return;
+    }
     const l = laLunacion();
     caja.hidden = !l;
     if (!l) return;
@@ -2274,7 +2358,8 @@ $('#efemerides').addEventListener('click', async (e) => {
         evento('carta_impresa', { tipo: 'efemerides' });
         return window.print();
     }
-    if (accion === 'descargar' || accion === 'compartir') return descargarEfemerides(e.target.closest('button'), accion);
+    // Compartir y descargar ya no son dos botones: se elige en la ventana.
+    if (accion === 'compartir') return abrirAnexo('ef-compartir', e.target.closest('button'));
     const paso = e.target.closest('[data-ef]')?.dataset.ef;
     const cruce = e.target.closest('[data-cruce]')?.dataset.cruce;
     if (paso) {
@@ -2976,7 +3061,7 @@ document.querySelector('.barra-carta').addEventListener('click', async (e) => {
 // ---------- Referencias debajo de la rueda (impresion e imagen) ----------
 // Para quien no conoce los simbolos: tabla de planetas, tabla de signos y
 // grilla de aspectos (ver anexo.js). Lo elegido queda en el dispositivo.
-let incluirAnexo = { planetas: false, signos: false, aspectos: false };
+let incluirAnexo = { planetas: false, signos: false, aspectos: false, enlace: true };
 try { incluirAnexo = { ...incluirAnexo, ...JSON.parse(localStorage.getItem('tucarta:anexo') || '{}') }; } catch {}
 let pedidoAnexo = null;
 
@@ -2989,11 +3074,23 @@ function abrirAnexo(accion, boton) {
     // hoja y tampoco hacen falta. Queda la grilla de los aspectos que hace.
     // Las casillas se esconden, no se destildan: la eleccion para las otras
     // vistas queda como estaba.
+    // Las efemerides no son una rueda: ninguna referencia entra ahi.
+    const ef = accion === 'ef-compartir';
     for (const cual of ['planetas', 'signos']) {
-        v.querySelector(`[data-incluir="${cual}"]`).closest('.casilla').hidden = esLN(estado.modo);
+        v.querySelector(`[data-incluir="${cual}"]`).closest('.casilla').hidden = ef || esLN(estado.modo);
     }
-    v.querySelector('[data-anexo="seguir"]').textContent =
-        accion === 'imprimir' ? 'Imprimir' : accion === 'compartir' ? 'Compartir' : 'Descargar imagen';
+    v.querySelector('[data-incluir="aspectos"]').closest('.casilla').hidden = ef;
+    v.querySelector('[data-nota-referencias]').hidden = ef;
+    // Compartir y descargar son la misma ventana: antes eran dos botones en
+    // la barra y quedaban cinco. El de descargar vive aca adentro.
+    const compartiendo = accion === 'compartir' || accion === 'ef-compartir';
+    v.querySelector('[data-anexo="seguir"]').textContent = compartiendo ? 'Compartir' : 'Imprimir';
+    v.querySelector('[data-anexo="descargar"]').hidden = !compartiendo;
+    v.querySelector('h2').textContent = compartiendo ? '¿Qué mandamos?' : '¿Agregamos referencias?';
+    // Imprimir no manda ningun enlace, y las efemerides no son una carta.
+    const conEnlace = accion === 'compartir' && Boolean(estado.datos?.fecha);
+    v.querySelector('.anexo-enlace').hidden = !conEnlace;
+    v.querySelector('[data-incluir-enlace]').checked = Boolean(incluirAnexo.enlace);
     v.showModal();
 }
 
@@ -3003,13 +3100,22 @@ $('#ventana-anexo').addEventListener('click', async (e) => {
     const v = $('#ventana-anexo');
     if (accion === 'cerrar') return v.close();
     v.querySelectorAll('[data-incluir]').forEach((c) => { incluirAnexo[c.dataset.incluir] = c.checked; });
+    incluirAnexo.enlace = v.querySelector('[data-incluir-enlace]').checked;
     try { localStorage.setItem('tucarta:anexo', JSON.stringify(incluirAnexo)); } catch {}
     v.close();
-    const { accion: que, boton } = pedidoAnexo || {};
-    const referencias = Object.keys(incluirAnexo).filter((k) => incluirAnexo[k]).join(',') || 'ninguna';
+    const { boton } = pedidoAnexo || {};
+    // "seguir" es lo que se pidio desde la barra (imprimir o compartir);
+    // "descargar" es el otro boton de esta ventana.
+    const pedida = pedidoAnexo?.accion;
+    const que = accion !== 'descargar' ? pedida
+        : pedida === 'ef-compartir' ? 'ef-descargar' : 'descargar';
+    const referencias = Object.keys(incluirAnexo).filter((k) => k !== 'enlace' && incluirAnexo[k]).join(',') || 'ninguna';
     if (que === 'imprimir') {
         evento('carta_impresa', { tipo: estado.modo, referencias });
         imprimirCarta();
+    } else if (que === 'ef-compartir' || que === 'ef-descargar') {
+        await descargarEfemerides(boton, que === 'ef-compartir' ? 'compartir' : 'descargar');
+        senal('compartir');
     } else if (que === 'descargar' || que === 'compartir') {
         if (boton) boton.disabled = true;
         try {
@@ -3091,6 +3197,7 @@ async function descargarImagen(modo = 'descargar') {
     const dr = esDR(estado.modo) && !drt && (sola || externa);
     const sin = esSIN(estado.modo) && externa;
     const com = esCOM(estado.modo) && sola;
+    const lnp = esLNP(estado.modo) && sola && laLunacionProg();
     caja.innerHTML = dibujarRueda(sola || estado.carta, {
         nombres: NOMBRE_PUNTO, clara: tema === 'claro', transitos, revolucion: externa, aspectosDe: estado.ajustes.graficaTransitos,
         aspectosCruzados: sin ? estado.sinastria?.aspectos || null : null
@@ -3104,7 +3211,8 @@ async function descargarImagen(modo = 'descargar') {
             : transitos || mom ? estado.transito.fecha.split('-').reverse().join('/') : '';
         const blob = await imagenCarta(caja.querySelector('svg.rueda'), {
             anexo: caja.querySelector('svg.anexo'),
-            titulo: ln ? `${tituloLunacion()} del ${fechaT} en la casa ${laLunacion().casa}`
+            titulo: lnp ? `${tituloLunacionProg()}: ${textoLunacionProg()[0]}`
+                : ln ? `${tituloLunacion()} del ${fechaT} en la casa ${laLunacion().casa}`
                 : esAhora(estado.modo) && sola ? `Los astros el ${fechaT}`
                 : trd ? `Tránsitos dracónicos del ${fechaT}`
                 : drt ? `Dracónica + tránsitos dracónicos del ${fechaT}`
@@ -3120,7 +3228,9 @@ async function descargarImagen(modo = 'descargar') {
                     : $('#resumen-datos').textContent,
             colores: { fondo: color('--bg'), texto: color('--texto'), suave: color('--texto-suave') }
         });
-        const archivo = ln
+        const archivo = lnp
+            ? `luna-nueva-progresada-${esLNPpre(estado.modo) ? 'prenatal-' : ''}${slug(d.nombre || 'natal') || 'natal'}.png`
+            : ln
             ? `lunacion-${slug(d.nombre || 'natal') || 'natal'}-${ln.fecha}.png`
             : rs
             ? `revolucion-${slug(d.nombre || 'natal') || 'natal'}-${estado.revolucion.anio}.png`
@@ -3142,12 +3252,16 @@ async function descargarImagen(modo = 'descargar') {
             ? `transitos-${slug(d.nombre || 'natal') || 'natal'}-${estado.transito.fecha}.png`
             : `carta-${slug(d.nombre || 'natal') || 'natal'}-${d.fecha}.png`;
         const titulo = $('#titulo-carta').textContent;
+        // Con el enlace de la carta, quien la recibe la abre ya calculada; si
+        // no, va el de la calculadora pelada. Lo elige la persona al compartir.
+        const conDatos = incluirAnexo.enlace && estado.datos?.fecha;
+        const enlace = conDatos ? enlaceDeCarta(estado.datos, estado.modo) : ENLACE_COMPARTIR;
         const como = modo === 'compartir'
-            ? await compartirImagen(blob, archivo, titulo)
+            ? await compartirImagen(blob, archivo, titulo, { enlace, conDatos })
             : await entregarImagen(blob, archivo);
         if (como === 'enlace-copiado') avisar('Tu dispositivo no puede compartir la imagen. Te copiamos el enlace.');
         if (como === 'sin-soporte') avisar('Tu dispositivo no puede compartir desde aca. Descargala y mandala a mano.');
-        if (como !== 'cancelada') evento('imagen_descargada', { fondo: tema, como, modo });
+        if (como !== 'cancelada') evento('imagen_descargada', { fondo: tema, como, modo, enlace: conDatos ? 'carta' : 'pelado' });
     } finally {
         caja.innerHTML = '';
     }
@@ -3267,6 +3381,30 @@ conectarCuenta({
 });
 
 // ---------- Cartas por enlace ----------
+// ---------- Instalar: los accesos que no estan en el pie ----------
+// La seccion del pie se monta al final de todo, pero el boton de la cabecera,
+// el de la esquina de la carta y el de la barra existen desde el principio:
+// quien esta mirando su carta no va a bajar hasta el pie a buscar como
+// instalarla. En la hoja del PDF (#hoja=) no se muestra ninguno.
+const paraElPDF = location.hash.startsWith('#hoja=');
+const instalable = () => !estaInstalada() && !paraElPDF;
+
+if (instalable()) {
+    document.querySelectorAll('[data-instalar="abrir"]').forEach((b) => {
+        b.hidden = false;
+        if (b.dataset.desde === 'cabecera') b.innerHTML = INSTALAR(18);
+    });
+}
+
+document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-instalar="cerrar"]')) {
+        $('#ventana-instalar').close();
+        return;
+    }
+    const b = e.target.closest('[data-instalar="abrir"]');
+    if (b) abrirVentanaInstalar(b.dataset.desde || 'otro');
+});
+
 // Datos de nacimiento en la direccion, como base64url de
 // { nombre, fecha 'AAAA-MM-DD', hora 'HH:MM', lugar { nombre, provincia,
 // pais, paisNombre, lat, lon, zona } }:
@@ -3289,6 +3427,32 @@ function datosDeEnlace(b64url) {
         lugar: { nombre: l.nombre, provincia: l.provincia, pais: l.pais, paisNombre: l.paisNombre, lat: l.lat, lon: l.lon, zona: l.zona },
         correccion: null, eleccion: 0
     };
+}
+
+// La vuelta: la carta de ahora como enlace. Lo usa compartir, para que quien
+// la recibe la vea calculada en vez de tener que tipear los datos de nuevo.
+//
+// Los datos de nacimiento van en el fragmento, que NO viaja al servidor (es
+// lo mismo que hace la hoja del PDF). Pero si queda en el chat de quien lo
+// recibe, asi que esto sale solo si la persona lo elige al compartir.
+//
+// Sin el relleno "=": el lector es /^#(hoja|carta)=([A-Za-z0-9_-]+)/ y el "="
+// no entra en esa clase. atob acepta base64 sin relleno.
+function enlaceDeCarta(d, modo = 'natal') {
+    const l = d.lugar || {};
+    const crudo = {
+        nombre: d.nombre || '', fecha: d.fecha, hora: d.hora,
+        lugar: {
+            nombre: l.nombre, provincia: l.provincia, pais: l.pais, paisNombre: l.paisNombre,
+            lat: l.lat, lon: l.lon, zona: l.zona
+        }
+    };
+    const bytes = new TextEncoder().encode(JSON.stringify(crudo));
+    let bin = '';
+    bytes.forEach((b) => { bin += String.fromCharCode(b); });
+    const b64 = btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const vista = modo && modo !== 'natal' && MODOS.includes(modo) ? `&vista=${modo}` : '';
+    return `${ENLACE_COMPARTIR.replace('utm_medium=imagen', 'utm_medium=carta')}#carta=${b64}${vista}`;
 }
 
 // La vista con la que abre un enlace: "#vista=lunacion" sola, o
@@ -3363,11 +3527,6 @@ abrirEnlace();
 // Las dos cosas van al pie y no participan del calculo, asi que se montan al
 // final.
 //
-// En la hoja que arma el PDF del mail (#hoja=) no se monta nada: esa pagina no
-// la ve nadie, la imprime un navegador sin cabeza. El CSS de impresion ya las
-// esconde, pero asi tampoco se carga el captcha ni puede asomar el aviso.
-const paraElPDF = location.hash.startsWith('#hoja=');
-
 // A quien ya dijo que si en su cuenta no se le vuelve a preguntar; a quien
 // entro pero no dijo nada, el mail ya puesto. Se vuelve a mirar cada vez que
 // la sesion cambia, porque esto se monta antes de que Firebase conteste.

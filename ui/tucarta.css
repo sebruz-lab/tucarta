@@ -1781,6 +1781,21 @@ body.sin-scroll { overflow: hidden; }
 .anexo .glifo-aspecto.c-quincuncio { color: var(--asp-quincuncio); }
 .anexo .glifo-aspecto.c-conjuncion { color: var(--texto); }
 .ventana-anexo .casilla { margin: 4px 0; }
+/* Compartir y descargar son la misma ventana: el enlace con los datos es una
+   eleccion de la persona, con el aviso al lado. */
+.anexo-enlace { margin: 14px 0 4px; padding-top: 12px; border-top: 1px solid var(--linea); text-align: left; }
+.anexo-enlace .nota { margin: 6px 0 0 28px; font-size: 0.82rem; }
+.ventana-anexo [data-anexo="descargar"] { margin-top: 8px; }
+
+/* La ventana de instalar: la misma explicacion que el pie, al alcance de la
+   mano desde la cabecera, la esquina de la carta y la barra. */
+.ventana-instalar { text-align: center; }
+.ventana-instalar .instalar-cuerpo { margin-top: 16px; }
+.ventana-instalar .instalar-cuerpo .boton-principal { min-width: 0; width: 100%; }
+
+/* Seguir leyendo: las paginas de /carta-natal/ del sitio. */
+.mas-textos { margin-top: 18px; }
+.mas-textos a { color: var(--turquesa); }
 
 /* ---------- Efemerides graficas ---------- */
 

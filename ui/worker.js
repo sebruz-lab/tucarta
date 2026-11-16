@@ -11,6 +11,7 @@ import { efemeridesGraficas } from '../engine/efemerides.js';
 import { calcularDraconica } from '../engine/draconica.js';
 import { calcularCompuesta } from '../engine/composite.js';
 import { calcularLunacion } from '../engine/lunaciones.js';
+import { calcularLunacionProgresada } from '../engine/lunacionProgresada.js';
 import { PUNTOS_OPCIONALES } from '../engine/config.js';
 
 const swe = cargarSwe(() =>
@@ -40,7 +41,7 @@ async function asegurarEfemerides(motor, ajustes) {
 self.onmessage = async ({ data }) => {
     const { id, pedido } = data;
     try {
-        const calculos = { transitos: calcularTransitos, calendario: calendarioTransitos, revolucion: calcularRevolucion, progresion: calcularProgresion, efemerides: efemeridesGraficas, draconica: calcularDraconica, compuesta: calcularCompuesta, lunacion: calcularLunacion };
+        const calculos = { transitos: calcularTransitos, calendario: calendarioTransitos, revolucion: calcularRevolucion, progresion: calcularProgresion, efemerides: efemeridesGraficas, draconica: calcularDraconica, compuesta: calcularCompuesta, lunacion: calcularLunacion, 'lunacion-progresada': calcularLunacionProgresada };
         const motor = await swe;
         await asegurarEfemerides(motor, pedido.ajustes);
         const carta = (calculos[pedido.tipo] || calcularCarta)(motor, pedido);

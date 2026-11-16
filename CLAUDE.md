@@ -48,7 +48,10 @@ No construir nada de las etapas 2 a 4 todavía, pero la arquitectura no tiene qu
   - Antes de 1970 (en cualquier país) la base IANA es imprecisa: aviso de que el huso es tentativo.
   - Horas ambiguas o inexistentes por cambio de hora: se avisa y se deja elegir.
 - **Lugares:** índice estático propio armado desde GeoNames (CC-BY): `AR.txt` completo más `cities1000` para el mundo, en fragmentos por prefijo. Respaldo: coordenadas y zona a mano.
-- **Privacidad:** no se guardan datos de nacimiento en el servidor ni en la URL. Solo la última carta en `localStorage`, con botón "borrar".
+- **Privacidad:** los datos de nacimiento nunca van al servidor. Solo la última carta en `localStorage`, con botón "borrar".
+  - Van al **fragmento** de la URL (`#carta=`, `#hoja=`) sólo cuando alguien lo elige: la casilla "Incluir el enlace que abre
+    esta carta ya calculada" de la ventana de compartir, el formulario de `/tu-identidad-en-el-cielo` y el PDF que sale por
+    mail. El fragmento no viaja al servidor (no queda en ningún log de acceso), pero sí queda en el chat de quien lo recibe.
 - **Medición (GA4, `gtag` del sitio):** `carta_calculada` (sistema de casas, si se cambiaron orbes) y `clic_consulta` (`destino: seba|egresadxs`). Nunca fecha, hora ni lugar.
 - **Modelo de carta en JSON puro.** `engine/aspects.js` es genérico (puntos A × puntos B) y la rueda acepta varios anillos, para tránsitos y revolución solar.
 

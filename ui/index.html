@@ -40,6 +40,8 @@
                 <li><button type="button" data-cuenta-menu="salir">Salir</button></li>
             </ul>
         </div>
+        <button type="button" class="boton-ajustes boton-instalar" data-instalar="abrir" data-desde="cabecera"
+            aria-label="Instalar la calculadora" title="Instalar la calculadora" hidden></button>
         <button type="button" class="boton-ajustes" data-accion="abrir-ajustes" aria-label="Ajustes del cálculo" title="Ajustes del cálculo">
             <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M7 4v5M7 13v7M12 4v11M12 19v1M17 4v3M17 11v9"/>
@@ -149,12 +151,25 @@
     <dialog id="ventana-anexo" class="ventana-cuenta ventana-anexo" aria-labelledby="titulo-anexo">
         <button type="button" class="cerrar" data-anexo="cerrar" aria-label="Cerrar">×</button>
         <h2 id="titulo-anexo">¿Agregamos referencias?</h2>
-        <p class="nota">Para quien no conoce los símbolos. Van debajo de la rueda.</p>
+        <p class="nota" data-nota-referencias>Para quien no conoce los símbolos. Van debajo de la rueda.</p>
         <label class="casilla"><input type="checkbox" data-incluir="planetas"> Planetas y puntos</label>
         <label class="casilla"><input type="checkbox" data-incluir="signos"> Signos</label>
         <label class="casilla"><input type="checkbox" data-incluir="aspectos"> Grilla de aspectos</label>
+        <div class="anexo-enlace" hidden>
+            <label class="casilla"><input type="checkbox" data-incluir-enlace> Incluir el enlace que abre esta carta ya calculada</label>
+            <p class="nota">Ese enlace lleva la fecha, la hora y el lugar de nacimiento, para que quien lo abra vea la
+                carta sin tipear nada. Si no, va el enlace a la calculadora vacía.</p>
+        </div>
         <button type="button" class="boton boton-principal" data-anexo="seguir">Imprimir</button>
+        <button type="button" class="boton" data-anexo="descargar" hidden>Descargar imagen</button>
         <button type="button" class="boton-texto" data-anexo="cerrar">Cancelar</button>
+    </dialog>
+
+    <dialog id="ventana-instalar" class="ventana-cuenta ventana-instalar" aria-labelledby="titulo-ventana-instalar">
+        <button type="button" class="cerrar" data-instalar="cerrar" aria-label="Cerrar">×</button>
+        <h2 id="titulo-ventana-instalar">Llevate la calculadora</h2>
+        <p class="nota">Queda como una app más, abre sin la barra del navegador y funciona sin internet.</p>
+        <div class="instalar-cuerpo"></div>
     </dialog>
 
     <dialog id="ventana-pareja" class="ventana-cuenta ventana-pareja" aria-labelledby="titulo-pareja">
@@ -247,6 +262,10 @@
                 <option value="efemerides">Efemérides gráficas</option>
                 <option value="progresion-sola">Progresiones secundarias</option>
                 <option value="progresion">Carta Natal + Progresiones</option>
+                <option value="lunacion-progresada-prenatal">Luna nueva progresada pre-natal</option>
+                <option value="lunacion-progresada">Luna nueva progresada actual</option>
+                <option value="lunacion-progresada-prenatal">Luna nueva progresada pre-natal</option>
+                <option value="lunacion-progresada">Luna nueva progresada actual</option>
                 <option value="reubicacion">Carta relocalizada</option>
                 <option value="draconica-sola">Carta dracónica</option>
                 <option value="draconica">Carta Natal + dracónica</option>
@@ -542,6 +561,8 @@
                         <option value="lunacion">Carta Natal + lunación</option>
                         <option value="progresion-sola">Progresiones secundarias</option>
                         <option value="progresion">Carta Natal + Progresiones</option>
+                        <option value="lunacion-progresada-prenatal">Luna nueva progresada pre-natal</option>
+                        <option value="lunacion-progresada">Luna nueva progresada actual</option>
                         <option value="reubicacion">Carta relocalizada</option>
                         <option value="draconica-sola">Carta dracónica</option>
                         <option value="draconica">Carta Natal + dracónica</option>
@@ -582,8 +603,8 @@
         <div class="barra-carta">
             <button type="button" class="boton" data-accion="pantalla-completa">Pantalla completa</button>
             <button type="button" class="boton boton-compartir" data-accion="compartir">Compartir</button>
-            <button type="button" class="boton" data-accion="descargar">Descargar imagen</button>
             <button type="button" class="boton" data-accion="imprimir">Imprimir</button>
+            <button type="button" class="boton boton-instalar-barra" data-instalar="abrir" data-desde="barra" hidden>Instalar</button>
             <button type="button" class="boton" data-accion="guardar">Guardar en mis cartas</button>
         </div>
         <p id="aviso-carta" class="nota aviso-carta" role="status" hidden></p>
@@ -633,7 +654,6 @@
             <div class="barra-carta ef-acciones">
                 <button type="button" class="boton" data-ef-accion="completa">Pantalla completa</button>
                 <button type="button" class="boton boton-compartir" data-ef-accion="compartir">Compartir</button>
-                <button type="button" class="boton" data-ef-accion="descargar">Descargar imagen</button>
                 <button type="button" class="boton" data-ef-accion="imprimir">Imprimir</button>
             </div>
         </section>
@@ -644,6 +664,10 @@
                 <summary>¿Querés saber algo de lo que esto significa?
                     <span class="bajada">Acá encontrarás textos para el sol, la luna y el ascendente</span></summary>
                 <div id="interpretaciones"></div>
+                <p class="nota mas-textos">
+                    <a href="https://sebabru.com/carta-natal/" target="_blank" rel="noopener">Seguí leyendo en Carta natal</a>:
+                    los textos de cada signo, de cada planeta y de cada casa.
+                </p>
             </details>
         </section>
 

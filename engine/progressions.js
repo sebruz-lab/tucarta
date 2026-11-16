@@ -57,7 +57,7 @@ export function calcularProgresion(swe, { natal, jdObjetivo, ajustes = AJUSTES_P
     } else if (metodo === 'arco-ra') {
         const raN = swe.calc(jdNatal, SOL, SEFLG_MOSEPH | SEFLG_EQUATORIAL).lon;
         const raP = swe.calc(jdProg, SOL, SEFLG_MOSEPH | SEFLG_EQUATORIAL).lon;
-        avance = norm(raP - raN);
+        avance = dif(raP, raN);
     } else {
         const arco = norm(solProg.lon - solNatal.lon);
         avance = dif(raDe(mcNatal + arco, eps), raDe(mcNatal, eps));
@@ -74,5 +74,5 @@ export function calcularProgresion(swe, { natal, jdObjetivo, ajustes = AJUSTES_P
     // Progresada -> natal (la natal quieta, con sus angulos).
     const natales = [...natal.puntos, ...natal.angulos].map((p) => ({ id: p.id, lon: p.lon, vel: 0 }));
     const aspectosNatal = calcularAspectos([...carta.puntos, ...carta.angulos], natales, opciones);
-    return { edad, jd: jdProg, jdObjetivo, metodo, arco: norm(solProg.lon - solNatal.lon), carta, aspectosNatal };
+    return { edad, jd: jdProg, jdObjetivo, metodo, arco: dif(solProg.lon, solNatal.lon), carta, aspectosNatal };
 }

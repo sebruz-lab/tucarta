@@ -11,30 +11,6 @@ Lo que Seba pidió y todavía no está hecho. Se van tachando a medida que salen
 - La respuesta de IANA al primer mail, con el borrador listo en
   `notas/mail-iana-argentina-2.txt`.
 
-## Enlazar a /carta-natal/ desde los textos
-
-Entra en el próximo cambio que se publique, no amerita una release propia
-(pedido de Seba, 15/11/2026).
-
-El 15/11/2026 el sitio pasó a tener los textos de la carta natal en páginas
-propias bajo `sebabru.com/carta-natal/`: los 36 largos del Sol, la Luna y el
-Ascendente (los mismos que muestra la calculadora), más los once planetas y
-las doce casas, 196 páginas en total. La calculadora no enlaza a ninguna.
-
-Es el enlace interno que más le falta al sitio: `/cartas/` es la página con
-más visitas y la única que sabe los signos exactos de quien la está usando.
-
-Qué hay que hacer: al lado del bloque de interpretaciones, un enlace a
-`https://sebabru.com/carta-natal/`. El texto se sigue mostrando acá mismo
-como ahora; es un enlace, no un reemplazo. El patrón ya está en `ui/app.js`
-con `PAGINA_LUNACION`, que es como se enlaza a /lunanueva y /lunallena.
-
-Lo que NO hay que hacer: mover de dónde salen los textos.
-`ui/interpretaciones.js` los pide a `sebabru.com/textos/<id>.json` y esos
-archivos no se movieron ni se van a mover. Si algún día se enlaza a la página
-de cada signo en vez de a la madre, las rutas son
-`/carta-natal/{sol,lunas,ascendente}/<signo>/` (ojo: `lunas` en plural).
-
 ## El anillo de afuera de la revolución
 
 Dos cosas que quedaron distintas del resto de las ruedas, porque ahí no entra:
@@ -45,6 +21,78 @@ Dos cosas que quedaron distintas del resto de las ruedas, porque ahí no entra:
 - Para subirle el anillo de casas hubo que juntar sus columnas de 64 a 58 de
   profundidad. Si alguna vez hay que darle más aire, el límite es el borde de
   la carta de adentro, en 182,3.
+
+---
+
+# Lo que sale en v1.21.0 (sin publicar)
+
+Pedido de Seba el 15/11/2026. Falta probarlo en el navegador y que lo mire él.
+
+## Las dos lunas nuevas progresadas
+
+Dos vistas nuevas debajo de "Carta Natal + Progresiones", las dos una rueda
+sola (decisión de Seba): la **pre-natal**, que abre el ciclo que estaba vigente
+al nacer, y la **actual**, la última cumplida. No piden ninguna fecha: salen
+del nacimiento y de hoy.
+
+La cuenta sale en cuatro líneas porque en progresiones secundarias las
+posiciones progresadas de una fecha son las posiciones **reales** del día
+`jdNatal + (T - jdNatal) / ANIO_TROPICO`. O sea que el Sol progresado se
+conjunta con la Luna progresada exactamente cuando en ese día cae una luna
+nueva **de verdad**: `engine/lunacionProgresada.js` busca las lunaciones reales
+con el `lunacionesEntre` que ya existía, en tiempo progresado, y después
+devuelve la fecha al tiempo de la vida. La carta es la progresión a ese día.
+
+La pre-natal progresa a una fecha **anterior al nacimiento**, y ahí salieron
+dos cosas mal de `engine/progressions.js`: `norm(raP - raN)` daba +355° donde
+iban −5° (método `arco-ra`), y lo mismo el `arco` que devuelve. Los dos pasaron
+a `dif`, que es con signo. Con una edad normal `norm` y `dif` dan lo mismo, así
+que no se movió nada de lo validado contra Solar Fire.
+
+**Quien tiene menos de 29 años y medio todavía no cumplió ninguna luna nueva
+progresada**: las dos vistas le dan la misma carta. Es correcto, y se dice
+abajo de la rueda en vez de esconderlo.
+
+## Instalar, donde se está mirando
+
+La v1.20.0 dejó la explicación al pie, abajo de todo, y nadie baja hasta ahí
+mientras mira su carta. La misma explicación va ahora en una ventana
+(`abrirVentanaInstalar` en `ui/instalar.js`, que comparte el cuerpo con la
+sección del pie) y se abre desde tres lados: la cabecera (al lado de Mi cuenta
+y de Ajustes), la esquina de la carta (al lado del engranaje) y la barra de
+abajo. Ninguno aparece si la app ya está instalada, ni en el modo `#hoja=`.
+
+## Compartir y descargar, un botón
+
+Vuelven a ser uno solo, pero sin el equívoco que los había separado: el botón
+dice "Compartir" y la elección está adentro de la ventana que ya preguntaba por
+las referencias, con dos botones, "Compartir" y "Descargar imagen". Las
+efemérides pasan por la misma ventana, sin las casillas de referencias, que ahí
+no entran.
+
+## El enlace que abre la carta calculada
+
+Hasta ahora el compartir mandaba la imagen y el enlace a la calculadora
+**vacía**: quien la recibía tenía que tipear los datos de nuevo. El lado que lee
+ya existía (`#carta=<base64url>`, el de `/tu-identidad-en-el-cielo` y el del PDF
+por mail) y calcula solo; faltaba el codificador, que es `enlaceDeCarta` en
+`ui/app.js`. Lleva también la vista, así que el enlace abre en la vista desde la
+que se compartió.
+
+Va **solo si la persona lo elige**, con una casilla y el aviso al lado: ese
+enlace lleva la fecha, la hora y el lugar de nacimiento. El fragmento no viaja
+al servidor, pero sí queda en el chat de quien lo recibe. El `utm_medium`
+distingue `carta` de `imagen`, y el evento `imagen_descargada` suma el
+parámetro `enlace`.
+
+Ojo con el relleno: el lector es `/^#(hoja|carta)=([A-Za-z0-9_-]+)/` y el `=`
+no entra en esa clase, así que `enlaceDeCarta` lo saca (`atob` acepta base64
+sin relleno).
+
+## Y el pendiente que esperaba una release
+
+Debajo de las interpretaciones hay ahora un enlace a
+`https://sebabru.com/carta-natal/`. Los textos siguen saliendo de donde salían.
 
 ---
 

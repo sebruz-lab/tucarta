@@ -30,3 +30,9 @@ export const COMPLETA = (t = 17) =>
     `<svg viewBox="0 0 24 24" width="${t}" height="${t}" aria-hidden="true" fill="none" stroke="currentColor"`
     + ` stroke-width="1.6" stroke-linecap="round">`
     + `<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>`;
+
+// Instalar la calculadora como app: la flecha que baja a la bandeja.
+export const INSTALAR = (t = 17) =>
+    `<svg viewBox="0 0 24 24" width="${t}" height="${t}" aria-hidden="true" fill="none" stroke="currentColor"`
+    + ` stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">`
+    + `<path d="M12 3v11M8.5 10.5L12 14l3.5-3.5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>`;

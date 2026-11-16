@@ -145,6 +145,9 @@ export async function imagenEfemerides(svg, { titulo, datos, colores }) {
 // cartas compartidas traen gente (lo lee /origen.js en el sitio).
 export const ENLACE_COMPARTIR = 'https://sebabru.com/cartas/?utm_source=compartir&utm_medium=imagen';
 const INVITACION = 'Calcula tu carta natal gratis:';
+// Cuando el enlace lleva los datos, quien lo abre ve ESTA carta calculada, no
+// la calculadora vacia: el texto tiene que decir eso.
+const INVITACION_CARTA = 'Mirá esta carta:';
 
 // Abre el menu de compartir del sistema con la imagen, el texto y el enlace.
 //
@@ -153,14 +156,19 @@ const INVITACION = 'Calcula tu carta natal gratis:';
 // compartir: decia una cosa y hacia otra, y encima no habia forma de probarlo
 // desde una computadora.
 //
+// `enlace` es el que se manda con la imagen: el de la calculadora pelada, o
+// el que abre esta misma carta ya calculada (#carta=...) si la persona lo
+// eligio en la ventana de compartir.
+//
 // Devuelve 'compartida', 'cancelada', 'enlace-copiado' o 'sin-soporte'.
-export async function compartirImagen(blob, nombreArchivo, titulo) {
+export async function compartirImagen(blob, nombreArchivo, titulo, { enlace = ENLACE_COMPARTIR, conDatos = false } = {}) {
+    const invitacion = conDatos ? INVITACION_CARTA : INVITACION;
     const archivo = new File([blob], nombreArchivo, { type: 'image/png' });
     if (navigator.canShare) {
         // Primero con el enlace. Si la plataforma no acepta archivo + texto +
         // url juntos, se comparte solo la imagen: nunca menos que antes.
         const intentos = [
-            { files: [archivo], title: titulo, text: INVITACION, url: ENLACE_COMPARTIR },
+            { files: [archivo], title: titulo, text: invitacion, url: enlace },
             { files: [archivo], title: titulo }
         ];
         for (const envio of intentos) {
@@ -177,7 +185,7 @@ export async function compartirImagen(blob, nombreArchivo, titulo) {
     // Sin menu de compartir (Firefox y Safari de escritorio no comparten
     // archivos): al menos que se lleve el enlace.
     try {
-        await navigator.clipboard.writeText(`${INVITACION} ${ENLACE_COMPARTIR}`);
+        await navigator.clipboard.writeText(`${invitacion} ${enlace}`);
         return 'enlace-copiado';
     } catch {
         return 'sin-soporte';
