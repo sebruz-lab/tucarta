@@ -24,9 +24,10 @@ Dos cosas que quedaron distintas del resto de las ruedas, porque ahí no entra:
 
 ---
 
-# Lo que sale en v1.21.0 (sin publicar)
+# Lo que salió en v1.21.0 (2026-11-16)
 
-Pedido de Seba el 15/11/2026. Falta probarlo en el navegador y que lo mire él.
+Pedido de Seba el 15/11/2026. Publicado y verificado por contenido en
+sebabru.com/cartas.
 
 ## Las dos lunas nuevas progresadas
 
