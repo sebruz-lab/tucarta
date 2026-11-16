@@ -24,6 +24,26 @@ Dos cosas que quedaron distintas del resto de las ruedas, porque ahí no entra:
 
 ---
 
+# Lo que salió en v1.21.1 (2026-11-16)
+
+Un parche de la v1.21.0, el mismo día. La lista de cálculos está escrita
+**tres veces a mano** en `ui/index.html` (el formulario, `#selector-modo` y
+`.selector-completa`), y al agregar las dos lunas nuevas progresadas quedaron
+duplicadas en el formulario y faltando en el de arriba de la rueda. Faltando
+es peor que de más: `aplicarModo` hace
+`$('#selector-modo').value = estado.modo`, y con un valor que el selector no
+tiene queda **en blanco** en cuanto se entra en una de las dos vistas, sin
+manera de volver a elegirlas desde ahí.
+
+Seba pidió el 16/11/2026 **agrupar la lista con `optgroup`** (Tu carta / El
+cielo de ahora / Tu año / Tus ciclos / Con otra persona), para cuando se
+agreguen más cálculos. Cuando se haga, que la lista salga de **un solo
+arreglo en JS** y no de las tres copias a mano: es la causa de este parche.
+`optgroup` no se anida ni se colapsa; un desplegable propio que sí lo haga
+perdería la rueda nativa del celular.
+
+---
+
 # Lo que salió en v1.21.0 (2026-11-16)
 
 Pedido de Seba el 15/11/2026. Publicado y verificado por contenido en
