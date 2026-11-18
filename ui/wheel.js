@@ -61,6 +61,12 @@ function crearPolar(asc) {
 
 const f = (n) => n.toFixed(2);
 
+// Diferencia entre dos angulos, con signo, en (-180, 180].
+const difAng = (a, b) => {
+    const d = (((a - b) % 360) + 360) % 360;
+    return d > 180 ? d - 360 : d;
+};
+
 // Ubica los glifos de los planetas sin que se pisen y sin sacarlos de la
 // casa en la que caen: dentro de cada casa se reparten entre las dos
 // cuspides, dejando medio glifo de margen para no cruzar la linea. Si la
@@ -107,18 +113,35 @@ export function ubicarEnCasas(puntos, cusps, { minimo = 10, margen = 4.5, apreta
 // Reparte posiciones sobre el circulo para que queden al menos a `minimo`
 // grados entre si, moviendolas lo menos posible. Devuelve las posiciones
 // en el mismo orden que `lons`.
-export function repartir(lons, minimo) {
+//
+// `orden` son las longitudes reales, y se pasa cuando `lons` ya viene
+// corrida por otro motivo: las columnas se acomodan casa por casa, y una
+// casa cargada desborda su cuspide. Sin esto, ese desborde le pasaba por
+// encima al planeta vecino y lo dibujaba antes que el, aunque tuviera mas
+// grado. Con `orden`, el orden del circulo lo manda la longitud: el
+// desborde empuja al vecino en vez de cruzarlo.
+export function repartir(lons, minimo, orden = null) {
     const n = lons.length;
     if (n < 2) return lons.slice();
-    const orden = lons.map((lon, i) => ({ i, lon: ((lon % 360) + 360) % 360 })).sort((a, b) => a.lon - b.lon);
+    const clave = (orden || lons).map((x) => ((x % 360) + 360) % 360);
+    const sec = lons.map((lon, i) => ({ i, lon })).sort((a, b) => clave[a.i] - clave[b.i]);
     // Se corta el circulo en el hueco mas grande, para trabajar en linea.
     let corte = 0;
     let hueco = -1;
-    orden.forEach((x, k) => {
-        const sig = k + 1 < n ? orden[k + 1].lon : orden[0].lon + 360;
-        if (sig - x.lon > hueco) { hueco = sig - x.lon; corte = (k + 1) % n; }
+    sec.forEach((x, k) => {
+        const sig = k + 1 < n ? clave[sec[k + 1].i] : clave[sec[0].i] + 360;
+        if (sig - clave[x.i] > hueco) { hueco = sig - clave[x.i]; corte = (k + 1) % n; }
     });
-    const linea = [...orden.slice(corte), ...orden.slice(0, corte).map((x) => ({ ...x, lon: x.lon + 360 }))];
+    // Cada posicion se escribe a continuacion de la anterior, a su
+    // distancia mas corta. La que quedo detras de la anterior entra con
+    // hueco negativo, asi que su grupo la vuelve a su lugar.
+    const linea = [...sec.slice(corte), ...sec.slice(0, corte)];
+    let anterior = ((linea[0].lon % 360) + 360) % 360;
+    linea[0] = { ...linea[0], lon: anterior };
+    for (let k = 1; k < n; k++) {
+        anterior += difAng(linea[k].lon, anterior);
+        linea[k] = { ...linea[k], lon: anterior };
+    }
     // Grupos: se juntan mientras se pisen; cada grupo se centra en su promedio.
     let grupos = linea.map((x) => ({ items: [x], centro: x.lon }));
     const inicio = (g) => g.centro - (g.items.length - 1) * minimo / 2;
@@ -164,10 +187,16 @@ const R_RS = { exterior: 294, signos: 264, linea: 252, casas: 258, rotulos: 258 
 // numeros de casa.
 // retro: tamaño de la caja de la R de retrogrado (el dibujo adentro mide
 // menos: ver anchoRetro). retroPaso: a que altura de la columna va, una
-// fila despues de los minutos; sin el, la R va al lado de los minutos
-// (en el anillo de la revolucion no hay lugar para una fila mas).
+// fila despues de los minutos; sin el, la R va al lado de ellos y los
+// dos quedan centrados como si fueran una palabra.
 const COLUMNA_NATAL = { glifo: 13, grado: 35, signo: 51, minuto: 66, retroPaso: 78, tG: 24, fG: 11.9, tS: 11, fM: 10.5, retro: 9.3, fC: 9 };
-const COLUMNA_EXTERNA = { glifo: 20, grado: 34, signo: 46, minuto: 58, tG: 22, fG: 11.5, tS: 10.5, fM: 10.5, retro: 9, fC: 8.8 };
+// El anillo de afuera usa todo el lugar que hay entre su anillo de casas
+// (252) y el borde de la carta de adentro (182,3): el glifo sube hasta
+// debajo de los numeros de casa y la R baja a su propia fila, como en el
+// resto de las ruedas. `retroPaso` es 62 y no 64 porque el codo de la
+// cuspide quebrada sale 3 por debajo de la R, y con 64 cae adentro de la
+// carta de adentro.
+const COLUMNA_EXTERNA = { glifo: 14, grado: 28, signo: 40, minuto: 52, retroPaso: 62, tG: 22, fG: 11.5, tS: 10.5, fM: 10.5, retro: 9, fC: 8.8 };
 // El dibujo se encaja con margen (15.5 de 20) y es mas alto que ancho.
 const anchoRetro = (t) => t * (15.5 / 20) * ANCHO_RETRO;
 const altoRetro = (t) => t * (15.5 / 20);
@@ -243,10 +272,6 @@ function rotulosCuspides(polar, cusps, r, escala, fC) {
     }).join('');
 }
 
-const difAng = (a, b) => {
-    const d = (((a - b) % 360) + 360) % 360;
-    return d > 180 ? d - 360 : d;
-};
 
 // Reparte los planetas en columnas por toda la rueda y calcula por donde
 // pasa cada cuspide entre las columnas (`paso`). Devuelve el SVG de las
@@ -261,7 +286,7 @@ function columnas(puntos, cusps, { polar, linea, rTope, escala = 1, m, prefijo =
     const minimo = 0.7 * (Math.max(
         grados(m.tG / escala, rG), grados(texto(m.fG, 3), rGr),
         grados(m.tS / escala, rS), grados(texto(m.fM, 3.6), rM)) + 0.8);
-    const pos = repartir(ubicarColumnas(puntos, cusps, minimo), minimo);
+    const pos = repartir(ubicarColumnas(puntos, cusps, minimo), minimo, puntos.map((p) => p.lon));
 
     // Cada cuspide pasa entre la ultima columna de su casa y la primera de
     // la siguiente: recta si su grado cae en ese hueco; si no, se corre lo

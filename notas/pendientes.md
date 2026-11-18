@@ -11,16 +11,62 @@ Lo que Seba pidió y todavía no está hecho. Se van tachando a medida que salen
 - La respuesta de IANA al primer mail, con el borrador listo en
   `notas/mail-iana-argentina-2.txt`.
 
-## El anillo de afuera de la revolución
+## Para la próxima que se toque la rueda
 
-Dos cosas que quedaron distintas del resto de las ruedas, porque ahí no entra:
+- `ubicarEnCasas` (`ui/wheel.js`) está exportada y tiene cuatro tests, pero no
+  la usa nadie: la rueda dibuja con `ubicarColumnas` desde la v1.6. Borrarla
+  con sus tests cuando no haya nada a mitad de camino.
 
-- La R de retrógrado va al lado de los minutos y no como una fila más de la
-  columna (`COLUMNA_EXTERNA` no tiene `retroPaso`): una fila más le pegaría a
-  los números de casa.
-- Para subirle el anillo de casas hubo que juntar sus columnas de 64 a 58 de
-  profundidad. Si alguna vez hay que darle más aire, el límite es el borde de
-  la carta de adentro, en 182,3.
+---
+
+# Lo que sale en v1.22.0 (sin publicar)
+
+Dos cosas de una captura que mandó Seba el 16/11/2026, las dos en
+`ui/wheel.js`.
+
+## Mercurio no puede aparecer antes que Saturno
+
+`ubicarColumnas` acomoda **una casa por vez**, y la casa que no entra
+desborda su cúspide. Ese desborde no miraba lo que había del otro lado, así
+que le pasaba por encima al planeta de la casa vecina y lo dibujaba antes
+que él. `repartir` tampoco lo arreglaba: ordenaba por la posición **ya
+corrida**, así que repartía la inversión tal cual venía.
+
+Ahora `repartir` recibe un tercer argumento, `orden`, con las longitudes
+reales: ordena y corta el círculo por ahí, y desenrolla cada posición a
+continuación de la anterior por su camino más corto. La que quedó detrás
+entra con hueco negativo, así que su grupo la vuelve a su lugar. El
+desborde **empuja** al vecino en vez de cruzarlo, y la cúspide se quiebra
+para marcarlo, como ya hacía.
+
+Sin `orden` se comporta igual que antes, que es lo que necesita el anillo
+de tránsitos (ahí las posiciones ya son las longitudes).
+
+Los dos tests nuevos de `tests/rueda.test.js` fallan con el código viejo:
+el caso de la captura y 150 cartas al azar, rueda sola y superposición.
+
+## El anillo de afuera usa el lugar que tenía libre
+
+Sus columnas estaban juntadas de 64 a 58 de profundidad de cuando los
+números de casa iban abajo. Desde la v1.19.0 van en la cajita pegada al
+zodíaco, así que la columna baja hasta la carta de adentro:
+
+```
+            antes   ahora
+glifo        232     238
+grado        218     224
+signo        206     212
+minuto       194     200
+R          al lado   190
+```
+
+Con eso **la R vuelve a ser una fila más**, como en el resto de las ruedas.
+`retroPaso` es 62 y no 64 porque el codo de la cúspide quebrada sale 3 por
+debajo de la R, y con 64 cae adentro de la carta de adentro (182,3).
+
+De yapa, la separación mínima entre columnas la fija la fila más de
+adentro, que ahora está más arriba: pasa de 5,25° a 5,11°, así que los
+planetas se corren un poco menos.
 
 ---
 

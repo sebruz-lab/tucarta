@@ -230,3 +230,94 @@ describe('los anillos de la rueda', () => {
         }
     });
 });
+
+
+// Error que mando Seba el 16/11/2026: en una superposicion, Mercurio
+// aparecia antes que Saturno. Cada casa se acomoda por separado, y la que
+// no entra desborda su cuspide: ese desborde le pasaba por encima al
+// planeta de la casa vecina.
+describe('el orden del zodiaco manda', () => {
+    const dif = (a, b) => { const d = (((a - b) % 360) + 360) % 360; return d > 180 ? d - 360 : d; };
+    // Angulo en pantalla de cada columna, en el orden en que se pasaron los
+    // puntos: el circulo de toque de cada una esta en su angulo.
+    const angulos = (svg) => [...svg.matchAll(/data-punto="([^"]+)"[^>]*><circle class="toque" cx="(-?[\d.]+)" cy="(-?[\d.]+)"/g)]
+        .map((m) => (Math.atan2(Number(m[3]), Number(m[2])) * 180 / Math.PI + 360) % 360);
+
+    // La pantalla se puede leer al reves: el dibujo pone cada longitud en
+    // 180 - (lon - asc), asi que de cada angulo sale con que longitud
+    // quedo dibujado el planeta. Con el ASC en 0, la cuenta es directa.
+    const dibujadas = (svg) => angulos(svg).map((a) => ((180 - a) % 360 + 360) % 360);
+
+    // Caminando los planetas de menor a mayor longitud (arrancando despues
+    // del hueco mas grande, que es donde el circulo se corta), la longitud
+    // con la que quedaron dibujados tiene que ir siempre para adelante.
+    const sinInvertir = (lons, svg, nombre) => {
+        const dib = dibujadas(svg);
+        const orden = lons.map((lon, i) => ({ lon, dib: dib[i] })).sort((a, b) => a.lon - b.lon);
+        let corte = 0;
+        let hueco = -1;
+        orden.forEach((x, k) => {
+            const sig = k + 1 < orden.length ? orden[k + 1].lon : orden[0].lon + 360;
+            if (sig - x.lon > hueco) { hueco = sig - x.lon; corte = (k + 1) % orden.length; }
+        });
+        const linea = [...orden.slice(corte), ...orden.slice(0, corte)];
+        for (let k = 1; k < linea.length; k++) {
+            expect(dif(linea[k].dib, linea[k - 1].dib), `${nombre}: ${linea[k - 1].lon}° y ${linea[k].lon}°`)
+                .toBeGreaterThan(0);
+        }
+    };
+
+    const ids = ['sol', 'luna', 'mercurio', 'venus', 'marte', 'jupiter', 'saturno', 'urano', 'neptuno', 'pluton', 'quiron', 'nodo'];
+    const cartaDe = (lons) => ({ ...CARTA,
+        puntos: lons.map((lon, i) => ({ id: ids[i], ...pos(lon), casa: casaDe(lon, CARTA.cusps.map((c) => c.lon)), vel: 1, retro: false })) });
+
+    it('una casa cargada empuja al planeta vecino, no le pasa por encima', () => {
+        // Casa 8 (210 a 240) con siete columnas; el Sol, a 207, es de la 7.
+        const lons = [207, 212, 214, 216, 218, 220, 222, 224];
+        sinInvertir(lons, dibujarRueda(cartaDe(lons), {}), 'casa cargada');
+    });
+
+    it('en ninguna carta al azar se invierte el orden', () => {
+        // Numeros repetibles: el mismo test falla siempre o pasa siempre.
+        let semilla = 20261116;
+        const azar = () => { semilla = (semilla * 1103515245 + 12345) % 2147483648; return semilla / 2147483648; };
+        for (let v = 0; v < 150; v++) {
+            const lons = Array.from({ length: 12 }, () => Math.round(azar() * 3600) / 10);
+            const carta = cartaDe(lons);
+            sinInvertir(lons, dibujarRueda(carta, {}), `carta ${v}`);
+            sinInvertir(lons, dibujarRueda(carta, { revolucion: carta }), `carta ${v} de afuera`);
+        }
+    });
+});
+
+// El anillo de afuera tenia las columnas juntadas de 64 a 58 de
+// profundidad de cuando los numeros de casa iban abajo. Ahora van en la
+// cajita pegada al zodiaco, asi que la columna usa todo el lugar que hay
+// hasta la carta de adentro.
+describe('las columnas del anillo de afuera', () => {
+    const BORDE_DE_ADENTRO = 294 * 0.62;
+    const conRetro = { ...CARTA,
+        puntos: [{ id: 'mercurio', ...pos(100), casa: 4, vel: -1, retro: true }] };
+    const svg = dibujarRueda(CARTA, { revolucion: conRetro });
+    const columna = svg.match(/<g class="punto revolucion"[\s\S]*?<\/g><\/g>/)[0];
+    // El glifo se dibuja desde su esquina: su centro esta 10 adentro, a escala.
+    const centroGlifo = (m) => [Number(m[1]) + 10 * Number(m[3]), Number(m[2]) + 10 * Number(m[3])];
+    const glifos = [...columna.matchAll(/class="glifo[^>]*transform="translate\((-?[\d.]+) (-?[\d.]+)\) scale\(([\d.]+)\)/g)].map(centroGlifo);
+    const textos = [...columna.matchAll(/<text[^>]*x="(-?[\d.]+)" y="(-?[\d.]+)"/g)].map((m) => [Number(m[1]), Number(m[2])]);
+    const radios = [...glifos, ...textos].map(([x, y]) => Math.hypot(x, y)).sort((a, b) => b - a);
+
+    it('van del borde del anillo de casas hasta la carta de adentro', () => {
+        // Glifo, grado, signo, minutos y la R, en ese orden.
+        expect(radios.map((r) => Math.round(r))).toEqual([238, 224, 212, 200, 190]);
+        expect(Math.min(...radios)).toBeGreaterThan(BORDE_DE_ADENTRO);
+    });
+
+    it('la R tiene su propia fila, como en el resto de las ruedas', () => {
+        const r = [...columna.matchAll(/class="glifo retro"[^>]*transform="translate\((-?[\d.]+) (-?[\d.]+)\) scale\(([\d.]+)\)/g)]
+            .map((m) => Math.hypot(...centroGlifo(m)));
+        expect(r).toHaveLength(1);
+        expect(r[0]).toBeCloseTo(190, 1);
+        // Y no pegada a los minutos: una fila entera mas abajo.
+        expect(radios[3] - r[0]).toBeGreaterThan(5);
+    });
+});
