@@ -19,7 +19,7 @@ Lo que Seba pidió y todavía no está hecho. Se van tachando a medida que salen
 
 ---
 
-# Lo que sale en v1.22.0 (sin publicar)
+# Lo que salió en v1.22.0 (2026-11-17)
 
 Dos cosas de una captura que mandó Seba el 16/11/2026, las dos en
 `ui/wheel.js`.
