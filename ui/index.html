@@ -13,6 +13,40 @@
 <meta property="og:image" content="https://sebabru.com/img/tucarta.webp?v=2">
 <meta property="og:site_name" content="Seba Bru Astrología">
 
+<!-- WebApplication: le dice a Google que esto es una herramienta gratis y sin
+     registro, no una pagina mas. Es lo unico que puede sacar de una SPA, que
+     para el buscador es un HTML casi vacio: todo lo demas lo dibuja el JS.
+     El texto no es nuevo, sale de la description de arriba. -->
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Calculadora de cartas",
+    "url": "https://sebabru.com/cartas/",
+    "description": "Calculá tu carta natal gratis: rueda, posiciones, aspectos y textos sobre tu Sol, tu Luna y tu Ascendente.",
+    "applicationCategory": "LifestyleApplication",
+    "operatingSystem": "Cualquier navegador",
+    "browserRequirements": "Requiere JavaScript",
+    "inLanguage": "es",
+    "isAccessibleForFree": true,
+    "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "ARS"
+    },
+    "author": {
+        "@type": "Person",
+        "name": "Sebastián Bru",
+        "url": "https://sebabru.com/"
+    },
+    "publisher": {
+        "@type": "Organization",
+        "name": "Seba Bru Astrología",
+        "url": "https://sebabru.com/"
+    }
+}
+</script>
+
 <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
 <link rel="preload" href="/cartas/fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="./tucarta.css">
