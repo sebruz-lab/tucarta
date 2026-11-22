@@ -17,6 +17,27 @@ Lo que Seba pidió y todavía no está hecho. Se van tachando a medida que salen
   la usa nadie: la rueda dibuja con `ubicarColumnas` desde la v1.6. Borrarla
   con sus tests cuando no haya nada a mitad de camino.
 
+## Sin publicar, esperando release
+
+- **Las 14 posiciones con su enlace a `/carta-natal/`** (commit del 21/11/2026).
+  Hecho y con tests, sin release. Falta que Seba apruebe **la bajada del
+  desplegable**: dice "Un texto para cada posición de tu carta", que la puse yo
+  como algo provisorio y factual porque la anterior ("textos para el sol, la
+  luna y el ascendente") quedó mentirosa. Ver `ui/index.html`.
+- **El `WebApplication` schema**, de antes. Conviene que salga en la misma
+  release.
+- Cuando salga: en el repo del sitio, `tucarta.version` a la versión nueva y
+  **push a `main`** (el deploy es sólo por push).
+
+## Las casas en las interpretaciones
+
+`INCLUIR_CASAS` en `ui/interp.js` está en `false`. El camino ya está hecho; lo
+único que falta son **36 textos**: las 12 casas en capricornio, acuario y
+piscis. Los escribe Seba. Ojo con dos cosas cuando se encienda: el texto es el
+signo en la **cúspide** de cada casa (no en qué casa cae un planeta), y la
+página es por casa (`/carta-natal/casas/casa-N/`), no por signo, así que el
+enlace es más grueso que el texto.
+
 ---
 
 # Lo que salió en v1.22.0 (2026-11-17)
