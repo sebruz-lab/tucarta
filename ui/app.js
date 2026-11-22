@@ -13,7 +13,7 @@ import { husoEn } from '../time/tz.js';
 import { panelHuso, trianguloHuso } from './huso.js';
 import { panelAjustes, ajustesDesde, leerAjustes, guardarAjustes, orbesModificados } from './settings.js';
 import { conectarBuscador, opcionesZonas, parsearCoordenada, descripcionLugar } from './form.js';
-import { bloquesInterpretacion, idsInterpretacion } from './interp.js';
+import { bloquesInterpretacion, cuerpoInterpretacion, posicionesInterpretacion } from './interp.js';
 import { configRemota } from './firestore.js';
 import { textosInterpretacion } from './interpretaciones.js';
 import { CONFIG_POR_DEFECTO } from './config.js';
@@ -2440,12 +2440,49 @@ formTransito.addEventListener('change', (e) => {
 });
 formTransito.addEventListener('submit', (e) => e.preventDefault());
 
-async function pintarInterpretaciones() {
-    const carta = estado.carta;
-    $('#interpretaciones').innerHTML = bloquesInterpretacion(carta, {});
-    const textos = await textosInterpretacion(idsInterpretacion(carta).map((x) => x.id));
-    if (estado.carta === carta) $('#interpretaciones').innerHTML = bloquesInterpretacion(carta, textos);
+// Las 14 posiciones salen de entrada, cerradas y sin texto: el <summary> se
+// arma con la carta y no necesita la red. El texto de cada una se pide cuando
+// la persona la abre. Antes eran tres y se pedian las tres juntas al calcular;
+// con catorce eso serian catorce pedidos de algo que casi nadie va a leer.
+function pintarInterpretaciones() {
+    const caja = $('#interpretaciones');
+    caja.innerHTML = bloquesInterpretacion(estado.carta);
 }
+
+// Cache de esta carta: ruta -> posicion, para encontrarla al abrir.
+function posicionDe(ruta) {
+    return posicionesInterpretacion(estado.carta).find((p) => p.ruta === ruta);
+}
+
+async function abrirInterpretacion(det) {
+    if (det.dataset.cargado) return;
+    const ruta = det.dataset.texto;
+    const pos = posicionDe(ruta);
+    if (!pos) return;
+
+    // Marcar antes del await: dos toggle seguidos no tienen que pedir dos veces.
+    det.dataset.cargado = '1';
+    const carta = estado.carta;
+    const textos = await textosInterpretacion([ruta]);
+
+    // Si mientras llegaba el texto se calculo otra carta, este <details> ya no
+    // esta en la pagina: escribirlo seria pisar la carta nueva.
+    if (estado.carta !== carta || !det.isConnected) return;
+    const cuerpo = det.querySelector('.interpretacion-cuerpo');
+    if (cuerpo) cuerpo.innerHTML = cuerpoInterpretacion(pos, textos[ruta]);
+}
+
+$('#interpretaciones').addEventListener('toggle', (e) => {
+    const det = e.target.closest('details.interpretacion');
+    if (det?.open) abrirInterpretacion(det);
+}, true); // el toggle no burbujea: hay que escucharlo en la fase de captura
+
+// Clics a las paginas de /carta-natal/. Es la unica forma de saber si este
+// enlazado sirvio sin esperar tres meses a Search Console.
+$('#interpretaciones').addEventListener('click', (e) => {
+    const a = e.target.closest('a[data-posicion]');
+    if (a) evento('carta_natal_abierta', { posicion: a.dataset.posicion });
+});
 
 // ---------- Interacciones del resultado ----------
 

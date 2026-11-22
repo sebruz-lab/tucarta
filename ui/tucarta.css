@@ -965,11 +965,27 @@ body.sin-scroll { overflow: hidden; }
     font-size: 0.9rem;
     color: var(--texto-suave);
 }
+/* Cada posicion de la carta es su propio <details>. El <summary> hace lo que
+   antes hacia el <h3>: nombra la posicion ("Sol en Tauro"). El tamanio va
+   explicito porque `details > summary` (mas arriba) lo deja en 0.92rem y
+   gris, que es para los desplegables de ajustes, no para estos. */
 .interpretacion {
     border-top: 1px solid var(--linea);
-    padding: 20px 0 4px;
+    padding: 0;
 }
-.interpretacion h3 { color: var(--amarillo); }
+.interpretacion > summary {
+    color: var(--amarillo);
+    font-size: 1rem;
+    padding: 14px 0;
+}
+.interpretacion[open] > summary { padding-bottom: 6px; }
+.interpretacion-cuerpo { padding-bottom: 14px; }
+.interpretacion-cuerpo > p:first-child { margin-top: 0; }
+
+/* El enlace a la pagina del sitio donde vive el texto completo. */
+.leer-pagina { margin: 14px 0 0; }
+
+.buscando-texto,
 .proximamente {
     color: var(--texto-suave);
     letter-spacing: 1px;

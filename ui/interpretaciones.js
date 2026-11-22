@@ -26,21 +26,33 @@
 // De la base de la app a la carpeta de los textos, que esta un nivel arriba:
 //   /cartas/  -> /textos/     en produccion
 //   /         -> /textos/     en desarrollo (lo atiende el proxy de vite)
-export function urlTexto(id, base = import.meta.env.BASE_URL, origen = globalThis.location?.href) {
+//
+// La ruta puede llevar subcarpeta ('signos/mercurio-geminis'), porque hay dos
+// juegos de textos y HAY COLISION DE NOMBRE entre ellos:
+//
+//   /textos/sol-aries.json          el texto largo (Sol, Luna y Ascendente)
+//   /textos/signos/sol-aries.json   el texto corto, el de los acordeones
+//
+// Son textos distintos con el mismo nombre de archivo, asi que la clave de la
+// cache tiene que ser la ruta entera y no el id pelado. Con el id pelado, el
+// Sol se quedaba con el primero que llegara.
+export function urlTexto(ruta, base = import.meta.env.BASE_URL, origen = globalThis.location?.href) {
     const carpeta = new URL('../textos/', new URL(base, origen || 'http://localhost/'));
-    return new URL(`${encodeURIComponent(id)}.json`, carpeta).href;
+    const partes = String(ruta).split('/').map(encodeURIComponent).join('/');
+    return new URL(`${partes}.json`, carpeta).href;
 }
 
 // Cache por sesion: cada texto se pide una vez por visita.
 const CLAVE = 'tucarta:textos';
 
-// Devuelve { id: { titulo, texto } | null }. El null es "no hay texto":
-// o no esta publicado, o no se pudo leer.
-export async function textosInterpretacion(ids) {
+// Devuelve { ruta: { titulo, texto } | null }. El null es "no hay texto":
+// o no esta publicado, o no se pudo leer. La clave es la ruta tal como se
+// pidio ('sol-aries', 'signos/mercurio-geminis'): ver urlTexto.
+export async function textosInterpretacion(rutas) {
     let cache = {};
     try { cache = JSON.parse(sessionStorage.getItem(CLAVE)) || {}; } catch {}
 
-    const faltan = ids.filter((id) => !(id in cache));
+    const faltan = rutas.filter((ruta) => !(ruta in cache));
     if (faltan.length) {
         const leidos = await Promise.all(faltan.map(async (id) => {
             try {
@@ -65,5 +77,5 @@ export async function textosInterpretacion(ids) {
         }
     }
 
-    return Object.fromEntries(ids.map((id) => [id, cache[id] || null]));
+    return Object.fromEntries(rutas.map((ruta) => [ruta, cache[ruta] || null]));
 }
