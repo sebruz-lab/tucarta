@@ -28,6 +28,132 @@ enlace es más grueso que el texto.
 
 ---
 
+# Lo que salió en v1.24.0 (2026-11-23): el calendario del cielo
+
+Pedido de Seba el 23/11/2026, a partir de una captura del calendario de
+Solar Fire.
+
+## Calendario de tránsitos, tres formatos
+
+La vista `calendario` era una lista de períodos: los siete planetas lentos
+sobre la natal, con cuándo entra en orbe cada tránsito, cuándo es exacto y
+cuándo sale. Eso sigue, ahora como el formato **Períodos**, y al lado hay
+dos formatos nuevos que son otra cosa: los **instantes exactos**, como los
+que Solar Fire pone adentro de cada día del mes.
+
+- **Mes**: la grilla de siete columnas de la captura.
+- **Día a día**: la misma información en una agenda. En pantallas de menos
+  de 760 px la grilla se desarma sola en esto, por CSS, sin recalcular.
+
+Y tres carriles, que es lo que Seba pidió poder elegir: los aspectos
+**entre dos planetas en tránsito** (`Tr-Tr`), los **del tránsito a la carta
+abierta** (`Tr-Na`), o los dos. Con los dos prendidos cada renglón lleva su
+sigla, las mismas dos de Solar Fire. Aparte va lo que no depende de ninguna
+carta: ingresos de signo, retrogradaciones y las cuatro fases de la Luna.
+Lo elegido queda en `localStorage` (`tucarta:calendario`).
+
+El vacío de curso queda afuera: Seba lo descartó. Se armaría con las mismas
+piezas (la Luna sin aspecto mayor hasta cambiar de signo).
+
+## El motor: un buscador de cruces, y cuatro cálculos que no existían
+
+`engine/eventos.js` es nuevo y hace cinco cosas, de las cuales **cuatro no
+estaban**: aspectos entre tránsitos, ingresos con fecha (antes sólo se
+dibujaban, sin fecha, en las efemérides gráficas), estaciones (SR/SD) y los
+cuartos lunares. La única que ya existía era la luna nueva y la llena.
+
+Las cuatro primeras son el mismo problema —una función del tiempo que pasa
+por cero— y ahora lo resuelve `cruces` en `engine/raices.js`, que es el
+descarte del salto de ±180 que estaba copiado a mano en `calendar.js` y en
+`lunaciones.js`.
+
+Tres cosas que no son obvias y conviene no deshacer:
+
+1. **Se muestrea cada 6 horas, no cada día.** La Luna avanza 13° por día:
+   con paso diario entra y sale de un blanco entre dos muestras y se pierden
+   aspectos enteros. Hay un test que lo falla a propósito con paso 1.
+2. **La bisección baja al segundo, no al minuto.** Con la precisión por
+   defecto (un minuto) se devuelve el medio del intervalo, y la mitad de los
+   eventos caía un minuto después del que imprime Solar Fire.
+3. **La hora se redondea al segundo antes de truncar al minuto.** El día
+   juliano es un flotante: las 17:16 llegan como 17:15:59,999 y truncar las
+   mostraba un minuto antes.
+
+`fasesEntre` se agregó al lado de `lunacionesEntre` en vez de cambiarla: su
+`centrar()` descarta a propósito el salto de los cuartos, que es justo lo
+que hacía falta. `lunacionesEntre` está validada y la usan la vista de
+lunación y la luna nueva progresada. El test más barato de que el buscador
+nuevo no se corrió es que las dos den los mismos instantes para la nueva y
+la llena.
+
+## El huso de la captura, y hasta dónde coincide
+
+La captura dice `BZT2 +3:00` y es **UTC−3**: se despejó con las cuatro fases
+de la Luna, que coinciden al minuto con el huso negativo y quedan seis horas
+afuera con el positivo.
+
+Solar Fire va unos **18 segundos antes** que nosotros, porque usa ΔT = 87 s
+para 2026 y el medido es ~69 s. Es la misma diferencia que ya estaba medida
+en la revolución solar. Sumado al truncado, la tolerancia del test es de un
+minuto y medio, y con eso coinciden las cinco fases, los trece ingresos de
+la Luna, los cuatro de los planetas y las tres estaciones de planetas de
+diciembre de 2026.
+
+**Lo que no coincide es la hora de las estaciones del Nodo verdadero**, que
+se puede ir un par de horas (el día sale bien). Su velocidad es una
+libración casi plana alrededor del cero, así que el error de ~47" que
+Moshier tiene en el Nodo —anotado en `CLAUDE.md`— se traduce en horas de
+reloj. No se arregla sin sumar `semo_18.se1`, que son 1,3 MB que Seba
+decidió no cargar. Está escrito en el test para que no parezca un error.
+
+## Costo
+
+Un mes con los dos carriles y la Luna prendida: ~870 ms y 460 eventos. La
+vista de Períodos, que ya estaba, tarda 2,2 s porque recorre ±2 años de
+margen. Corre en el worker, con el cartel de cargando.
+
+## Y lo demás del mismo pedido
+
+- **Qué aspectos dibuja la rueda doble**, debajo de los datos de la esquina
+  derecha. Mirando la rueda no se distingue (las líneas salen iguales) y la
+  única manera de saberlo era abrir los ajustes y acordarse de lo que decía
+  el selector. El "Cambialo acá" abre el desplegable que corresponde:
+  `abrirAjustes(seccion)` abre también los que lo contienen, porque los de
+  aspectos están anidados y abrir sólo el de adentro no muestra nada.
+- **"Carta Natal + lunación" pasa a llamarse "Carta Natal + Luna Nueva o
+  Llena"**, y abajo de la nota hay un **"Ver la carta de la Luna Nueva"**.
+  La rueda de esa vista es la natal con el Sol y la Luna afuera, o sea la
+  lunación *sobre* la carta; la carta de la lunación misma, con sus casas y
+  sus ángulos, es la del cielo de ese instante, y eso ya lo hace "Los astros
+  ahora": el botón le pasa el instante y no hizo falta ninguna vista nueva.
+- **La luna nueva progresada actual mostraba la pre-natal.** Era un `||=`:
+  `calcularLunacionProgresada` sólo fijaba `cual` si `estado.lunacionProgresada`
+  era falsy, así que al **cambiar de vista** se quedaba con el de la vista
+  anterior. Entrar por la pre-natal (que está primera en la lista) y pasar a
+  la actual seguía dando la pre-natal. Ahora `cual` sale siempre del modo.
+- **La fase de la Luna tiene una línea propia al pie de cada día** de la
+  grilla, vacía los días que no tienen. Es el renglón más largo (lleva la
+  palabra entera) y mezclado con los demás empujaba la hora encima de los
+  glifos del de al lado. En la agenda y en la ventana del día va donde le
+  toca por hora, que ahí hay ancho de sobra.
+- **"Luna Nueva o Llena" es una vista más de la lista**: el cielo entero del
+  instante de la lunación, con sus casas y sus ángulos. Por dentro **es la
+  carta de un momento**, la misma que "Tránsitos actuales" (entra por
+  `esAhora`), con el instante corrido a la lunación más cercana a la fecha
+  elegida. Se corre **una sola vez, al entrar**: después la fecha y la
+  animación mueven el cielo como en cualquier otra, sin volver a saltar. El
+  botón de la vista de lunación lleva ahí, y no re-busca nada porque ya
+  tiene el instante.
+- **"Los astros ahora" pasa a llamarse "Tránsitos actuales"** en las tres
+  listas y en la esquina de la rueda. El título de la sección de la primera
+  página (`#titulo-ahora-inicio`) quedó como estaba: es texto de la home.
+- **La actual lleva "ciclo anterior / La última / ciclo siguiente"**, como la
+  revolución solar. `calcularLunacionProgresada` recibe `salto`, que cuenta
+  ciclos desde la de referencia; cada paso se calcula desde esa y no de a uno
+  por vez, así que el error del mes sinódico medio no se acumula entre clics.
+
+---
+
 # Lo que salió en v1.22.0 (2026-11-17)
 
 Dos cosas de una captura que mandó Seba el 16/11/2026, las dos en

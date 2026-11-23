@@ -199,6 +199,12 @@
         <button type="button" class="boton-texto" data-anexo="cerrar">Cancelar</button>
     </dialog>
 
+    <dialog id="ventana-dia" class="ventana-cuenta ventana-dia" aria-labelledby="titulo-dia">
+        <button type="button" class="cerrar" data-dia="cerrar" aria-label="Cerrar">×</button>
+        <h2 id="titulo-dia"></h2>
+        <div id="cuerpo-dia"></div>
+    </dialog>
+
     <dialog id="ventana-instalar" class="ventana-cuenta ventana-instalar" aria-labelledby="titulo-ventana-instalar">
         <button type="button" class="cerrar" data-instalar="cerrar" aria-label="Cerrar">×</button>
         <h2 id="titulo-ventana-instalar">Llevate la calculadora</h2>
@@ -289,9 +295,10 @@
                 <option value="natal">Carta Natal</option>
                 <option value="revolucion-sola">Revolución Solar</option>
                 <option value="revolucion">Carta Natal + Revolución Solar</option>
-                <option value="astros-ahora">Los astros ahora</option>
+                <option value="astros-ahora">Tránsitos actuales</option>
 <option value="transitos">Carta Natal + tránsitos</option>
-                <option value="lunacion">Carta Natal + lunación</option>
+                <option value="lunacion-sola">Luna Nueva o Llena</option>
+                <option value="lunacion">Carta Natal + Luna Nueva o Llena</option>
                 <option value="calendario">Calendario de tránsitos</option>
                 <option value="efemerides">Efemérides gráficas</option>
                 <option value="progresion-sola">Progresiones secundarias</option>
@@ -425,9 +432,10 @@
                 <option value="natal">Carta Natal</option>
                 <option value="revolucion-sola">Revolución Solar</option>
                 <option value="revolucion">Carta Natal + Revolución Solar</option>
-                <option value="astros-ahora">Los astros ahora</option>
+                <option value="astros-ahora">Tránsitos actuales</option>
 <option value="transitos">Carta Natal + tránsitos</option>
-                <option value="lunacion">Carta Natal + lunación</option>
+                <option value="lunacion-sola">Luna Nueva o Llena</option>
+                <option value="lunacion">Carta Natal + Luna Nueva o Llena</option>
                 <option value="calendario">Calendario de tránsitos</option>
                 <option value="efemerides">Efemérides gráficas</option>
                 <option value="progresion-sola">Progresiones secundarias</option>
@@ -481,6 +489,15 @@
             <p class="nota" id="nota-rs"></p>
         </div>
 
+        <div id="controles-lnp" class="controles-transito" hidden>
+            <div class="pasos-transito">
+                <button type="button" data-lnp="-1">‹ ciclo anterior</button>
+                <button type="button" data-lnp="0">La última</button>
+                <button type="button" data-lnp="1">ciclo siguiente ›</button>
+            </div>
+            <p class="nota" id="nota-lnp"></p>
+        </div>
+
         <form id="controles-pr" class="controles-transito" novalidate hidden>
             <div class="fila">
                 <label class="campo"><span>Progresar al <span class="opcional">(DD/MM/AAAA)</span></span>
@@ -522,6 +539,7 @@
                 <button type="button" data-ln="1" aria-label="La lunación siguiente">siguiente ›</button>
             </div>
             <p class="nota" id="nota-ln"></p>
+            <button type="button" class="ver-carta-ln" data-ln="carta" id="ver-carta-ln"></button>
         </div>
 
         <div id="controles-sin" class="controles-transito" hidden>
@@ -590,9 +608,10 @@
                         <option value="natal">Carta Natal</option>
                         <option value="revolucion-sola">Revolución Solar</option>
                         <option value="revolucion">Carta Natal + Revolución Solar</option>
-                        <option value="astros-ahora">Los astros ahora</option>
+                        <option value="astros-ahora">Tránsitos actuales</option>
 <option value="transitos">Carta Natal + tránsitos</option>
-                        <option value="lunacion">Carta Natal + lunación</option>
+                        <option value="lunacion-sola">Luna Nueva o Llena</option>
+                        <option value="lunacion">Carta Natal + Luna Nueva o Llena</option>
                         <option value="progresion-sola">Progresiones secundarias</option>
                         <option value="progresion">Carta Natal + Progresiones</option>
                         <option value="lunacion-progresada-prenatal">Luna nueva progresada pre-natal</option>
@@ -645,13 +664,38 @@
 
         <section id="calendario" class="calendario" aria-labelledby="titulo-calendario" hidden>
             <h2 id="titulo-calendario">Calendario de tránsitos</h2>
-            <p class="nota">Júpiter, Saturno, Urano, Neptuno, Plutón, Quirón y el Nodo sobre la carta. Tocá un tránsito para verlo en la rueda.</p>
-            <div class="cal-periodo">
-                <button type="button" data-cal="-6" aria-label="6 meses antes">‹ 6 meses</button>
-                <span id="cal-periodo"></span>
-                <button type="button" data-cal="6" aria-label="6 meses después">6 meses ›</button>
+            <p class="nota" id="cal-bajada"></p>
+            <div class="cal-formatos" role="group" aria-label="Cómo ver el calendario">
+                <button type="button" data-cal-formato="mes">Mes</button>
+                <button type="button" data-cal-formato="agenda">Día a día</button>
+                <button type="button" data-cal-formato="periodos">Períodos</button>
             </div>
-            <div id="cal-lista"></div>
+            <div class="cal-periodo">
+                <button type="button" data-cal="-1" id="cal-antes" aria-label="Período anterior">‹</button>
+                <span id="cal-periodo"></span>
+                <button type="button" data-cal="1" id="cal-despues" aria-label="Período siguiente">›</button>
+            </div>
+            <details class="cal-ajustes" id="cal-ajustes">
+                <summary>Qué mostrar</summary>
+                <fieldset>
+                    <legend>Aspectos exactos</legend>
+                    <label class="menor"><input type="checkbox" data-cal-carril="entrePlanetas"> <span>Entre planetas en tránsito <em>(Tr-Tr)</em></span></label>
+                    <label class="menor"><input type="checkbox" data-cal-carril="aLaCarta"> <span>Del tránsito a la carta abierta <em>(Tr-Na)</em></span></label>
+                    <label class="menor"><input type="checkbox" data-cal-carril="cielo"> <span>Ingresos de signo, retrógrados y fases de la Luna</span></label>
+                </fieldset>
+                <fieldset>
+                    <legend>Qué puntos transitan</legend>
+                    <div id="cal-puntos" class="cal-casillas"></div>
+                </fieldset>
+                <p class="nota">Qué aspectos se miran y quién los recibe salen de
+                    <button type="button" data-accion="abrir-ajustes" data-seccion="ajustes-orbes">Ajustes del cálculo</button>.</p>
+            </details>
+            <div id="cal-grilla" hidden></div>
+            <div id="cal-agenda" hidden></div>
+            <div id="cal-lista" hidden></div>
+            <div class="cal-acciones">
+                <button type="button" class="boton" data-cal-accion="imprimir">Imprimir</button>
+            </div>
         </section>
         <section id="efemerides" class="efemerides" aria-labelledby="titulo-efemerides" hidden>
             <button type="button" class="ef-salir" data-ef-accion="salir" aria-label="Salir de pantalla completa">×</button>

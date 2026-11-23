@@ -24,11 +24,13 @@ import { SISTEMAS_CASAS, PUNTOS, ANGULOS } from '../engine/config.js';
 import { almacenLocal, igualQue } from './miscartas.js';
 import { imagenCarta, imagenEfemerides, entregarImagen, compartirImagen, ENLACE_COMPARTIR } from './descarga.js';
 import { listaCalendario, jdDeFecha, fechaDeJd, fechaCorta, fechaParaVer } from './calendario.js';
+import { grillaMes, agendaDias, tituloMes, bloqueDeUnDia } from './calendarioMes.js';
 import { dibujarEfemerides, geometria } from './efemerides.js';
 import { normalizarFecha, completarFecha, completarHora } from './fecha.js';
 import { dibujarAnexo } from './anexo.js';
 import { calcularAspectos } from '../engine/aspects.js';
 import { TRANSITAN_EFEMERIDES } from '../engine/efemerides.js';
+import { PUNTOS_CIELO } from '../engine/eventos.js';
 import { conectarCuenta, sesionIniciada, conCuenta, abrirEntrar, esAdmin,
     estadoDeNovedades, avisarmeDeLaCuenta } from './panelCuenta.js';
 import { montarSuscripcion, yaEstaEnLaLista } from './suscribirse.js';
@@ -60,6 +62,7 @@ const estado = {
     progresion: null,   // { fecha: 'AAAA-MM-DD' (a la que se progresa), resultado }
     lunacion: null,     // { referencia: { fecha, hora } }; el resultado va en estado.transitos
     lunacionProgresada: null, // { cual: 'prenatal' | 'actual', resultado }
+    lunacionSola: null, // { tipo: 'nueva' | 'llena' } de la vista Luna Nueva o Llena
     transito: null,     // { fecha: 'AAAA-MM-DD', hora: 'HH:MM' } en la hora del dispositivo
     transitos: null,    // resultado de engine/transits.js
     delMomento: null,   // { carta, lugar } la carta del cielo de un momento
@@ -224,9 +227,20 @@ const esDRT = (m) => m === 'draconica-transitos';
 // angulos), medida desde el Nodo de ese dia. Sola, sin la natal.
 const esTRD = (m) => m === 'transitos-draconicos';
 // astros-ahora: el cielo de este momento donde esta la persona, entero.
-const esAhora = (m) => m === 'astros-ahora';
-// Las dos vistas que son la carta de un momento, sin la natal.
+// lunacion-sola: esa misma carta, con el instante corrido al de la luna
+// nueva o llena mas cercana. Es la carta de la lunacion con sus casas y
+// sus angulos, que es lo que la vista "Carta Natal + Luna Nueva o Llena"
+// no muestra (ahi la lunacion va dibujada afuera de la natal). Entra por
+// esAhora a proposito: todo lo de "la carta de un momento" —el lugar, la
+// zona, la animacion, la imagen— es exactamente lo mismo.
+const esLNsola = (m) => m === 'lunacion-sola';
+const esAhora = (m) => m === 'astros-ahora' || esLNsola(m);
+// Las vistas que son la carta de un momento, sin la natal.
 const esMomento = (m) => esTRD(m) || esAhora(m);
+// Como se llama cada una, en la esquina de la rueda y en la ficha.
+const tituloMomento = () => (esLNsola(estado.modo)
+    ? (estado.lunacionSola?.tipo === 'llena' ? 'Luna llena' : 'Luna nueva')
+    : esAhora(estado.modo) ? 'Tránsitos actuales' : 'Tránsitos dracónicos');
 const esDR = (m) => m === 'draconica' || m === 'draconica-sola' || esDRT(m);
 const esRL = (m) => m === 'reubicacion';
 const esLN = (m) => m === 'lunacion';
@@ -243,7 +257,7 @@ const esCOM = (m) => m === 'compuesta';
 // Las dos vistas que necesitan a la otra persona.
 const esDeDos = (m) => esSIN(m) || esCOM(m);
 const esSola = (m) => m === 'revolucion-sola' || m === 'progresion-sola' || m === 'draconica-sola' || m === 'reubicacion' || esDRT(m) || esMomento(m) || esCOM(m) || esLNP(m);
-const MODOS = ['natal', 'revolucion-sola', 'revolucion', 'astros-ahora', 'transitos', 'lunacion', 'calendario', 'efemerides', 'progresion-sola',
+const MODOS = ['natal', 'revolucion-sola', 'revolucion', 'astros-ahora', 'transitos', 'lunacion-sola', 'lunacion', 'calendario', 'efemerides', 'progresion-sola',
     'progresion', 'lunacion-progresada-prenatal', 'lunacion-progresada', 'reubicacion', 'draconica-sola', 'draconica',
     'transitos-draconicos', 'draconica-transitos', 'sinastria', 'compuesta'];
 // Los transitos que se dibujan afuera de la natal: en la vista de transitos
@@ -266,8 +280,9 @@ function tipoElegido() {
         : esPR(tipo) ? 'Progresar al'
             : esLN(tipo) ? 'Lunación más cercana a'
                 : esTRD(tipo) ? 'Carta del día'
-                    : esAhora(tipo) ? 'Momento' : 'Fecha del tránsito';
-    $('#hora-transito').hidden = !(tipo === 'transitos' || esDRT(tipo) || esMomento(tipo));
+                    : esLNsola(tipo) ? 'Lunación más cercana a'
+                        : esAhora(tipo) ? 'Momento' : 'Fecha del tránsito';
+    $('#hora-transito').hidden = !(tipo === 'transitos' || esDRT(tipo) || (esMomento(tipo) && !esLNsola(tipo)));
     try { localStorage.setItem('tucarta:tipo', tipo); } catch {}
     return tipo;
 }
@@ -292,7 +307,7 @@ function modoDelFormulario() {
     if (esPR(estado.modo)) estado.progresion = { fecha: transitoDelFormulario().fecha, hora: HORA_PR_POR_DEFECTO };
     if (esRL(estado.modo)) estado.reubicacion = { lugar: lugarRS };
     if (esLN(estado.modo)) estado.lunacion = { referencia: transitoDelFormulario() };
-    if (esLNP(estado.modo)) estado.lunacionProgresada = { cual: esLNPpre(estado.modo) ? 'prenatal' : 'actual' };
+    if (esLNP(estado.modo)) estado.lunacionProgresada = { cual: esLNPpre(estado.modo) ? 'prenatal' : 'actual', salto: 0 };
 }
 
 form.addEventListener('submit', async (e) => {
@@ -342,6 +357,7 @@ async function calcular({ nueva = false } = {}) {
     }
     if (esDR(estado.modo)) await calcularDraconica();
     if (estado.modo === 'transitos' || esDRT(estado.modo)) await calcularTransitos();
+    if (esLNsola(estado.modo)) await ajustarALunacion();
     if (esMomento(estado.modo)) await calcularCartaDelMomento();
     if (estado.modo === 'calendario') await calcularCalendario();
     if (estado.modo === 'efemerides') await calcularEfemerides();
@@ -430,6 +446,20 @@ function pintar({ liviano = false } = {}) {
     pintarInterpretaciones();
 }
 
+// Que aspectos esta dibujando la rueda doble. Mirandola no se distingue
+// (las lineas salen iguales) y hasta ahora la unica manera de saberlo era
+// abrir los ajustes y acordarse de lo que decia el selector. Va debajo de
+// los datos de la esquina derecha, con el camino a donde se cambia.
+function leyendaAspectosTransito() {
+    if (!transitosDeLaVista()) return '';
+    const deLaNatal = estado.ajustes.graficaTransitos === 'natal';
+    return '<span class="leyenda-aspectos">'
+        + (deLaNatal ? 'Los aspectos graficados son los de la carta natal. '
+            : 'Los aspectos graficados son los de los tránsitos a la carta natal. ')
+        + '<button type="button" data-accion="abrir-ajustes" data-seccion="ajustes-orbes">Cambialo acá</button>'
+        + '</span>';
+}
+
 // Datos en las esquinas de la rueda, como en Solar Fire: nacimiento a la
 // izquierda; huso, coordenadas y casas a la derecha, con el acceso al
 // panel del huso (y el aviso, si hay que revisarlo).
@@ -463,7 +493,7 @@ function pintarEsquinas(sistema) {
 
     // Los ajustes y la pantalla completa, al pie de la esquina derecha:
     // debajo del huso, las coordenadas y las casas.
-    const acciones = '<span class="acciones-esquina">'
+    const acciones = leyendaAspectosTransito() + '<span class="acciones-esquina">'
         + `<button type="button" data-accion="abrir-ajustes" aria-label="Ajustes del cálculo" title="Ajustes del cálculo">${PERILLAS(17)}</button>`
         + (instalable() ? `<button type="button" data-instalar="abrir" data-desde="esquina" aria-label="Instalar la calculadora" title="Instalar la calculadora">${INSTALAR(17)}</button>` : '')
         + `<button type="button" data-completa="entrar" aria-label="Ver en pantalla completa" title="Pantalla completa">${COMPLETA(17)}</button>`
@@ -528,7 +558,7 @@ function pintarEsquinas(sistema) {
     if (esMomento(estado.modo) && otra && estado.delMomento) {
         const mm = momentoDelMomento();
         const ahora = esAhora(estado.modo);
-        poner([renglon(ahora ? 'Los astros ahora' : 'Tránsitos dracónicos', 'titulo-esquina'),
+        poner([renglon(tituloMomento(), 'titulo-esquina'),
             renglon(mm.fecha, 'principal'), renglon(`${mm.hora} h (${utcTexto(mm.huso)})`, 'principal'),
             ...renglonesLugar(mm.lugar).map((x) => renglon(x))],
         [renglon(ahora ? '' : 'Carta del día', 'leyenda'),
@@ -629,7 +659,7 @@ function pintarFichasImpresion(sistema) {
     } else if (esMomento(estado.modo) && sola && estado.delMomento) {
         const mm = momentoDelMomento();
         const ahora = esAhora(estado.modo);
-        izq = [linea(d.nombre, 'nombre'), linea(ahora ? 'Los astros ahora' : 'Tránsitos dracónicos'),
+        izq = [linea(d.nombre, 'nombre'), linea(tituloMomento()),
             ...(ahora ? [] : [linea(textoNodoDe(sola))]),
             linea(mm.fecha), linea(`${mm.hora} ${utcTexto(mm.huso)}`),
             ...lugar(mm.lugar).map((t) => linea(t)), linea(coords(mm.lugar))];
@@ -866,7 +896,8 @@ document.addEventListener('click', (e) => {
 // lado, tambien antes de calcular. Por eso el enganche va en el documento
 // y no en la rueda, que es donde esta el otro acceso.
 document.addEventListener('click', (e) => {
-    if (e.target.closest('[data-accion="abrir-ajustes"]')) abrirAjustes();
+    const aAjustes = e.target.closest('[data-accion="abrir-ajustes"]');
+    if (aAjustes) abrirAjustes(aAjustes.dataset.seccion || null);
 });
 
 // La roldanita de los avisos, que esta en dos lugares: adentro del panel
@@ -1019,6 +1050,7 @@ function pintarControlesTransito() {
     pintarControlesRevolucion();
     pintarControlesProgresion();
     pintarControlesLunacion();
+    pintarControlesLnp();
     pintarControlesSinastria();
     pintarControlesAnimacion();
     if (!enTransitos || !estado.transito) return;
@@ -1085,8 +1117,10 @@ async function aplicarModo(modo) {
         evento('draconica_transitos_vista', {});
     }
     if (esMomento(modo)) {
+        if (esLNsola(modo)) await ajustarALunacion();
         await calcularCartaDelMomento();
-        evento(esAhora(modo) ? 'astros_ahora_vista' : 'transitos_draconicos_vista', {});
+        evento(esLNsola(modo) ? 'lunacion_sola_vista'
+            : esAhora(modo) ? 'astros_ahora_vista' : 'transitos_draconicos_vista', {});
     }
     if (esRS(modo)) {
         estado.revolucion ||= { anio: null, lugar: lugarRS };
@@ -1127,7 +1161,7 @@ async function aplicarModo(modo) {
         $('#cargando').hidden = false;
         await calcularCalendario();
         $('#cargando').hidden = true;
-        evento('calendario_visto', {});
+        evento('calendario_visto', { formato: cal.formato, carriles: carrilesTexto() });
     }
     if (modo === 'efemerides') {
         $('#cargando').hidden = false;
@@ -1211,6 +1245,29 @@ async function calcularCartaDelMomento() {
     } catch (err) {
         console.error(err);
         estado.delMomento = null;
+    }
+}
+
+// "Luna Nueva o Llena" es la carta de un momento con el instante corrido
+// a la lunacion mas cercana a la fecha elegida. Se corre una sola vez, al
+// entrar a la vista: despues la fecha, la animacion y los pasos mueven el
+// cielo como en cualquier otra carta de un momento, sin volver a saltar.
+async function ajustarALunacion() {
+    estado.transito ||= momentoLocal(new Date());
+    const t = fechaDeTransito(estado.transito);
+    const utc = {
+        anio: t.getUTCFullYear(), mes: t.getUTCMonth() + 1, dia: t.getUTCDate(),
+        hora: t.getUTCHours(), minuto: t.getUTCMinutes()
+    };
+    try {
+        const l = await calcularEnWorker({ tipo: 'lunacion-cercana', utc });
+        estado.lunacionSola = { tipo: l.tipo };
+        estado.transito = momentoLocal(fechaDeJd(l.jd));
+    } catch (err) {
+        // Sin lunacion queda la fecha que estaba: es la carta del cielo de
+        // ese momento, que es menos de lo pedido pero no es nada roto.
+        console.error(err);
+        estado.lunacionSola = null;
     }
 }
 
@@ -1768,11 +1825,17 @@ const tituloLunacionProg = (m = estado.modo) =>
 const momentoLunacionProgLocal = () => momentoLocal(fechaDeJd(laLunacionProg().jdObjetivo));
 
 async function calcularLunacionProgresada() {
-    estado.lunacionProgresada ||= { cual: esLNPpre(estado.modo) ? 'prenatal' : 'actual' };
+    // `cual` sale siempre del modo. Con `||=` se quedaba con el de la vista
+    // anterior: entrar por la pre-natal y pasar a la actual seguia dando la
+    // pre-natal, que es lo que Seba vio el 23/11/2026. El salto, en cambio,
+    // es de la vista y se reinicia al cambiar de cual.
+    const cual = esLNPpre(estado.modo) ? 'prenatal' : 'actual';
+    if (estado.lunacionProgresada?.cual !== cual) estado.lunacionProgresada = { cual, salto: 0 };
     const ahora = new Date();
     try {
         estado.lunacionProgresada.resultado = await calcularEnWorker({
             tipo: 'lunacion-progresada', natal: estado.carta, cual: estado.lunacionProgresada.cual,
+            salto: estado.lunacionProgresada.salto || 0,
             utc: {
                 anio: ahora.getUTCFullYear(), mes: ahora.getUTCMonth() + 1, dia: ahora.getUTCDate(),
                 hora: ahora.getUTCHours(), minuto: ahora.getUTCMinutes()
@@ -1784,6 +1847,34 @@ async function calcularLunacionProgresada() {
         estado.lunacionProgresada.resultado = null;
     }
 }
+
+// La barra de ciclos, como la de la revolucion solar. Solo en la vista
+// "actual": la pre-natal es la que abre el ciclo vigente al nacer, una
+// sola, y recorrerla desde ahi no significa nada.
+function pintarControlesLnp() {
+    const l = laLunacionProg();
+    const hay = Boolean(l) && !esLNPpre(estado.modo);
+    $('#controles-lnp').hidden = !hay;
+    if (!hay) return;
+    const [cuando, edad] = textoLunacionProg();
+    const salto = estado.lunacionProgresada.salto || 0;
+    $('#nota-lnp').textContent = salto === 0
+        ? `La \u00faltima luna nueva progresada cumplida: ${cuando}, ${edad}.`
+        : `Luna nueva progresada del ${cuando}, ${edad}.`;
+    $('[data-lnp="0"]').hidden = salto === 0;
+}
+
+$('#controles-lnp').addEventListener('click', async (e) => {
+    const paso = e.target.closest('[data-lnp]')?.dataset.lnp;
+    if (paso == null) return;
+    estado.lunacionProgresada.salto = Number(paso) === 0
+        ? 0 : (estado.lunacionProgresada.salto || 0) + Number(paso);
+    estado.seleccion = null;
+    $('#cargando').hidden = false;
+    await calcularLunacionProgresada();
+    $('#cargando').hidden = true;
+    pintar();
+});
 
 // ['12/03/1971', '13,2 anios antes de nacer'] o ['...', 'a los 16,4 anios']
 function textoLunacionProg() {
@@ -2140,6 +2231,10 @@ function pintarControlesLunacion() {
     const offset = -fechaDeJd(l.jd).getTimezoneOffset() * 60;
     $('#nota-ln').textContent = `${tituloLunacion()} del ${ln.fecha.split('-').reverse().join('/')} a las ${ln.hora} `
         + `(hora de tu dispositivo, ${utcTexto(offset)}).`;
+    // La rueda de esta vista es la natal con el Sol y la Luna afuera: es la
+    // lunacion *sobre* la carta. La carta de la lunacion misma, con sus
+    // casas y sus angulos, es la del cielo de ese instante.
+    $('#ver-carta-ln').textContent = `Ver la carta de la ${tituloLunacion()}`;
 }
 
 // La linea de abajo de la rueda: en que casa cae y donde leer que
@@ -2170,6 +2265,28 @@ function pintarAvisoLunacion() {
 $('#controles-ln').addEventListener('click', async (e) => {
     const paso = e.target.closest('[data-ln]')?.dataset.ln;
     if (!paso) return;
+    if (paso === 'carta') {
+        // La vista "Luna Nueva o Llena": el cielo entero de ese instante,
+        // con sus casas y sus angulos. El instante ya lo tenemos, asi que
+        // no hace falta volver a buscar la lunacion mas cercana.
+        //
+        // Se lee ANTES de cambiar el modo: laLunacion() sale de
+        // estado.transitos solo mientras la vista es la de lunacion, y
+        // despues del cambio devuelve null.
+        const cuando = momentoLocal(fechaDeJd(laLunacion().jd));
+        estado.lunacionSola = { tipo: laLunacion().tipo };
+        estado.modo = 'lunacion-sola';
+        form.elements.tipo.value = estado.modo;
+        tipoElegido();
+        estado.transito = cuando;
+        estado.seleccion = null;
+        $('#cargando').hidden = false;
+        await calcularCartaDelMomento();
+        $('#cargando').hidden = true;
+        pintar();
+        $('.modo-carta').scrollIntoView({ block: 'start', behavior: 'smooth' });
+        return;
+    }
     estado.lunacion = paso === 'hoy'
         ? { referencia: momentoLocal(new Date()) }
         : { referencia: momentoLocal(fechaDeJd(laLunacion().jd + Number(paso) * MEDIO_MES)) };
@@ -2179,58 +2296,195 @@ $('#controles-ln').addEventListener('click', async (e) => {
 });
 
 // ---------- Calendario de transitos ----------
+//
+// Tres formatos de lo mismo, y conviene no confundirlos:
+//
+//   mes / agenda  los instantes **exactos** del periodo, como el
+//                 calendario de Solar Fire (engine/eventos.js).
+//   periodos      la ventana de cada transito lento sobre la carta:
+//                 cuando entra en orbe, cuando es exacto y cuando sale
+//                 (engine/calendar.js). Es lo que esta vista era antes.
+//
+// Los dos primeros tienen carriles: los aspectos entre dos planetas en
+// transito (Tr-Tr), los del transito a la carta abierta (Tr-Na), o los
+// dos. Lo que no depende de ninguna carta (ingresos, retrogradaciones y
+// fases de la Luna) es un carril aparte.
 
-// Periodo de 6 meses desde la fecha elegida (00:00 del dispositivo).
-const MESES_CALENDARIO = 6;
+const MESES_CALENDARIO = 6;   // el periodo de la vista de Periodos
+const CAL_POR_DEFECTO = {
+    formato: 'mes',
+    carriles: { entrePlanetas: true, aLaCarta: true, cielo: true },
+    puntos: PUNTOS_CIELO
+};
+let cal = { ...CAL_POR_DEFECTO };
+try { cal = { ...CAL_POR_DEFECTO, ...JSON.parse(localStorage.getItem('tucarta:calendario') || '{}') }; } catch {}
+const guardarCal = () => { try { localStorage.setItem('tucarta:calendario', JSON.stringify(cal)); } catch {} };
+
+// Los dos formatos nuevos van de a un mes; la vista de Periodos, de a seis.
+const porMes = () => cal.formato !== 'periodos';
+const carrilesTexto = () => Object.entries(cal.carriles).filter(([, v]) => v).map(([k]) => k).join('+');
+
+// En los formatos de mes el periodo es el mes entero, no seis meses desde
+// la fecha elegida: una grilla que empieza un 17 no es una grilla.
 function periodoCalendario() {
     estado.calendario ||= { desde: momentoLocal(new Date()).fecha };
     const [a, m, d] = estado.calendario.desde.split('-').map(Number);
-    return { desde: jdDeFecha(new Date(a, m - 1, d)), hasta: jdDeFecha(new Date(a, m - 1 + MESES_CALENDARIO, d)) };
+    if (!porMes()) {
+        return { desde: jdDeFecha(new Date(a, m - 1, d)), hasta: jdDeFecha(new Date(a, m - 1 + MESES_CALENDARIO, d)) };
+    }
+    return { desde: jdDeFecha(new Date(a, m - 1, 1)), hasta: jdDeFecha(new Date(a, m, 1)), anio: a, mes: m - 1 };
 }
 
 async function calcularCalendario() {
     const { desde, hasta } = periodoCalendario();
     try {
-        estado.calendario.lista = await calcularEnWorker({
-            tipo: 'calendario', natal: estado.carta, desde, hasta, ajustes: estado.ajustes
-        });
+        if (porMes()) {
+            estado.calendario.eventos = await calcularEnWorker({
+                tipo: 'eventos', natal: estado.carta, desde, hasta,
+                carriles: cal.carriles, puntos: cal.puntos, ajustes: estado.ajustes
+            });
+        } else {
+            estado.calendario.lista = await calcularEnWorker({
+                tipo: 'calendario', natal: estado.carta, desde, hasta, ajustes: estado.ajustes
+            });
+        }
     } catch (err) {
         console.error(err);
-        estado.calendario.lista = null;
+        if (porMes()) estado.calendario.eventos = null;
+        else estado.calendario.lista = null;
     }
 }
 
-function pintarCalendario() {
-    const visible = estado.modo === 'calendario' && estado.calendario?.lista;
-    $('#calendario').hidden = !visible;
-    // En el calendario va directo la lista: la rueda aparece al tocar un transito.
-    for (const sel of ['.figura-rueda', '.barra-carta', '#huso']) $(sel).hidden = sinRueda(estado.modo);
-    if (!visible) return;
-    const { desde, hasta } = periodoCalendario();
-    $('#cal-periodo').textContent = `Del ${fechaCorta(desde)} al ${fechaCorta(hasta)}`;
-    $('#cal-lista').innerHTML = listaCalendario(estado.calendario.lista, desde, hasta);
+const EXACTOS_CAL = 'El instante exacto de cada aspecto, cada ingreso de signo, cada retrogradación '
+    + 'y cada fase de la Luna, en la hora de tu dispositivo. Tocá un evento para verlo en la rueda.';
+const BAJADA_CAL = {
+    mes: EXACTOS_CAL,
+    agenda: EXACTOS_CAL,
+    periodos: 'Júpiter, Saturno, Urano, Neptuno, Plutón, Quirón y el Nodo sobre la carta: '
+        + 'cuándo entra en orbe cada tránsito, cuándo es exacto y cuándo sale.'
+};
+
+// Las casillas de que puntos transitan. La Luna sola hace la mitad de los
+// renglones, asi que es la que mas se apaga: por eso lleva su aclaracion.
+function casillasPuntosCal() {
+    return PUNTOS.map((p) => `<label class="menor"><input type="checkbox" data-cal-punto="${p.id}"`
+        + `${cal.puntos.includes(p.id) ? ' checked' : ''}> <span>${escapar(NOMBRE_PUNTO[p.id])}`
+        + `${p.id === 'luna' ? ' <em>(la mitad de los renglones)</em>' : ''}</span></label>`).join('');
 }
 
+function pintarCalendario() {
+    const enCalendario = estado.modo === 'calendario';
+    $('#calendario').hidden = !enCalendario;
+    // La hoja impresa del calendario es A4 apaisada, como la de efemerides.
+    document.body.classList.toggle('vista-calendario', enCalendario);
+    for (const sel of ['.figura-rueda', '.barra-carta', '#huso']) $(sel).hidden = sinRueda(estado.modo);
+    if (!enCalendario) return;
+
+    for (const b of document.querySelectorAll('[data-cal-formato]')) {
+        b.setAttribute('aria-pressed', String(b.dataset.calFormato === cal.formato));
+    }
+    for (const c of document.querySelectorAll('[data-cal-carril]')) c.checked = Boolean(cal.carriles[c.dataset.calCarril]);
+    $('#cal-ajustes').hidden = !porMes();
+    if (porMes() && !$('#cal-puntos').children.length) $('#cal-puntos').innerHTML = casillasPuntosCal();
+    $('#cal-bajada').textContent = BAJADA_CAL[cal.formato];
+
+    const { desde, hasta, anio, mes } = periodoCalendario();
+    $('#cal-periodo').textContent = porMes() ? tituloMes(anio, mes) : `Del ${fechaCorta(desde)} al ${fechaCorta(hasta)}`;
+    $('#cal-antes').setAttribute('aria-label', porMes() ? 'Mes anterior' : '6 meses antes');
+    $('#cal-despues').setAttribute('aria-label', porMes() ? 'Mes siguiente' : '6 meses después');
+
+    const eventos = estado.calendario?.eventos;
+    const lista = estado.calendario?.lista;
+    // Con los dos carriles de aspectos juntos hace falta decir cual es
+    // cual, con las mismas dos siglas que usa Solar Fire.
+    const conCarril = Boolean(cal.carriles.entrePlanetas && cal.carriles.aLaCarta);
+    $('#cal-grilla').hidden = cal.formato !== 'mes' || !eventos;
+    $('#cal-agenda').hidden = cal.formato !== 'agenda' || !eventos;
+    $('#cal-lista').hidden = porMes() || !lista;
+    if (cal.formato === 'mes' && eventos) $('#cal-grilla').innerHTML = grillaMes(eventos, { anio, mes, conCarril });
+    if (cal.formato === 'agenda' && eventos) $('#cal-agenda').innerHTML = agendaDias(eventos, { conCarril });
+    if (!porMes() && lista) $('#cal-lista').innerHTML = listaCalendario(lista, desde, hasta);
+}
+
+async function recalcularCalendario() {
+    $('#cargando').hidden = false;
+    await calcularCalendario();
+    $('#cargando').hidden = true;
+    pintar();
+}
+
+// A la rueda doble, en el instante exacto del evento.
+async function irAlTransito(jd, punto) {
+    estado.modo = 'transitos';
+    estado.seleccion = punto ? 't-' + punto : null;
+    estado.transito = momentoLocal(fechaDeJd(jd));
+    await calcularTransitos();
+    pintar();
+    $('.modo-carta').scrollIntoView({ block: 'start', behavior: 'smooth' });
+}
+
+$('#calendario').addEventListener('change', async (e) => {
+    const carril = e.target.closest('[data-cal-carril]')?.dataset.calCarril;
+    const punto = e.target.closest('[data-cal-punto]')?.dataset.calPunto;
+    if (carril) cal.carriles = { ...cal.carriles, [carril]: e.target.checked };
+    else if (punto) {
+        // Se guardan en el orden de PUNTOS, no en el de los clics.
+        cal.puntos = PUNTOS.map((p) => p.id)
+            .filter((id) => (id === punto ? e.target.checked : cal.puntos.includes(id)));
+    } else return;
+    guardarCal();
+    await recalcularCalendario();
+});
+
+// El dia entero en una ventana. En la celda del mes no entran quince
+// renglones, asi que lo que pasa el tope se ve aca, completo y con lugar.
+function abrirDiaCalendario(clave) {
+    const eventos = estado.calendario?.eventos;
+    if (!eventos) return;
+    const conCarril = Boolean(cal.carriles.entrePlanetas && cal.carriles.aLaCarta);
+    const { titulo, html } = bloqueDeUnDia(eventos, clave, { conCarril });
+    $('#titulo-dia').textContent = titulo;
+    $('#cuerpo-dia').innerHTML = html;
+    if (!$('#ventana-dia').open) $('#ventana-dia').showModal();
+}
+
+$('#ventana-dia').addEventListener('click', async (e) => {
+    if (e.target.closest('[data-dia="cerrar"]')) return $('#ventana-dia').close();
+    const ev = e.target.closest('[data-ev]')?.dataset.ev;
+    if (ev == null) return;
+    const x = estado.calendario.eventos[Number(ev)];
+    $('#ventana-dia').close();
+    irAlTransito(x.jd, x.a || x.punto || 'luna');
+});
+
 $('#calendario').addEventListener('click', async (e) => {
+    const dia = e.target.closest('[data-cal-dia]')?.dataset.calDia;
+    if (dia) return abrirDiaCalendario(dia);
+    const formato = e.target.closest('[data-cal-formato]')?.dataset.calFormato;
     const paso = e.target.closest('[data-cal]')?.dataset.cal;
+    const accion = e.target.closest('[data-cal-accion]')?.dataset.calAccion;
+    const ev = e.target.closest('[data-ev]')?.dataset.ev;
     const item = e.target.closest('[data-cal-item]')?.dataset.calItem;
-    if (paso) {
+    if (formato && formato !== cal.formato) {
+        cal.formato = formato;
+        guardarCal();
+        evento('calendario_visto', { formato, carriles: carrilesTexto() });
+        await recalcularCalendario();
+    } else if (accion === 'imprimir') {
+        evento('carta_impresa', { tipo: 'calendario' });
+        window.print();
+    } else if (paso) {
         const [a, m, d] = estado.calendario.desde.split('-').map(Number);
-        estado.calendario = { desde: momentoLocal(new Date(a, m - 1 + Number(paso), d)).fecha };
-        $('#cargando').hidden = false;
-        await calcularCalendario();
-        $('#cargando').hidden = true;
-        pintar();
+        const salto = Number(paso) * (porMes() ? 1 : MESES_CALENDARIO);
+        estado.calendario = { desde: momentoLocal(new Date(a, m - 1 + salto, d)).fecha };
+        await recalcularCalendario();
+    } else if (ev != null) {
+        const x = estado.calendario.eventos[Number(ev)];
+        irAlTransito(x.jd, x.a || x.punto || 'luna');
     } else if (item != null) {
-        // A la rueda doble, en la fecha exacta del transito.
         const t = estado.calendario.lista[Number(item)];
         const { desde, hasta } = periodoCalendario();
-        estado.modo = 'transitos';
-        estado.seleccion = 't-' + t.a;
-        estado.transito = momentoLocal(fechaDeJd(fechaParaVer(t, desde, hasta)));
-        await calcularTransitos();
-        pintar();
-        $('.modo-carta').scrollIntoView({ block: 'start', behavior: 'smooth' });
+        irAlTransito(fechaParaVer(t, desde, hasta), t.a);
     }
 });
 
@@ -2550,9 +2804,17 @@ $('#huso-contenido').addEventListener('change', (e) => {
 const ventanaAjustes = $('#ventana-ajustes');
 const ajustesAbiertos = () => ventanaAjustes.open;
 
-function abrirAjustes() {
+// Con `seccion` (el id de un <details> del panel) abre ese desplegable y
+// los que lo contienen: los de aspectos estan anidados, y abrir solo el de
+// adentro no muestra nada.
+function abrirAjustes(seccion = null) {
     $('#form-ajustes').innerHTML = panelAjustes(estado.ajustes);
     if (!ventanaAjustes.open) ventanaAjustes.showModal();
+    if (!seccion) return;
+    const d = $('#form-ajustes').querySelector('#' + seccion);
+    if (!d) return;
+    for (let x = d; x; x = x.parentElement?.closest('details')) x.open = true;
+    d.scrollIntoView({ block: 'start', behavior: 'smooth' });
 }
 ventanaAjustes.addEventListener('click', (e) => {
     if (e.target.closest('[data-ajustes="cerrar"]')) ventanaAjustes.close();
@@ -3250,6 +3512,7 @@ async function descargarImagen(modo = 'descargar') {
             anexo: caja.querySelector('svg.anexo'),
             titulo: lnp ? `${tituloLunacionProg()}: ${textoLunacionProg()[0]}`
                 : ln ? `${tituloLunacion()} del ${fechaT} en la casa ${laLunacion().casa}`
+                : esLNsola(estado.modo) ? `${tituloMomento()} del ${fechaT}`
                 : esAhora(estado.modo) && sola ? `Los astros el ${fechaT}`
                 : trd ? `Tránsitos dracónicos del ${fechaT}`
                 : drt ? `Dracónica + tránsitos dracónicos del ${fechaT}`
@@ -3275,6 +3538,8 @@ async function descargarImagen(modo = 'descargar') {
             ? `progresiones-${slug(d.nombre || 'natal') || 'natal'}-${estado.progresion.fecha}.png`
             : rl
             ? `relocalizada-${slug(d.nombre || 'natal') || 'natal'}-${slug(momentoReubicacionLocal().lugar.nombre || 'lugar') || 'lugar'}.png`
+            : esLNsola(estado.modo)
+            ? `luna-${estado.lunacionSola?.tipo === 'llena' ? 'llena' : 'nueva'}-${estado.transito.fecha}.png`
             : esAhora(estado.modo) && sola
             ? `los-astros-${estado.transito.fecha}.png`
             : trd

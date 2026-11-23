@@ -85,6 +85,15 @@ export function lunacionMasCercana(swe, { jd }) {
     return cerca.reduce((mejor, l) => (!mejor || Math.abs(l.jd - jd) < Math.abs(mejor.jd - jd) ? l : mejor), null);
 }
 
+// La lunacion mas cercana a un momento, para quien la pide desde la
+// interfaz: igual que lunacionMasCercana, pero recibiendo el momento como
+// lo manda el worker (UTC) en vez de un dia juliano.
+export function lunacionCercanaA(swe, { utc }) {
+    const l = lunacionMasCercana(swe, { jd: diaJuliano(swe, utc) });
+    if (!l) throw new Error('No se encontró la lunación');
+    return l;
+}
+
 // La vista de la calculadora: la rueda doble en el instante de la lunacion
 // mas cercana al momento de referencia, mas en que casa natal cae.
 export function calcularLunacion(swe, { utc, natal, ajustes = AJUSTES_POR_DEFECTO }) {
@@ -93,4 +102,60 @@ export function calcularLunacion(swe, { utc, natal, ajustes = AJUSTES_POR_DEFECT
     const transitos = calcularTransitos(swe, { utc: lunacion.utc, natal, ajustes, planetas: PUNTOS_LUNACION });
     const casa = casaDe(lunacion.lon, natal.cusps.map((c) => c.lon));
     return { ...transitos, lunacion: { ...lunacion, casa } };
+}
+
+// ---------- Las cuatro fases ----------
+//
+// `lunacionesEntre` solo da la nueva y la llena: su `centrar` descarta a
+// proposito "el salto de los cuartos", que es justo lo que el calendario
+// del cielo necesita. Esto recorre la elongacion cruda, que crece siempre
+// unos 12,19° por dia, asi que entre dos muestras diarias se cruza como
+// mucho un multiplo de 90 y alcanza con mirar en que cuarto cae cada una.
+//
+// `lunacionesEntre`, `lunacionMasCercana` y `calcularLunacion` quedan como
+// estaban: las usa la vista de lunacion y la luna nueva progresada, y
+// estan validadas.
+
+export const FASES = [
+    { blanco: 0,   id: 'nueva',     nombre: 'Luna nueva' },
+    { blanco: 90,  id: 'creciente', nombre: 'Cuarto creciente' },
+    { blanco: 180, id: 'llena',     nombre: 'Luna llena' },
+    { blanco: 270, id: 'menguante', nombre: 'Cuarto menguante' }
+];
+
+// Diferencia mas corta, en (-180, 180].
+const dif180 = (x) => ((((x % 360) + 540) % 360) - 180);
+
+// Instante exacto del cruce de `blanco`: biseccion al minuto y despues
+// Newton con las velocidades de la efemeride, igual que `afinar`.
+function afinarFase(swe, a, b, blanco) {
+    const f = (jd) => dif180(elongacion(swe, jd) - blanco);
+    let jd = biseccion(f, a, b);
+    for (let i = 0; i < 4; i++) {
+        const l = swe.calc(jd, LUNA, flagsDe(LUNA));
+        const s = swe.calc(jd, SOL, flagsDe(SOL));
+        const paso = -dif180(norm(l.lon - s.lon) - blanco) / (l.velLon - s.velLon);
+        jd += paso;
+        if (Math.abs(paso) < 1e-8) break; // ~0,001 segundos
+    }
+    return jd;
+}
+
+// Las cuatro fases del periodo, en orden. desde/hasta: dias julianos UT.
+export function fasesEntre(swe, { desde, hasta }) {
+    const inicio = Math.floor(desde);
+    const dias = Math.max(1, Math.ceil(hasta) - inicio);
+    const es = Array.from({ length: dias + 1 }, (_, k) => elongacion(swe, inicio + k));
+    const res = [];
+    for (let k = 1; k <= dias; k++) {
+        const q0 = Math.floor(es[k - 1] / 90);
+        const q1 = Math.floor(es[k] / 90);
+        if (q0 === q1) continue;
+        const fase = FASES[q1];                       // el cuarto al que entra
+        const jd = afinarFase(swe, inicio + k - 1, inicio + k, fase.blanco);
+        if (jd < desde || jd > hasta) continue;
+        const lon = swe.calc(jd, LUNA, flagsDe(LUNA)).lon;
+        res.push({ jd, utc: utcDeJd(jd), fase: fase.id, lon, ...enSigno(lon) });
+    }
+    return res;
 }

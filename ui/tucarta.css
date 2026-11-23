@@ -673,6 +673,22 @@ body.sin-scroll { overflow: hidden; }
 /* Nombre de la carta, arriba de todo en la esquina izquierda. */
 .esquina .nombre-esquina { color: var(--texto); font-size: 1.15em; white-space: normal; margin-bottom: 2px; }
 
+/* Que aspectos dibuja la rueda doble, debajo de los datos de la derecha.
+   Se permite envolver (es una frase, no un dato) y el enlace queda en
+   turquesa para que se vea que lleva a algun lado. */
+.esquina .leyenda-aspectos {
+    margin-top: 8px;
+    max-width: 22ch;
+    white-space: normal;
+    line-height: 1.3;
+    text-wrap: balance;
+}
+.esquina .leyenda-aspectos button { color: var(--turquesa); padding: 0; }
+.esquina .leyenda-aspectos button:hover { color: var(--texto); }
+/* En pantalla completa la rueda manda: la frase estorba al lado del dibujo. */
+.figura-rueda:fullscreen .leyenda-aspectos,
+.figura-rueda.completa .leyenda-aspectos { display: none; }
+
 /* Los ajustes y la pantalla completa, al pie de la esquina derecha. */
 .acciones-esquina { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
 .acciones-esquina button {
@@ -1253,6 +1269,189 @@ body.sin-scroll { overflow: hidden; }
 .cal-titulo .en-transito .icono { color: var(--transito); }
 .cal-pasadas { color: var(--texto-suave); font-size: 0.85rem; }
 .cal-fechas { font-size: 0.82rem; color: var(--texto-suave); }
+
+/* "Ver la carta de la Luna Nueva", debajo de la nota de la lunacion. */
+.ver-carta-ln {
+    font: inherit;
+    font-size: 0.85rem;
+    background: none;
+    border: none;
+    padding: 2px 0;
+    margin-top: 2px;
+    color: var(--turquesa);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    align-self: flex-start;
+}
+.ver-carta-ln:hover { color: var(--texto); }
+
+/* ---------- Calendario del cielo: la grilla del mes y la agenda ---------- */
+/* Los instantes exactos, como el calendario de Solar Fire. Lo de arriba
+   (.cal-lista, .cal-item) es la vista de Periodos, que sigue igual. */
+
+.cal-formatos { display: flex; gap: 6px; margin: 10px 0 0; flex-wrap: wrap; }
+.cal-formatos button {
+    font: inherit;
+    font-size: 0.82rem;
+    background: none;
+    border: 1px solid var(--linea);
+    color: var(--texto-suave);
+    padding: 7px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+}
+.cal-formatos button[aria-pressed="true"] {
+    color: var(--texto);
+    border-color: var(--turquesa);
+    background: color-mix(in srgb, var(--turquesa) 14%, transparent);
+}
+
+.cal-ajustes { margin: 6px 0 14px; font-size: 0.85rem; }
+.cal-ajustes[hidden] { display: none; }
+.cal-ajustes > summary { cursor: pointer; color: var(--texto-suave); padding: 6px 0; }
+.cal-ajustes fieldset { border: none; padding: 0; margin: 10px 0 0; }
+.cal-ajustes legend { color: var(--texto-suave); font-size: 0.78rem; letter-spacing: 1px; text-transform: uppercase; }
+.cal-ajustes label { display: flex; gap: 7px; align-items: baseline; padding: 4px 0; cursor: pointer; }
+.cal-ajustes em { color: var(--texto-suave); font-style: normal; font-size: 0.9em; }
+.cal-casillas { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0 14px; }
+
+.cal-acciones { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+
+/* Un renglon de evento: los glifos a la izquierda, la hora a la derecha.
+   Todo el renglon es el boton que lleva a la rueda en ese instante. */
+.cal-evs { list-style: none; margin: 0; padding: 0; }
+.cal-ev > button {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0 5px;
+    width: 100%;
+    font: inherit;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    text-align: left;
+    background: none;
+    border: none;
+    border-radius: 5px;
+    color: var(--texto);
+    padding: 1px 3px;
+    cursor: pointer;
+}
+.cal-ev > button:hover { background: color-mix(in srgb, var(--turquesa) 16%, transparent); }
+.cal-glifos { display: inline-flex; align-items: center; gap: 1px; flex: none; }
+.cal-glifos .icono { color: var(--texto); flex: none; }
+.cal-hora { margin-left: auto; color: var(--texto-suave); font-variant-numeric: tabular-nums; flex: none; }
+.cal-carril {
+    flex: none;
+    font-size: 0.68em;
+    letter-spacing: 0.5px;
+    color: var(--texto-suave);
+    width: 3.4em;
+}
+.cal-flecha { color: var(--texto-suave); margin: 0 1px; }
+.cal-sigla { color: var(--transito); font-size: 0.9em; letter-spacing: 0.5px; margin-left: 2px; }
+.cal-grado { color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+.cal-fase-texto { white-space: nowrap; }
+.cal-ev-fase > button { color: var(--amarillo); }
+.cal-ev-fase .icono, .cal-ev-fase .cal-grado { color: inherit; }
+/* El disco de la fase, como el de Solar Fire al pie de cada dia. */
+.cal-fase {
+    flex: none;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    margin-right: 2px;
+}
+.cal-fase-llena { background: currentColor; }
+.cal-fase-creciente { background: linear-gradient(to right, transparent 50%, currentColor 50%); }
+.cal-fase-menguante { background: linear-gradient(to right, currentColor 50%, transparent 50%); }
+
+/* La grilla del mes. Siete columnas iguales; la altura la fija el dia mas
+   cargado, y lo que no entra se pliega en el "+N". */
+.cal-grilla { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 4px; }
+.cal-grilla th {
+    font-weight: 400;
+    font-size: 0.72rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+    padding: 6px 0;
+    border-bottom: 1px solid var(--linea);
+}
+.cal-dia {
+    vertical-align: top;
+    border: 1px solid var(--linea);
+    padding: 4px 3px 6px;
+    min-height: 90px;
+}
+.cal-dia-vacio { border-color: transparent; }
+/* La celda mide unos 120px: con el glifo a 14 y la hora a 0.82rem el
+   renglon desbordaba y la hora caia encima del segundo planeta. */
+.cal-grilla .cal-ev > button { font-size: 0.72rem; gap: 0 3px; padding: 0 2px; }
+.cal-grilla .cal-ev .icono { width: 12px; height: 12px; }
+.cal-grilla .cal-carril { font-size: 0.62rem; width: 2.6em; letter-spacing: 0; }
+.cal-grilla .cal-fase { width: 8px; height: 8px; }
+.cal-num { display: block; font-size: 0.95rem; color: var(--texto); margin-bottom: 3px; }
+/* La fase de la Luna: una linea al pie de la celda, siempre en el mismo
+   lugar y vacia los dias que no tienen. Ahi puede envolver sin empujar
+   nada, que es lo que hacia mezclada entre los demas eventos. */
+.cal-linea-fase { margin-top: 4px; min-height: 1.1rem; }
+.cal-grilla .cal-linea-fase .cal-ev > button { align-items: flex-start; }
+.cal-mas {
+    margin-top: 3px;
+    font: inherit;
+    font-size: 0.72rem;
+    background: none;
+    border: none;
+    padding: 2px 3px;
+    color: var(--texto-suave);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+.cal-mas:hover { color: var(--texto); }
+/* Los renglones que no entran en la celda: estan, pero solo se ven donde
+   hay lugar (el celular) o donde no hay ventana que abrir (el papel). */
+.cal-ocultos { display: none; }
+
+/* La ventana del dia: los mismos renglones, con lugar de sobra. */
+.ventana-dia { width: min(420px, calc(100vw - 32px)); }
+.ventana-dia h2 { font-size: 1.1rem; margin-bottom: 10px; }
+.ventana-dia .cal-ev > button { font-size: 0.9rem; padding: 4px 3px; }
+.ventana-dia .cal-ev .icono { width: 17px; height: 17px; }
+
+/* La agenda: un bloque por dia. */
+.cal-dia-agenda { margin-top: 16px; }
+.cal-dia-agenda h3 {
+    font-size: 0.78rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 400;
+    color: var(--amarillo);
+    margin: 0 0 4px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--linea);
+}
+.cal-dia-agenda .cal-ev > button { font-size: 0.82rem; padding: 3px; }
+
+/* En el celular siete columnas no entran: la grilla se desarma en un dia
+   por renglon, que es la agenda. Sin JavaScript y sin recalcular nada. */
+@media (max-width: 760px) {
+    .cal-grilla, .cal-grilla tbody, .cal-grilla tr, .cal-grilla td { display: block; width: auto; }
+    .cal-grilla thead { display: none; }
+    .cal-grilla .cal-dia-vacio { display: none; }
+    .cal-grilla .cal-dia { border: none; border-bottom: 1px solid var(--linea); padding: 8px 0; }
+    .cal-grilla .cal-dia:not(:has(.cal-ev)) { display: none; }
+    .cal-grilla .cal-num { color: var(--amarillo); font-size: 0.85rem; letter-spacing: 1px; }
+    .cal-grilla .cal-ev > button { font-size: 0.82rem; padding: 3px; gap: 0 5px; }
+    .cal-grilla .cal-ev .icono { width: 15px; height: 15px; }
+    .cal-grilla .cal-carril { font-size: 0.68rem; width: 3.4em; }
+    .cal-grilla .cal-mas { display: none; }
+    .cal-grilla .cal-ocultos { display: block; }
+}
+
 
 /* ---------- Descargar y guardar ---------- */
 
@@ -1910,7 +2109,8 @@ body.sin-scroll { overflow: hidden; }
     html, body { background: #fff !important; }
     body > :not(main), main > :not(#resultado), #resultado > :not(.figura-rueda),
     .figura-rueda .esquina,
-    .figura-rueda .acciones-esquina, .figura-rueda .panel-completa, .figura-rueda .salir-completa,
+    .figura-rueda .acciones-esquina, .figura-rueda .leyenda-aspectos,
+    .figura-rueda .panel-completa, .figura-rueda .salir-completa,
     .figura-rueda #controles-animacion, #detalle-punto {
         display: none !important;
     }
@@ -1987,6 +2187,22 @@ body.sin-scroll { overflow: hidden; }
     .ef-svg { min-width: 0; width: 273mm; }
     .ef-svg .ef-fondo { fill: none; }
     .ef-svg .ef-cursor, .ef-svg .ef-lectura { display: none; }
+
+    /* Calendario del cielo: A4 apaisada, como lo imprime Solar Fire. Sin
+       controles y con el "+N" desplegado, que en papel no se puede abrir. */
+    body.vista-calendario, body.vista-calendario main, body.vista-calendario #resultado { page: apaisada; }
+    body.vista-calendario #resultado > .figura-rueda { display: none !important; }
+    body.vista-calendario #resultado > #calendario { display: block !important; page: apaisada; padding: 8mm 10mm 0; }
+    body.vista-calendario .cal-formatos, body.vista-calendario .cal-ajustes,
+    body.vista-calendario .cal-acciones, body.vista-calendario .cal-periodo button { display: none !important; }
+    body.vista-calendario #calendario h2 { font-size: 13pt; }
+    body.vista-calendario #cal-periodo { font-size: 12pt; }
+    body.vista-calendario .cal-mas { display: none; }
+    body.vista-calendario .cal-ocultos { display: block; }
+    body.vista-calendario .cal-dia { border-color: #d6d8de; }
+    body.vista-calendario .cal-ev > button { font-size: 6.5pt; color: #15151a; }
+    body.vista-calendario .cal-hora, body.vista-calendario .cal-carril,
+    body.vista-calendario .cal-grado, body.vista-calendario .cal-flecha { color: #5c5f6b; }
 }
 
 /* ---------- Sinastria: la otra persona ---------- */
