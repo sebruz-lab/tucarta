@@ -28,12 +28,12 @@ enlace es más grueso que el texto.
 
 ---
 
-# Sin publicar todavía (26/11/2026)
+# Lo que salió en v1.25.0 (2026-11-26)
 
-Cuatro pedidos de Seba del 26/11/2026, en tres tandas. Falta que los mire
-y que se etiqueten; cuando salgan, esta sección se parte en las tres.
+Cuatro pedidos de Seba del 26/11/2026, hechos y revisados con él en el
+mismo día. Se iban a publicar en tres tandas y al final salieron juntos.
 
-## Tanda 1: el Nodo Sur y las efemérides al ancho
+## El Nodo Sur y las efemérides al ancho
 
 **Los puntos extra se dibujan, pero no aspectan hasta que se los marque.**
 Los nueve opcionales nacían en `true` en `PUNTOS_ASPECTADOS_POR_DEFECTO`,
@@ -84,7 +84,7 @@ desliza de costado; en pantalla grande hay que apagar los dos. Con el
 `min-width` puesto, cualquier tope más chico que 1000 px mete el gráfico
 en una caja de scroll. Pasó el 26/11/2026, con esta misma regla.
 
-## Tanda 2: figuras de aspectos
+## Figuras de aspectos
 
 Dos caminos para lo mismo, y comparten toda la maquinaria.
 
@@ -158,7 +158,7 @@ Tres cosas que conviene no deshacer:
    consigo misma.** En una doble el centro tiene los cruzados, y resaltar
    una figura de la de adentro no encendería nada.
 
-## Tanda 3: superponer 3 cálculos
+## Superponer 3 cálculos
 
 La natal fija adentro, con sus casas y sus columnas, y dos anillos
 elegibles por fuera: **como la rueda de tres de astro.com**, con el glifo
