@@ -182,6 +182,25 @@ export function tablaPosicionesTransito(transitos, adentro = DE_ADENTRO) {
     </table>`;
 }
 
+// Un anillo de la rueda de tres. No lleva casas propias: esa rueda solo
+// dibuja las de la carta de adentro, asi que la casa que se muestra es
+// la natal, calculada aca y no la que el anillo trae (la progresada
+// tiene las suyas, los transitos ya vienen con la natal).
+export function tablaPosicionesAnillo(anillo, natal, prefijo) {
+    const cusps = natal.cusps.map((c) => c.lon);
+    const filas = [...anillo.puntos, ...(anillo.angulos || [])];
+    return `<table class="tabla">
+        <thead><tr><th>${escapar(anillo.nombre)}</th><th>Signo</th><th class="num">Posición</th><th class="num">Casa natal</th><th><span class="visualmente-oculto">Retrógrado</span></th></tr></thead>
+        <tbody>${filas.map((p) => `<tr data-punto="${prefijo}${p.id}">
+            <th scope="row">${G_PUNTOS[p.id] ? iconoSvg(G_PUNTOS[p.id], 18, NOMBRE_PUNTO[p.id]) : ''}<span>${NOMBRE_PUNTO[p.id]}</span></th>
+            <td>${iconoSigno(p.signo)}<span>${NOMBRE_SIGNO[p.signo]}</span></td>
+            <td class="num">${gradoMin(p)}</td>
+            <td class="num">${casaDe(p.lon, cusps)}</td>
+            <td class="retro">${p.retro ? marcaRetro : ''}</td>
+        </tr>`).join('')}</tbody>
+    </table>`;
+}
+
 // Aspectos de los planetas en transito a la carta de adentro.
 export function tablaAspectosTransito(transitos, adentro = DE_ADENTRO) {
     if (!transitos.aspectos.length) return '<p class="nota">No hay tránsitos con los orbes elegidos.</p>';

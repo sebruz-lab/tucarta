@@ -50,6 +50,8 @@
     --ac: #8a1c02;
     /* Planetas en transito: un solo color, que no usa ningun otro glifo. */
     --transito: #9fc490;
+    --anillo-a: #bfaee0;
+    --anillo-b: #f56d96;
 
     /* Planetas sobre fondo oscuro (paleta de Seba). */
     --p-sol: #fcf3d0;
@@ -986,6 +988,13 @@ body.sin-scroll { overflow: hidden; }
 [data-punto="lilith"], [data-punto="r-lilith"] { --p: var(--p-lilith); }
 /* Planetas en transito ("t-saturno"...): todos del mismo color. */
 [data-punto^="t-"] { --p: var(--transito); }
+/* Los dos anillos de la rueda de tres: cada uno de un color plano, como
+   el de transitos, para que se lea de un vistazo de que anillo es cada
+   glifo. El del medio en lila y el de afuera en rosa. */
+[data-punto^="a-"] { --p: var(--anillo-a); }
+[data-punto^="b-"] { --p: var(--anillo-b); }
+.rueda .punto.anillo-a.sel .toque { fill: rgba(191, 174, 224, 0.2); }
+.rueda .punto.anillo-b.sel .toque { fill: rgba(245, 109, 150, 0.2); }
 .rueda .punto[data-punto], .tabla tr[data-punto] th .icono { color: var(--p, var(--texto)); }
 
 /* ---------- Fondo claro (lo elige la persona) ---------- */
@@ -1019,6 +1028,8 @@ body.sin-scroll { overflow: hidden; }
     --p-nodo: #1a1a1a;
     --p-lilith: #1a1a1a;
     --transito: #4b7a3e;
+    --anillo-a: #6b50a0;
+    --anillo-b: #c22552;
 }
 .tema-claro input, .tema-claro select { color-scheme: light; }
 .tema-claro .sobretitulo { color: var(--fuego); }
@@ -1183,6 +1194,10 @@ body.sin-scroll { overflow: hidden; }
 /* El selector de vista y, pegado, el boton de animar. */
 .fila-vista { display: flex; align-items: flex-end; gap: 8px; margin: 8px 0 16px; }
 .fila-vista .modo-carta { flex: 1; min-width: 0; margin: 0; }
+/* Los dos anillos de la rueda de tres, uno al lado del otro. */
+.fila-anillos { margin-top: -8px; }
+.fila-anillos[hidden] { display: none; }
+.fila-anillos .campo { flex: 1; min-width: 0; margin: 0; }
 .boton-animar {
     font: inherit;
     font-size: 0.85rem;

@@ -291,28 +291,7 @@
 
     <form id="datos" class="datos" novalidate>
         <label class="campo"><span>¿Qué querés calcular?</span>
-            <select name="tipo">
-                <option value="natal">Carta Natal</option>
-                <option value="revolucion-sola">Revolución Solar</option>
-                <option value="revolucion">Carta Natal + Revolución Solar</option>
-                <option value="astros-ahora">Tránsitos actuales</option>
-<option value="transitos">Carta Natal + tránsitos</option>
-                <option value="lunacion-sola">Luna Nueva o Llena</option>
-                <option value="lunacion">Carta Natal + Luna Nueva o Llena</option>
-                <option value="calendario">Calendario de tránsitos</option>
-                <option value="efemerides">Efemérides gráficas</option>
-                <option value="progresion-sola">Progresiones secundarias</option>
-                <option value="progresion">Carta Natal + Progresiones</option>
-                <option value="lunacion-progresada-prenatal">Luna nueva progresada pre-natal</option>
-                <option value="lunacion-progresada">Luna nueva progresada actual</option>
-                <option value="reubicacion">Carta relocalizada</option>
-                <option value="draconica-sola">Carta dracónica</option>
-                <option value="draconica">Carta Natal + dracónica</option>
-                <option value="transitos-draconicos">Tránsitos dracónicos del día</option>
-<option value="draconica-transitos">Carta dracónica + tránsitos dracónicos</option>
-                <option value="sinastria">Sinastría: dos cartas</option>
-<option value="compuesta">Carta compuesta</option>
-            </select>
+            <select name="tipo"></select>
         </label>
         <label class="campo"><span>Nombre <span class="opcional">(opcional)</span></span>
             <input type="text" name="nombre" autocomplete="given-name" maxlength="60">
@@ -428,33 +407,23 @@
 
         <div class="fila-vista">
         <label class="campo modo-carta"><span class="visualmente-oculto">Qué querés ver</span>
-            <select id="selector-modo">
-                <option value="natal">Carta Natal</option>
-                <option value="revolucion-sola">Revolución Solar</option>
-                <option value="revolucion">Carta Natal + Revolución Solar</option>
-                <option value="astros-ahora">Tránsitos actuales</option>
-<option value="transitos">Carta Natal + tránsitos</option>
-                <option value="lunacion-sola">Luna Nueva o Llena</option>
-                <option value="lunacion">Carta Natal + Luna Nueva o Llena</option>
-                <option value="calendario">Calendario de tránsitos</option>
-                <option value="efemerides">Efemérides gráficas</option>
-                <option value="progresion-sola">Progresiones secundarias</option>
-                <option value="progresion">Carta Natal + Progresiones</option>
-                <option value="lunacion-progresada-prenatal">Luna nueva progresada pre-natal</option>
-                <option value="lunacion-progresada">Luna nueva progresada actual</option>
-                <option value="reubicacion">Carta relocalizada</option>
-                <option value="draconica-sola">Carta dracónica</option>
-                <option value="draconica">Carta Natal + dracónica</option>
-                <option value="transitos-draconicos">Tránsitos dracónicos del día</option>
-<option value="draconica-transitos">Carta dracónica + tránsitos dracónicos</option>
-                <option value="sinastria">Sinastría: dos cartas</option>
-<option value="compuesta">Carta compuesta</option>
-            </select>
+            <select id="selector-modo"></select>
         </label>
         <button type="button" class="boton-animar" id="animar" aria-expanded="false"
             aria-controls="controles-animacion" title="Animar la carta en el tiempo">
             <span class="tri" aria-hidden="true">&#9654;</span> Animar
         </button>
+        </div>
+
+        <!-- Superponer 3 calculos: la natal va fija adentro y estos dos
+             eligen que se dibuja en cada anillo de afuera. -->
+        <div class="fila-vista fila-anillos" id="fila-anillos" hidden>
+            <label class="campo"><span>Anillo del medio</span>
+                <select id="anillo-a"></select>
+            </label>
+            <label class="campo"><span>Anillo de afuera</span>
+                <select id="anillo-b"></select>
+            </label>
         </div>
 
         <form id="form-transito" class="controles-transito" novalidate hidden>
@@ -610,26 +579,7 @@
                     <ul class="lista-completa"></ul>
                 </div>
                 <label class="modos-completa"><span class="visualmente-oculto">Qué querés ver</span>
-                    <select class="selector-completa">
-                        <option value="natal">Carta Natal</option>
-                        <option value="revolucion-sola">Revolución Solar</option>
-                        <option value="revolucion">Carta Natal + Revolución Solar</option>
-                        <option value="astros-ahora">Tránsitos actuales</option>
-<option value="transitos">Carta Natal + tránsitos</option>
-                        <option value="lunacion-sola">Luna Nueva o Llena</option>
-                        <option value="lunacion">Carta Natal + Luna Nueva o Llena</option>
-                        <option value="progresion-sola">Progresiones secundarias</option>
-                        <option value="progresion">Carta Natal + Progresiones</option>
-                        <option value="lunacion-progresada-prenatal">Luna nueva progresada pre-natal</option>
-                        <option value="lunacion-progresada">Luna nueva progresada actual</option>
-                        <option value="reubicacion">Carta relocalizada</option>
-                        <option value="draconica-sola">Carta dracónica</option>
-                        <option value="draconica">Carta Natal + dracónica</option>
-                        <option value="transitos-draconicos">Tránsitos dracónicos del día</option>
-<option value="draconica-transitos">Carta dracónica + tránsitos dracónicos</option>
-                        <option value="sinastria">Sinastría: dos cartas</option>
-<option value="compuesta">Carta compuesta</option>
-                    </select>
+                    <select class="selector-completa"></select>
                 </label>
                 <button type="button" class="boton-animar animar-completa" data-completa="animar"
                     aria-pressed="false" title="Animar la carta en el tiempo" aria-label="Animar la carta en el tiempo">

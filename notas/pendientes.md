@@ -28,6 +28,105 @@ enlace es más grueso que el texto.
 
 ---
 
+# Sin publicar todavía (26/11/2026)
+
+Cuatro pedidos de Seba del 26/11/2026, en tres tandas. Falta que los mire
+y que se etiqueten; cuando salgan, esta sección se parte en las tres.
+
+## Tanda 1: el Nodo Sur y las efemérides al ancho
+
+**Los puntos extra se dibujan, pero no aspectan hasta que se los marque.**
+Los nueve opcionales nacían en `true` en `PUNTOS_ASPECTADOS_POR_DEFECTO`,
+así que prenderlos en "Puntos de la carta" los metía también en los
+aspectos, con su casilla de "Puntos aspectados" ya marcada sin que nadie
+la hubiera tocado. Con el Nodo Sur y la Tierra es peor que con los
+asteroides: son el punto opuesto de otro, así que duplican cada aspecto
+del Nodo Norte y del Sol, dados vuelta.
+
+No alcanzaba con cambiar la tabla de defectos: el panel ya los había
+guardado en `true` uno por uno (`ajustesDesde` escribe todo lo que ve en
+pantalla) y lo guardado le gana al defecto. Por eso hay una **migración de
+un solo paso**, `ESQUEMA_AJUSTES` / el campo `v` de los ajustes. Si alguna
+vez hay que volver a corregir un valor por omisión que ya está en el
+dispositivo de la gente, ese es el mecanismo.
+
+**Había una segunda fuga, aparte**: `progressions.js` era el único motor
+que ignoraba "Puntos aspectados" por completo (usaba la clave vieja
+`aspectosAngulos`). En esa vista un punto destildado seguía marcando
+aspectos y los ángulos entraban siempre. El filtro estaba copiado en diez
+lugares; ahora vive una sola vez, en `participantes()` de
+`engine/aspects.js`.
+
+**Las efemérides gráficas ocupan la pantalla entera.** El tope de 1180 px
+no está más. El límite pasa a ser el **alto**: con la relación 1200/700 del
+viewBox, una pantalla de 2500 px daría un gráfico de 1460 de alto y habría
+que scrollear para ver el año completo. Los controles y el detalle se
+quedan en la columna de 720: son texto.
+
+## Tanda 2: figuras de aspectos
+
+Dos caminos para lo mismo, y comparten toda la maquinaria.
+
+**A mano:** la selección de la rueda pasa de ser un punto a ser un grupo.
+Con ctrl (o cmd) al hacer clic se suma al grupo en vez de reemplazarlo; en
+el teléfono lo hace el botón **+** de debajo de la rueda y del panel de
+pantalla completa. La regla del resaltado cambia según cuántos haya: con
+uno se encienden todos sus aspectos, como siempre; con dos o más, **solo
+los que van de un elegido a otro**, que es exactamente mirar una figura.
+
+**Solas:** `engine/figuras.js` lee `carta.aspectos` y encuentra stellium,
+gran trígono, T cuadrada, yod, gran cruz, cometa y rectángulo místico.
+Salen como chapas debajo de la rueda; tocar una elige sus puntos y de ahí
+en más es una selección de varias como cualquier otra.
+
+Tres cosas que conviene no deshacer:
+
+1. **La figura contenida no se lista.** Una gran cruz trae cuatro T
+   cuadradas adentro y un cometa trae su gran trígono: sin la poda, la
+   misma figura aparece cinco veces.
+2. **No se inventa ningún aspecto.** Lo que está apagado en los ajustes no
+   está en `carta.aspectos`, así que sin quincuncio no hay yod. Está bien
+   que sea así.
+3. **Las chapas solo salen donde la rueda dibuja los aspectos de esa carta
+   consigo misma.** En una doble el centro tiene los cruzados, y resaltar
+   una figura de la de adentro no encendería nada.
+
+## Tanda 3: superponer 3 cálculos
+
+La natal fija adentro, con sus casas y sus columnas, y dos anillos
+elegibles por fuera: **como la rueda de tres de astro.com**, glifo y grado
+(y la R si va retrógrado), sin casas propias. El AC y el MC de cada anillo
+van anotados en la esquina derecha, no dibujados.
+
+**No se dibujan líneas de aspecto entre anillos**, decisión de Seba: con
+tres cartas el centro se vuelve ilegible. En el centro van los aspectos de
+la natal consigo misma, y lo cruzado se lee en las dos grillas de abajo
+(una por anillo) y en las tablas.
+
+Los cuatro anillos elegibles son tránsitos, progresiones, revolución solar
+y dracónica. La lunación y la carta de la otra persona quedaron afuera
+porque sus controles (la fecha de referencia, el botón de invertir) están
+atados a su propia vista: sumarlas es desatarlos primero.
+
+Dos cosas del armado:
+
+- **Cada anillo reusa el cálculo que ya existe y sus controles de
+  siempre.** No hay un motor nuevo: `usaAnillo(cual)` es lo que hace que
+  el formulario del tránsito o el de la progresión también se muestren en
+  esta vista.
+- **La instantánea de cada anillo se toma apenas termina su cálculo**, y
+  los dos corren uno después del otro. Dos cálculos pueden compartir el
+  mismo lugar en `estado` (los tránsitos y la lunación escriben los dos en
+  `estado.transitos`), así que en paralelo se pisarían.
+
+Y **la lista de vistas quedó en un solo lugar**, que era el pendiente de
+la v1.21.1: `VISTAS` en `ui/app.js`, con los `optgroup` que pidió Seba el
+16/11/2026 (Tu carta / El cielo de ahora / Tu año / Tus ciclos / Con otra
+persona / Superponer). Los tres `<select>` del HTML nacen vacíos y los
+llena `opcionesDeVista()`. Hay un test que lo cuida.
+
+---
+
 # Lo que salió en v1.24.0 (2026-11-23): el calendario del cielo
 
 Pedido de Seba el 23/11/2026, a partir de una captura del calendario de

@@ -342,3 +342,76 @@ describe('las columnas del anillo de afuera', () => {
         expect(radios[3] - r[0]).toBeGreaterThan(5);
     });
 });
+
+// ---------- La rueda de tres ----------
+
+describe('la rueda de tres', () => {
+    const anillos = [
+        { puntos: [{ id: 'sol', ...pos(15), retro: false }, { id: 'marte', ...pos(200), retro: true }],
+            prefijo: 'a-', clase: 'anillo-a', etiqueta: ' en progresiones' },
+        { puntos: [{ id: 'saturno', ...pos(80), retro: false }],
+            prefijo: 'b-', clase: 'anillo-b', etiqueta: ' en transito' }
+    ];
+    const svg = dibujarRueda(CARTA, { anillos });
+    const BORDE_NATAL = 294 * 0.72;
+    // El <g> de un punto, con su cierre: adentro hay otros <g> (cada
+    // glifo es uno), asi que hay que contar niveles y no cortar en el
+    // primer </g>.
+    const grupoDe = (id) => {
+        const inicio = svg.lastIndexOf('<g ', svg.indexOf(`data-punto="${id}"`));
+        let nivel = 0;
+        for (let i = inicio; i < svg.length; i++) {
+            if (svg.startsWith('<g', i)) nivel++;
+            else if (svg.startsWith('</g>', i) && --nivel === 0) return svg.slice(inicio, i + 4);
+        }
+        return svg.slice(inicio);
+    };
+    const centroGlifo = (m) => [Number(m[1]) + 10 * Number(m[3]), Number(m[2]) + 10 * Number(m[3])];
+    const radios = (id) => {
+        const g = grupoDe(id);
+        const glifos = [...g.matchAll(/class="glifo[^>]*transform="translate\((-?[\d.]+) (-?[\d.]+)\) scale\(([\d.]+)\)/g)]
+            .map(centroGlifo);
+        const textos = [...g.matchAll(/<text[^>]*x="(-?[\d.]+)" y="(-?[\d.]+)"/g)]
+            .map((m) => [Number(m[1]), Number(m[2])]);
+        return [...glifos, ...textos].map(([x, y]) => Math.hypot(x, y));
+    };
+
+    it('cada punto de cada anillo es tocable, con su prefijo', () => {
+        for (const id of ['a-sol', 'a-marte', 'b-saturno']) {
+            expect(svg, id).toContain(`data-punto="${id}"`);
+        }
+        // Y los natales siguen ahi, sin prefijo.
+        expect(svg).toContain('data-punto="sol"');
+    });
+
+    it('no se dibuja ninguna linea entre anillos', () => {
+        // El centro lleva los aspectos de la natal consigo misma, y esta
+        // carta de prueba no tiene ninguno.
+        expect(svg.match(/<line class="asp-[^>]*>/g)).toBe(null);
+    });
+
+    it('los dos anillos quedan afuera de la natal y adentro del borde', () => {
+        const a = radios('a-sol');
+        const b = radios('b-saturno');
+        expect(Math.min(...a)).toBeGreaterThan(BORDE_NATAL);
+        // El de afuera va mas afuera que el del medio, y los dos adentro
+        // del borde de la rueda.
+        expect(Math.max(...b)).toBeGreaterThan(Math.max(...a));
+        expect(Math.max(...b)).toBeLessThan(294);
+    });
+
+    it('el glifo va arriba y el grado debajo, en la misma banda', () => {
+        const [glifo, grado] = radios('b-saturno');
+        expect(glifo).toBeGreaterThan(grado);
+        expect(grado).toBeGreaterThan(252);
+    });
+
+    it('el retrogrado del anillo lleva su R; el que no, no', () => {
+        expect(grupoDe('a-marte')).toContain('class="glifo retro"');
+        expect(grupoDe('a-sol')).not.toContain('class="glifo retro"');
+    });
+
+    it('sin anillos la rueda es la de siempre', () => {
+        expect(dibujarRueda(CARTA, { anillos: [] })).toBe(dibujarRueda(CARTA, {}));
+    });
+});

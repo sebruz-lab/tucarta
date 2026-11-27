@@ -7,7 +7,7 @@ import {
     tablaPosiciones, tablaAspectos, tablaCasas, detallePunto,
     tablaPosicionesTransito, tablaAspectosTransito, detalleTransito, detalleNatalConTransitos,
     tablaPosicionesRevolucion, detalleRevolucion, tablaAspectosANatal,
-    tablaPosicionesSinastria, tablaCasasSinastria, detalleVarios
+    tablaPosicionesSinastria, tablaCasasSinastria, detalleVarios, tablaPosicionesAnillo
 } from './tables.js';
 import { husoEn } from '../time/tz.js';
 import { panelHuso, trianguloHuso } from './huso.js';
@@ -18,9 +18,10 @@ import { configRemota } from './firestore.js';
 import { textosInterpretacion } from './interpretaciones.js';
 import { CONFIG_POR_DEFECTO } from './config.js';
 import { evento } from './analytics.js';
-import { NOMBRE_PUNTO, NOMBRE_ASPECTO, NOMBRE_SIGNO, gradoMin, escapar, utcTexto, duracionTexto, coordTexto } from './textos.js';
+import { NOMBRE_PUNTO, NOMBRE_ASPECTO, NOMBRE_SIGNO, gradoMin, orbeTexto, escapar, utcTexto, duracionTexto, coordTexto } from './textos.js';
 import { ENGRANAJE, PERILLAS, COMPLETA, COMPARTIR, INSTALAR } from './iconos.js';
 import { SISTEMAS_CASAS, PUNTOS, ANGULOS } from '../engine/config.js';
+import { casaDe } from '../engine/chart.js';
 import { almacenLocal, igualQue } from './miscartas.js';
 import { imagenCarta, imagenEfemerides, entregarImagen, compartirImagen, ENLACE_COMPARTIR } from './descarga.js';
 import { listaCalendario, jdDeFecha, fechaDeJd, fechaCorta, fechaParaVer } from './calendario.js';
@@ -259,9 +260,70 @@ const esCOM = (m) => m === 'compuesta';
 // Las dos vistas que necesitan a la otra persona.
 const esDeDos = (m) => esSIN(m) || esCOM(m);
 const esSola = (m) => m === 'revolucion-sola' || m === 'progresion-sola' || m === 'draconica-sola' || m === 'reubicacion' || esDRT(m) || esMomento(m) || esCOM(m) || esLNP(m);
-const MODOS = ['natal', 'revolucion-sola', 'revolucion', 'astros-ahora', 'transitos', 'lunacion-sola', 'lunacion', 'calendario', 'efemerides', 'progresion-sola',
-    'progresion', 'lunacion-progresada-prenatal', 'lunacion-progresada', 'reubicacion', 'draconica-sola', 'draconica',
-    'transitos-draconicos', 'draconica-transitos', 'sinastria', 'compuesta'];
+// Superponer tres calculos: la natal fija adentro y dos anillos
+// elegibles por fuera.
+const esTriple = (m) => m === 'triple';
+
+// La lista de vistas, en UN solo lugar. Hasta aca estaba escrita cuatro
+// veces (este arreglo y los tres <select> a mano del HTML), y de ahi
+// salio el parche de la v1.21.1: una vista que faltaba en uno de los
+// tres deja el selector en blanco al entrar en ella, sin manera de
+// volver. Los grupos son los que pidio Seba el 16/11/2026.
+//
+// `sinRueda`: las que no dibujan una carta, asi que no van en el panel
+// de pantalla completa.
+const VISTAS = [
+    ['Tu carta', [
+        ['natal', 'Carta Natal'],
+        ['reubicacion', 'Carta relocalizada'],
+        ['draconica-sola', 'Carta dracónica'],
+        ['draconica', 'Carta Natal + dracónica']
+    ]],
+    ['El cielo de ahora', [
+        ['astros-ahora', 'Tránsitos actuales'],
+        ['transitos', 'Carta Natal + tránsitos'],
+        ['lunacion-sola', 'Luna Nueva o Llena'],
+        ['lunacion', 'Carta Natal + Luna Nueva o Llena'],
+        ['transitos-draconicos', 'Tránsitos dracónicos del día'],
+        ['draconica-transitos', 'Carta dracónica + tránsitos dracónicos'],
+        ['calendario', 'Calendario de tránsitos'],
+        ['efemerides', 'Efemérides gráficas']
+    ]],
+    ['Tu año', [
+        ['revolucion-sola', 'Revolución Solar'],
+        ['revolucion', 'Carta Natal + Revolución Solar']
+    ]],
+    ['Tus ciclos', [
+        ['progresion-sola', 'Progresiones secundarias'],
+        ['progresion', 'Carta Natal + Progresiones'],
+        ['lunacion-progresada-prenatal', 'Luna nueva progresada pre-natal'],
+        ['lunacion-progresada', 'Luna nueva progresada actual']
+    ]],
+    ['Con otra persona', [
+        ['sinastria', 'Sinastría: dos cartas'],
+        ['compuesta', 'Carta compuesta']
+    ]],
+    ['Superponer', [
+        ['triple', 'Superponer 3 cálculos']
+    ]]
+];
+const MODOS = VISTAS.flatMap(([, vs]) => vs.map(([id]) => id));
+
+// Los <option> de la lista, agrupados. `saltear` saca las que no van en
+// ese selector. optgroup no se anida ni se colapsa, pero conserva la
+// rueda nativa del celular, que es lo que importa.
+const opcionesDeVista = (saltear = []) => VISTAS.map(([grupo, vs]) => {
+    const items = vs.filter(([id]) => !saltear.includes(id));
+    return items.length
+        ? `<optgroup label="${grupo}">${items.map(([id, nombre]) =>
+            `<option value="${id}">${nombre}</option>`).join('')}</optgroup>`
+        : '';
+}).join('');
+
+form.elements.tipo.innerHTML = opcionesDeVista();
+$('#selector-modo').innerHTML = opcionesDeVista();
+// En pantalla completa no van las dos que no dibujan una carta.
+$('.selector-completa').innerHTML = opcionesDeVista(['calendario', 'efemerides']);
 // Los transitos que se dibujan afuera de la natal: en la vista de transitos
 // y en la de la lunacion, que es el cielo del instante de la lunacion.
 const adentroDeLaVista = () => (esDRT(estado.modo) ? 'dracónica' : 'natal');
@@ -273,7 +335,7 @@ const sinRueda = (m) => m === 'calendario' || m === 'efemerides';
 // por defecto); la revolucion, donde se pasa el cumpleanios.
 function tipoElegido() {
     const tipo = form.elements.tipo.value;
-    $('#campos-transito').hidden = !(tipo === 'transitos' || sinRueda(tipo) || esPR(tipo) || esLN(tipo) || esDRT(tipo) || esMomento(tipo));
+    $('#campos-transito').hidden = !(tipo === 'transitos' || sinRueda(tipo) || esPR(tipo) || esLN(tipo) || esDRT(tipo) || esMomento(tipo) || esTriple(tipo));
     $('#campos-revolucion').hidden = !(esRS(tipo) || esRL(tipo));
     $('#campos-pareja').hidden = !esDeDos(tipo);
     pintarResumenPareja();
@@ -370,6 +432,7 @@ async function calcular({ nueva = false } = {}) {
     if (esLNP(estado.modo)) await calcularLunacionProgresada();
     if (esSIN(estado.modo)) await calcularSinastria();
     if (esCOM(estado.modo)) await calcularCompuesta();
+    if (esTriple(estado.modo)) await calcularTriple();
     $('#cargando').hidden = true;
     guardarDatos();
     pintar();
@@ -427,14 +490,19 @@ function pintar({ liviano = false } = {}) {
     const conTransitos = transitosDeLaVista();
     const { sola, externa } = cartasVista();
     const nombresSin = () => ({ nombreAfuera: nombrePareja(), nombreAdentro: nombreAdentro() });
-    $('#tabla-posiciones').innerHTML = conTransitos ? tablaPosicionesTransito(estado.transitos, adentroDeLaVista())
+    const anillos = anillosDeLaVista();
+    $('#tabla-posiciones').innerHTML = anillos.length
+        ? tablaPosiciones(carta) + anillos.map((x) => tablaPosicionesAnillo(x, carta, x.prefijo)).join('')
+        : conTransitos ? tablaPosicionesTransito(estado.transitos, adentroDeLaVista())
         : sola ? tablaPosiciones(sola)
             : externa && esSIN(estado.modo) ? tablaPosicionesSinastria(externa, carta, nombresSin())
                 : externa ? tablaPosicionesRevolucion(externa, carta, etiquetaExterna())
                     : tablaPosiciones(carta);
     const prANatal = externa && esPR(estado.modo) && estado.progresion?.resultado?.aspectosNatal;
     const drANatal = externa && esDR(estado.modo) && estado.draconica?.aspectosNatal;
-    $('#tabla-aspectos').innerHTML = conTransitos ? tablaAspectosTransito(estado.transitos, adentroDeLaVista())
+    $('#tabla-aspectos').innerHTML = anillos.length
+        ? tablaAspectos(carta) + anillos.map((x) => tablaAspectosANatal(x.aspectosNatal || [], x.nombre)).join('')
+        : conTransitos ? tablaAspectosTransito(estado.transitos, adentroDeLaVista())
         : prANatal ? tablaAspectosANatal(prANatal, 'Progresión')
         : drANatal ? tablaAspectosANatal(drANatal, 'Dracónica')
         : externa && esSIN(estado.modo) && estado.sinastria ? tablaAspectosANatal(estado.sinastria.aspectos, nombrePareja())
@@ -533,6 +601,20 @@ function pintarEsquinas(sistema) {
                 ...renglonesLugar(b.lugar).map((t) => renglon(t)),
                 '<button type="button" data-accion="cambiar-pareja">Cambiar</button>',
                 '<button type="button" data-accion="invertir-sinastria">Invertir</button>']);
+        return;
+    }
+    if (esTriple(estado.modo)) {
+        // La natal a la izquierda, y a la derecha que hay en cada anillo
+        // con su Ascendente y su Medio Cielo, como hace astro.com: los
+        // ejes de los anillos no se dibujan, se anotan al costado.
+        const ejes = (x) => (x?.angulos || []).map((g) =>
+            renglon(`${NOMBRE_PUNTO[g.id]} ${x.sigla} ${gradoMin(g)} ${NOMBRE_SIGNO[g.signo]}`));
+        const anillo = (x, donde) => (x
+            ? [renglon(`${donde}: ${x.nombre}`, 'leyenda'), ...ejes(x)]
+            : [renglon(`${donde}: sin datos`, 'leyenda')]);
+        const [ra, rb] = estado.triple?.datos || [];
+        poner([renglon('Carta de adentro', 'leyenda'), ...natal()],
+            [...anillo(ra, 'Medio'), ...anillo(rb, 'Afuera'), renglon(sistema)]);
         return;
     }
     if (otra && esRS(estado.modo)) {
@@ -992,9 +1074,10 @@ const pts = (c) => participantes(c, estado.ajustes);
 function pintarRueda() {
     const transitos = transitosDeLaVista();
     const { sola, externa } = cartasVista();
+    const anillos = anillosDeLaVista();
     const base = sola || estado.carta;
     $('#rueda').innerHTML = dibujarRueda(base, {
-        nombres: NOMBRE_PUNTO, seleccion: estado.seleccion,
+        nombres: NOMBRE_PUNTO, seleccion: estado.seleccion, anillos,
         clara: tema === 'claro', transitos, revolucion: externa, aspectosDe: estado.ajustes.graficaTransitos,
         aspectosCruzados: esSIN(estado.modo) ? estado.sinastria?.aspectos || null : null
     });
@@ -1005,9 +1088,12 @@ function pintarRueda() {
     $('#detalle-punto').innerHTML = estado.seleccion.length > 1
         ? detalleVarios(base, estado.seleccion, figuraElegida()?.nombre || null)
         : !s
-        ? (transitos ? `Tocá un planeta ${adentroDeLaVista()} o en tránsito para ver sus aspectos.`
+        ? (anillos.length ? `Tocá un planeta natal (adentro) o de los anillos de afuera.`
+            : transitos ? `Tocá un planeta ${adentroDeLaVista()} o en tránsito para ver sus aspectos.`
             : externa ? `Tocá un planeta ${e.de} (afuera) o natal (adentro).`
                 : 'Tocá un planeta para ver dónde está y con quién se relaciona.')
+        : s.startsWith('a-') || s.startsWith('b-')
+            ? detalleAnillo(anillos[s.startsWith('a-') ? 0 : 1] || { puntos: [] }, estado.carta, s)
         : s.startsWith('r-') ? detalleRevolucion(externa, estado.carta, s, e.de, externa ? aspectosExternaANatal() : null)
         : s.startsWith('t-') ? detalleTransito(transitos, s, adentroDeLaVista())
             : transitos ? detalleNatalConTransitos(base, transitos, s, adentroDeLaVista())
@@ -1093,7 +1179,8 @@ async function calcularTransitos() {
 }
 
 function pintarControlesTransito() {
-    const enTransitos = estado.modo === 'transitos' || esDRT(estado.modo) || esMomento(estado.modo);
+    const enTransitos = estado.modo === 'transitos' || esDRT(estado.modo) || esMomento(estado.modo)
+        || usaAnillo('transitos');
     $('#selector-modo').value = estado.modo;
     $('.selector-completa').value = estado.modo;
     formTransito.hidden = !enTransitos;
@@ -1104,6 +1191,7 @@ function pintarControlesTransito() {
     pintarControlesLunacion();
     pintarControlesLnp();
     pintarControlesSinastria();
+    pintarControlesTriple();
     pintarControlesAnimacion();
     if (!enTransitos || !estado.transito) return;
     const f = formTransito.elements;
@@ -1113,8 +1201,11 @@ function pintarControlesTransito() {
     $('#nota-transito').textContent = `Fecha y hora de tu dispositivo (${utcTexto(offset)}).`;
 }
 
+// Con la rueda de tres hay que rehacer los dos anillos: el que cambio y
+// el otro, porque su instantanea se toma al final de cada calculo.
 const recalcularTransitoDeLaVista = () =>
-    (esMomento(estado.modo) ? calcularCartaDelMomento() : calcularTransitos());
+    (esTriple(estado.modo) ? calcularTriple()
+        : esMomento(estado.modo) ? calcularCartaDelMomento() : calcularTransitos());
 
 async function cambiarTransito(nuevo) {
     estado.transito = nuevo;
@@ -1209,6 +1300,13 @@ async function aplicarModo(modo) {
         if (!estado.pareja?.datos) abrirVentanaPareja(true);
         evento(esSIN(modo) ? 'sinastria_vista' : 'compuesta_vista', {});
     }
+    if (esTriple(modo)) {
+        estado.triple ||= tripleGuardado();
+        $('#cargando').hidden = false;
+        await calcularTriple();
+        $('#cargando').hidden = true;
+        evento('triple_vista', { a: estado.triple.a, b: estado.triple.b });
+    }
     if (modo === 'calendario') {
         $('#cargando').hidden = false;
         await calcularCalendario();
@@ -1222,6 +1320,146 @@ async function aplicarModo(modo) {
         evento('efemerides_vistas', {});
     }
     pintar();
+}
+
+// ---------- Superponer 3 calculos ----------
+//
+// La natal va fija adentro, con sus casas y sus columnas, y los dos
+// anillos de afuera se eligen. Cada anillo reusa el calculo que ya
+// existe y sus controles de siempre: no hay un motor nuevo.
+//
+// De momento se eligen entre cuatro. La lunacion y la carta de la otra
+// persona quedaron afuera porque sus controles (la fecha de referencia,
+// el boton de invertir) estan atados a su propia vista; sumarlas es
+// desatarlos primero.
+const ANILLOS = [
+    ['transitos', 'Tránsitos', 'Tr'],
+    ['progresion', 'Progresiones', 'PR'],
+    ['revolucion', 'Revolución Solar', 'RS'],
+    ['draconica', 'Dracónica', 'DR']
+];
+const nombreAnillo = (cual) => ANILLOS.find(([id]) => id === cual)?.[1] || cual;
+const siglaAnillo = (cual) => ANILLOS.find(([id]) => id === cual)?.[2] || '';
+
+const TRIPLE_POR_DEFECTO = { a: 'progresion', b: 'transitos' };
+function tripleGuardado() {
+    try {
+        const g = JSON.parse(localStorage.getItem('tucarta:triple'));
+        const vale = (x) => ANILLOS.some(([id]) => id === x);
+        if (g && vale(g.a) && vale(g.b)) return { a: g.a, b: g.b, datos: [null, null] };
+    } catch {}
+    return { ...TRIPLE_POR_DEFECTO, datos: [null, null] };
+}
+
+// Si uno de los dos anillos usa ese calculo: lo miran los controles,
+// para mostrarse tambien en esta vista.
+const usaAnillo = (cual) => esTriple(estado.modo)
+    && (estado.triple?.a === cual || estado.triple?.b === cual);
+
+// Lo que la rueda y las tablas necesitan de un anillo, ya desprendido de
+// donde lo dejo su calculo. Se toma apenas termina cada uno porque dos
+// calculos pueden compartir el mismo lugar en `estado`.
+function instantaneaAnillo(cual, carta, aspectos = null) {
+    if (!carta) return null;
+    const puntos = carta.puntos || [];
+    const angulos = carta.angulos || [];
+    return {
+        cual, puntos, angulos,
+        nombre: nombreAnillo(cual), sigla: siglaAnillo(cual),
+        cusps: carta.cusps || null,
+        aspectosNatal: aspectos || calcularAspectos(
+            pts({ puntos, angulos }), pts(estado.carta),
+            { orbesPorAspecto: estado.ajustes.orbesTransito, aspectos: estado.ajustes.aspectosTransito })
+    };
+}
+
+async function calcularAnillo(cual) {
+    if (cual === 'transitos') {
+        await calcularTransitos();
+        // Los transitos ya traen sus aspectos a la natal, calculados en
+        // el worker con los mismos orbes.
+        return instantaneaAnillo(cual, estado.transitos, estado.transitos?.aspectos);
+    }
+    if (cual === 'progresion') {
+        await calcularProgresion();
+        return instantaneaAnillo(cual, estado.progresion?.resultado?.carta,
+            estado.progresion?.resultado?.aspectosNatal);
+    }
+    if (cual === 'revolucion') {
+        estado.revolucion ||= { anio: null, lugar: lugarRS };
+        await calcularRevolucionSolar();
+        return instantaneaAnillo(cual, estado.revolucion?.resultado?.carta,
+            estado.revolucion?.resultado?.aspectosNatal);
+    }
+    if (cual === 'draconica') {
+        await calcularDraconica();
+        return instantaneaAnillo(cual, estado.draconica?.carta, estado.draconica?.aspectosNatal);
+    }
+    return null;
+}
+
+// Los dos, uno despues del otro: los transitos y la lunacion escriben en
+// el mismo lugar de `estado`, asi que no pueden correr a la vez.
+async function calcularTriple() {
+    estado.triple ||= tripleGuardado();
+    const t = estado.triple;
+    t.datos = [await calcularAnillo(t.a), await calcularAnillo(t.b)];
+}
+
+// Los anillos listos para dibujar, de adentro hacia afuera.
+function anillosDeLaVista() {
+    if (!esTriple(estado.modo)) return [];
+    return (estado.triple?.datos || []).map((d, i) => (d ? {
+        ...d, prefijo: i === 0 ? 'a-' : 'b-',
+        clase: i === 0 ? 'anillo-a' : 'anillo-b',
+        etiqueta: ` en ${d.nombre.toLowerCase()}`
+    } : null)).filter(Boolean);
+}
+
+function pintarControlesTriple() {
+    const fila = $('#fila-anillos');
+    fila.hidden = !esTriple(estado.modo);
+    if (fila.hidden) return;
+    const t = estado.triple || tripleGuardado();
+    for (const [sel, cual] of [['#anillo-a', t.a], ['#anillo-b', t.b]]) {
+        const s = $(sel);
+        if (!s.options.length) {
+            s.innerHTML = ANILLOS.map(([id, nombre]) => `<option value="${id}">${nombre}</option>`).join('');
+        }
+        s.value = cual;
+    }
+}
+
+for (const [sel, clave] of [['#anillo-a', 'a'], ['#anillo-b', 'b']]) {
+    $(sel).addEventListener('change', async (e) => {
+        estado.triple ||= tripleGuardado();
+        estado.triple[clave] = e.target.value;
+        try {
+            localStorage.setItem('tucarta:triple',
+                JSON.stringify({ a: estado.triple.a, b: estado.triple.b }));
+        } catch {}
+        estado.seleccion = [];
+        $('#cargando').hidden = false;
+        await calcularTriple();
+        $('#cargando').hidden = true;
+        pintar();
+    });
+}
+
+// Los aspectos van del anillo a la natal, igual que en los transitos: el
+// punto "a" es el de afuera.
+function detalleAnillo(anillo, natal, id) {
+    const p = anillo.puntos.find((x) => x.id === id.slice(2));
+    if (!p) return '';
+    // La casa que importa es la natal: es la rueda de adentro.
+    const casa = natal?.cusps ? casaDe(p.lon, natal.cusps.map((c) => c.lon)) : p.casa;
+    const asp = (anillo.aspectosNatal || [])
+        .filter((a) => a.a === p.id)
+        .map((a) => `${NOMBRE_ASPECTO[a.aspecto].toLowerCase()} a ${NOMBRE_PUNTO[a.b]} natal (${orbeTexto(a.orbe)})`);
+    return `<strong>${NOMBRE_PUNTO[p.id]}</strong> en ${anillo.nombre.toLowerCase()}: `
+        + `${gradoMin(p)} de ${NOMBRE_SIGNO[p.signo]}${casa ? `, casa ${casa} natal` : ''}`
+        + `${p.retro ? ', retrógrado' : ''}.`
+        + (asp.length ? `<br><span class="nota">${asp.join(' · ')}</span>` : '');
 }
 
 // ---------- Relocalizacion y draconica ----------
@@ -1744,7 +1982,7 @@ function momentoEn(jd, lugar) {
 }
 
 function pintarControlesRevolucion() {
-    const r = esRS(estado.modo) && estado.revolucion?.resultado;
+    const r = (esRS(estado.modo) || usaAnillo('revolucion')) && estado.revolucion?.resultado;
     $('#controles-rs').hidden = !r;
     $('#etiqueta-lugar-rs-nuevo').textContent = esRL(estado.modo) ? '¿En qué lugar?'
         : esAhora(estado.modo) ? '¿Dónde estás?' : '¿Dónde pasa el cumpleaños?';
@@ -1762,7 +2000,8 @@ $('#controles-rs').addEventListener('click', async (e) => {
     if (!paso) return;
     estado.revolucion.anio += Number(paso);
     estado.seleccion = [];
-    await calcularRevolucionSolar();
+    if (esTriple(estado.modo)) await calcularTriple();
+    else await calcularRevolucionSolar();
     pintar();
 });
 
@@ -1805,7 +2044,7 @@ formProgresion.elements.hh.innerHTML = opcionesNum(24).replace('<option value=""
 formProgresion.elements.mm.innerHTML = opcionesNum(60).replace('<option value="">--</option>', '');
 
 function pintarControlesProgresion() {
-    const r = esPR(estado.modo) && estado.progresion?.resultado;
+    const r = (esPR(estado.modo) || usaAnillo('progresion')) && estado.progresion?.resultado;
     formProgresion.hidden = !r;
     if (!r) return;
     const f = formProgresion.elements;
@@ -1819,7 +2058,8 @@ async function cambiarProgresion(fecha, hora = null) {
     estado.progresion.fecha = fecha;
     if (hora) estado.progresion.hora = hora;
     estado.seleccion = [];
-    await calcularProgresion();
+    if (esTriple(estado.modo)) await calcularTriple();
+    else await calcularProgresion();
     pintar();
 }
 
@@ -3500,6 +3740,18 @@ function anexoActual() {
     const transitos = transitosDeLaVista();
     const base = sola || estado.carta;
     const ids = (c) => pts(c).map((p) => p.id);
+    // La rueda de tres: una grilla por anillo contra la natal. La
+    // leyenda de planetas y signos va una sola vez, en la primera.
+    const anillos = anillosDeLaVista();
+    if (anillos.length) {
+        return anillos.map((x, i) => dibujarAnexo({
+            incluir: i === 0 ? incluirAnexo : { ...incluirAnexo, planetas: false, signos: false },
+            puntos: ids(estado.carta), nombres: NOMBRE_PUNTO,
+            filas: ids(x), columnas: ids(estado.carta),
+            aspectos: x.aspectosNatal || [], triangular: false,
+            tituloGrilla: `${x.nombre} a la natal`
+        })).join('');
+    }
     let filas, columnas, aspectos, triangular, tituloGrilla = '';
     if (transitos) {
         filas = transitos.puntos.map((p) => p.id);

@@ -168,6 +168,32 @@ export function repartir(lons, minimo, orden = null) {
 const ESCALA_DOBLE = 0.84;
 const R_DOBLE = { exterior: 294, glifos: 271 };
 
+// Rueda de tres (como la de astro.com): la natal adentro, con sus casas
+// y sus columnas, y dos anillos livianos por fuera con el glifo de cada
+// punto y su grado. Es el anillo de transitos de siempre, pero dos, y
+// con el grado agregado.
+//
+// No se dibujan lineas entre anillos a proposito: con tres cartas el
+// centro se vuelve ilegible. En el centro van los aspectos de la carta
+// de adentro consigo misma, y lo cruzado se lee en las grillas de abajo.
+const ESCALA_TRIPLE = 0.72;
+// Las dos bandas de afuera: 294 a 252 la de mas afuera y 252 a 212 la
+// del medio. La natal ocupa lo de adentro (294 * 0.72 = 211,7, que es
+// justo el borde de la banda del medio).
+const R_TRI = { exterior: 294, medio: 252, adentro: 212 };
+// En cada banda, el glifo arriba y el grado debajo. `marca` es el borde
+// de adentro de la banda, donde arranca el palito del grado exacto.
+const R_TRI_ANILLOS = [
+    { glifo: 237, grado: 217, marca: 212 },  // el del medio
+    { glifo: 277, grado: 257, marca: 252 }   // el de afuera
+];
+// La natal adentro de la rueda de tres. Va mas achicada que en los
+// transitos (0,84) y menos que en la revolucion (0,62), asi que sus
+// medidas caen entre las dos.
+const R_NATAL_EN_TRIPLE = { exterior: 294, signos: 258, casas: 236, numeros: 247, rotulos: 247, planetas: 236, aspectos: 140 };
+// Tamanios de la letra de los anillos livianos, en unidades de pantalla.
+const LETRA_ANILLO = { glifo: 22, grado: 10.5, retro: 8.5 };
+
 // Revolucion solar (como Solar Fire): la natal adentro, mas chica, y la
 // revolucion afuera con su propio zodiaco, sus casas y sus planetas con
 // grados. El centro queda sin lineas de aspectos.
@@ -383,17 +409,22 @@ const medioCasa = (lons, i) => lons[i] + ((((lons[(i + 1) % 12] - lons[i]) % 360
 // ven todos los suyos; con dos o mas, solo los que van de un elegido a
 // otro, que es como se mira una figura. Acepta un id suelto por los
 // llamados de antes.
-export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = false, transitos = null, revolucion = null, aspectosCruzados = null, aspectosDe = 'transito' } = {}) {
+// anillos: la rueda de tres. Dos juegos de puntos, de adentro hacia
+// afuera, cada uno { puntos, prefijo, clase, etiqueta }. Excluyente con
+// transitos y revolucion.
+export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = false, transitos = null, revolucion = null, aspectosCruzados = null, aspectosDe = 'transito', anillos = [] } = {}) {
     const elegidos = Array.isArray(seleccion) ? seleccion : seleccion ? [seleccion] : [];
     seleccion = elegidos;
     const asc = carta.angulos.find((a) => a.id === 'asc').lon;
     const mc = carta.angulos.find((a) => a.id === 'mc').lon;
     // Con revolucion, manda su Ascendente (a la izquierda) y la natal gira.
     const polar = crearPolar(revolucion ? revolucion.angulos.find((a) => a.id === 'asc').lon : asc);
-    const R = revolucion ? R_NATAL_EN_RS : transitos ? R_NATAL_EN_TRANSITOS : R_BASE;
+    const R = anillos.length ? R_NATAL_EN_TRIPLE
+        : revolucion ? R_NATAL_EN_RS : transitos ? R_NATAL_EN_TRANSITOS : R_BASE;
     // La natal se ve con la misma letra en todas las vistas, aunque vaya
     // achicada dentro de los transitos o de la revolucion.
-    const escala = revolucion ? ESCALA_RS : transitos ? ESCALA_DOBLE : 1;
+    const escala = anillos.length ? ESCALA_TRIPLE
+        : revolucion ? ESCALA_RS : transitos ? ESCALA_DOBLE : 1;
     const letra = (px) => ` style="font-size:${(px / escala).toFixed(2)}px"`;
     const linea = (lon, r1, r2, clase, extra = '') => {
         const [x1, y1] = polar(lon, r1);
@@ -447,7 +478,8 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
     }
     // Rotulos de los angulos, por fuera del anillo.
     const rotulos = [];
-    const radioRotulos = (transitos || revolucion ? R_DOBLE.exterior : R.exterior) + 16;
+    const radioRotulos = (anillos.length ? R_TRI.exterior
+        : transitos || revolucion ? R_DOBLE.exterior : R.exterior) + 16;
     // Con revolucion, los rotulos son de sus angulos (la natal va adentro).
     const angRotulos = revolucion
         ? ['asc', 'mc'].map((id) => revolucion.angulos.find((a) => a.id === id).lon)
@@ -532,9 +564,65 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         cuerpo = doble.join('') + rotulos.join('');
     }
     if (revolucion) cuerpo = anilloRevolucion(revolucion, out, { polar, linea, seleccion, nombres }) + rotulos.join('');
+    if (anillos.length) cuerpo = ruedaDeTres(anillos, out, carta, { polar, linea, seleccion, nombres }) + rotulos.join('');
     // Disco de fondo (blanco en la version clara).
     const fondo = `<circle class="fondo-rueda" r="${R_BASE.exterior}"/>`;
-    return `<svg class="rueda${clara ? ' rueda-clara' : ''}${transitos || revolucion ? ' rueda-doble' : ''}" viewBox="-332 -332 664 664" role="img" aria-label="Rueda de la carta">${fondo}${cuerpo}</svg>`;
+    return `<svg class="rueda${clara ? ' rueda-clara' : ''}${transitos || revolucion || anillos.length ? ' rueda-doble' : ''}${anillos.length ? ' rueda-triple' : ''}" viewBox="-332 -332 664 664" role="img" aria-label="Rueda de la carta">${fondo}${cuerpo}</svg>`;
+}
+
+// Un anillo liviano de afuera: el glifo de cada punto y su grado, sin
+// casas ni columnas. Es lo que la rueda de tres pone en las dos bandas
+// de afuera, y lo mismo que el anillo de transitos de siempre con el
+// grado agregado.
+//
+// `m` son los radios de la banda (ver R_TRI_ANILLOS).
+function anilloSimple(puntos, m, { polar, linea, seleccion, nombres, prefijo, clase, etiqueta }) {
+    const out = [];
+    // Separacion minima: lo que ocupa el glifo a ese radio, con aire.
+    const minimo = (LETRA_ANILLO.glifo + 3) / m.glifo * 180 / Math.PI;
+    const pos = repartir(puntos.map((p) => p.lon), minimo, puntos.map((p) => p.lon));
+    puntos.forEach((p, i) => {
+        const id = prefijo + p.id;
+        const sel = seleccion.includes(id) ? ' sel' : '';
+        out.push(`<g class="punto ${clase}${sel}" data-punto="${id}" tabindex="0" role="button" aria-label="${nombres[p.id] || p.id}${etiqueta}">`);
+        // El palito en el grado exacto, hacia afuera del borde de la banda.
+        out.push(linea(p.lon, m.marca, m.marca + 8, 'marca-punto'));
+        const [x, y] = polar(pos[i], m.glifo);
+        out.push(`<circle class="toque" cx="${f(x)}" cy="${f(y)}" r="${f(LETRA_ANILLO.glifo * 0.8)}"/>`);
+        out.push(glifo(G_PUNTOS[p.id], x, y, LETRA_ANILLO.glifo));
+        // El grado, y la R al lado cuando va retrogrado: los dos juntos
+        // quedan centrados como si fueran una palabra, igual que en las
+        // columnas cuando no hay lugar para una fila mas.
+        const [gx, gy] = polar(pos[i], m.grado);
+        const tR = LETRA_ANILLO.retro;
+        const corrida = p.retro ? (anchoRetro(tR) + 1.2) / 2 : 0;
+        out.push(`<text class="grado-punto"${` style="font-size:${LETRA_ANILLO.grado}px"`} x="${f(gx - corrida)}" y="${f(gy)}">${String(p.grado).padStart(2, '0')}°</text>`);
+        if (p.retro) {
+            const rx = gx - corrida + (ANCHO_MINUTOS * LETRA_ANILLO.grado + anchoRetro(tR)) / 2 + 1.2;
+            out.push(glifo(RETROGRADO, rx, gy, tR, '', 'retro'));
+        }
+        out.push('</g>');
+    });
+    return out.join('');
+}
+
+// Rueda de tres: la natal achicada adentro y dos anillos livianos por
+// fuera. Los ejes de la natal siguen de largo hasta el borde, como en la
+// rueda doble, para no perder la cruz de las casas.
+function ruedaDeTres(anillos, natal, carta, { polar, linea, seleccion, nombres }) {
+    const borde = R_BASE.exterior * ESCALA_TRIPLE;
+    const out = [`<g transform="scale(${ESCALA_TRIPLE})">${natal.join('')}</g>`];
+    out.push(`<circle class="borde" r="${R_TRI.exterior}"/>`, `<circle class="fino" r="${R_TRI.medio}"/>`);
+    carta.cusps.forEach((c, i) => {
+        if (i % 3 === 0) out.push(linea(c.lon, borde, R_TRI.exterior, i === 0 ? 'eje eje-ac' : 'eje'));
+    });
+    anillos.slice(0, 2).forEach((a, i) => {
+        out.push(anilloSimple(a.puntos, R_TRI_ANILLOS[i], {
+            polar, linea, seleccion, nombres,
+            prefijo: a.prefijo, clase: a.clase, etiqueta: a.etiqueta || ''
+        }));
+    });
+    return out.join('');
 }
 
 // Anillo de afuera de la revolucion solar; `natal` es el dibujo de la

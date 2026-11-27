@@ -39,3 +39,37 @@ describe('selectores de una sola clase', () => {
         });
     }
 });
+
+// La lista de vistas estuvo escrita cuatro veces (este arreglo en app.js
+// y tres <select> a mano), y de ahi salio el parche de la v1.21.1: una
+// vista que falta en uno de los tres deja el selector en blanco al
+// entrar en ella, sin manera de volver. Ahora sale de VISTAS y los tres
+// <select> nacen vacios. Este test es para que no vuelva.
+describe('la lista de vistas vive en un solo lugar', () => {
+    const selects = ['name="tipo"', 'id="selector-modo"', 'class="selector-completa"'];
+
+    for (const sel of selects) {
+        it(`el <select> con ${sel} no trae opciones escritas a mano`, () => {
+            const i = html.indexOf(`<select ${sel}>`);
+            expect(i, `no esta el <select ${sel}>`).toBeGreaterThan(-1);
+            const cuerpo = html.slice(i, html.indexOf('</select>', i));
+            expect(cuerpo).not.toContain('<option');
+            expect(cuerpo).not.toContain('<optgroup');
+        });
+    }
+
+    it('app.js las arma a las tres desde VISTAS', () => {
+        const js = readFileSync(join(ui, 'app.js'), 'utf8');
+        expect(js).toContain('const VISTAS = [');
+        // Una llamada por cada uno de los tres <select>.
+        expect(js.match(/opcionesDeVista\(/g)).toHaveLength(3);
+    });
+
+    it('cada vista de VISTAS tiene su id una sola vez', () => {
+        const js = readFileSync(join(ui, 'app.js'), 'utf8');
+        const lista = js.slice(js.indexOf('const VISTAS = ['), js.indexOf('const MODOS = VISTAS'));
+        const ids = [...lista.matchAll(/\['([a-z0-9-]+)', '/g)].map((m) => m[1]);
+        expect(ids.length).toBeGreaterThan(15);
+        expect(new Set(ids).size).toBe(ids.length);
+    });
+});
