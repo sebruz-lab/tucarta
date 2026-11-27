@@ -57,11 +57,26 @@ aspectos y los ángulos entraban siempre. El filtro estaba copiado en diez
 lugares; ahora vive una sola vez, en `participantes()` de
 `engine/aspects.js`.
 
-**Las efemérides gráficas ocupan la pantalla entera.** El tope de 1180 px
-no está más. El límite pasa a ser el **alto**: con la relación 1200/700 del
-viewBox, una pantalla de 2500 px daría un gráfico de 1460 de alto y habría
-que scrollear para ver el año completo. Los controles y el detalle se
-quedan en la columna de 720: son texto.
+**Las efemérides gráficas ocupan la pantalla entera**, a sangre de borde
+a borde. Los controles y el detalle se quedan en la columna de 720: son
+texto.
+
+Ojo con dos cosas que ya mordieron el mismo día:
+
+1. **`overflow-x: auto` y `min-width: 1000px` son del celular**, donde el
+   gráfico no entra y se desliza de costado. En una pantalla grande hay
+   que apagarlos: dejarlos puestos junto a un ancho limitado mete el
+   gráfico en una caja de scroll que no tiene por qué existir.
+2. **No acotar el ancho por el alto.** Se probó (`(100vh - 220px) * 1200 /
+   700`, para que el año entrara sin scrollear) y en una pantalla baja
+   deja la caja más angosta que el `min-width`, que es justamente lo del
+   punto 1. Si el gráfico queda muy alto en una pantalla enorme, se
+   resuelve de otra manera.
+
+El margen negativo es `calc(24px - (100vw - 100%) / 2)`: la mitad de lo
+que le sobra a la pantalla sobre la columna. Los 24 px de cada lado son
+aire y, de paso, tapan el ancho de la barra de scroll, que `100vw` cuenta
+y `100%` no.
 
 ## Tanda 2: figuras de aspectos
 
@@ -76,8 +91,12 @@ los que van de un elegido a otro**, que es exactamente mirar una figura.
 
 **Solas:** `engine/figuras.js` lee `carta.aspectos` y encuentra stellium,
 gran trígono, T cuadrada, yod, gran cruz, cometa y rectángulo místico.
-Salen como chapas debajo de la rueda; tocar una elige sus puntos y de ahí
-en más es una selección de varias como cualquier otra.
+Salen como chapas debajo de la rueda, **dentro de un desplegable cerrado**
+(ahí abajo hay poco lugar y la mayoría de las veces no se las está
+buscando); tocar una elige sus puntos y de ahí en más es una selección de
+varias como cualquier otra. El desplegable se queda abierto si la persona
+lo abrió, y se abre solo cuando hay una figura elegida: si no, al tocar
+una no se vería cuál quedó marcada.
 
 Tres cosas que conviene no deshacer:
 
@@ -94,9 +113,16 @@ Tres cosas que conviene no deshacer:
 ## Tanda 3: superponer 3 cálculos
 
 La natal fija adentro, con sus casas y sus columnas, y dos anillos
-elegibles por fuera: **como la rueda de tres de astro.com**, glifo y grado
-(y la R si va retrógrado), sin casas propias. El AC y el MC de cada anillo
-van anotados en la esquina derecha, no dibujados.
+elegibles por fuera: **como la rueda de tres de astro.com**, con el glifo
+de cada punto, su grado y la R si va retrógrado. El AC y el MC de cada
+anillo van anotados en la esquina derecha, no dibujados.
+
+**Cada anillo dibuja también sus casas** (pedido de Seba del 26/11/2026),
+dentro de su propia banda: las cúspides de un borde al otro y el número de
+cada casa arriba. Los **tránsitos no**, y no es un olvido: no son una
+carta, no tienen Ascendente ni cúspides propias. Por eso las dos bandas
+son de 50 y la natal quedó en 0,66 (casi lo mismo que adentro de una
+revolución solar): hacía falta el lugar.
 
 **No se dibujan líneas de aspecto entre anillos**, decisión de Seba: con
 tres cartas el centro se vuelve ilegible. En el centro van los aspectos de
@@ -120,10 +146,13 @@ Dos cosas del armado:
   `estado.transitos`), así que en paralelo se pisarían.
 
 Y **la lista de vistas quedó en un solo lugar**, que era el pendiente de
-la v1.21.1: `VISTAS` en `ui/app.js`, con los `optgroup` que pidió Seba el
-16/11/2026 (Tu carta / El cielo de ahora / Tu año / Tus ciclos / Con otra
-persona / Superponer). Los tres `<select>` del HTML nacen vacíos y los
-llena `opcionesDeVista()`. Hay un test que lo cuida.
+la v1.21.1: `VISTAS` en `ui/app.js`. Los tres `<select>` del HTML nacen
+vacíos y los llena `opcionesDeVista()`, con un test que lo cuida.
+
+Va **corrida, sin categorías**: se probó agrupada con `optgroup` (Tu carta
+/ El cielo de ahora / Tu año / Tus ciclos / Con otra persona), que era el
+otro pendiente de la v1.21.1, y Seba la prefiere como estaba, una sola
+lista larga en el orden de siempre. Ese pedido queda cerrado así.
 
 ---
 

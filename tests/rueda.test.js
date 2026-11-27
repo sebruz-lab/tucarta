@@ -348,12 +348,13 @@ describe('las columnas del anillo de afuera', () => {
 describe('la rueda de tres', () => {
     const anillos = [
         { puntos: [{ id: 'sol', ...pos(15), retro: false }, { id: 'marte', ...pos(200), retro: true }],
+            cusps: Array.from({ length: 12 }, (_, i) => ({ casa: i + 1, ...pos(i * 30 + 7) })),
             prefijo: 'a-', clase: 'anillo-a', etiqueta: ' en progresiones' },
         { puntos: [{ id: 'saturno', ...pos(80), retro: false }],
             prefijo: 'b-', clase: 'anillo-b', etiqueta: ' en transito' }
     ];
     const svg = dibujarRueda(CARTA, { anillos });
-    const BORDE_NATAL = 294 * 0.72;
+    const BORDE_NATAL = 294 * 0.66;
     // El <g> de un punto, con su cierre: adentro hay otros <g> (cada
     // glifo es uno), asi que hay que contar niveles y no cortar en el
     // primer </g>.
@@ -403,7 +404,30 @@ describe('la rueda de tres', () => {
     it('el glifo va arriba y el grado debajo, en la misma banda', () => {
         const [glifo, grado] = radios('b-saturno');
         expect(glifo).toBeGreaterThan(grado);
-        expect(grado).toBeGreaterThan(252);
+        expect(grado).toBeGreaterThan(244);
+    });
+
+    // Pedido de Seba del 26/11/2026: las casas de todo menos de los
+    // transitos, que no son una carta y no tienen cuspides propias.
+    it('el anillo con cuspides dibuja sus doce casas; el que no, ninguna', () => {
+        // Las cuspides del anillo van de un borde al otro de su banda.
+        const enLaBanda = (desde, hasta) => {
+            const re = /<(?:line|polyline)[^>]*class="(eje|cuspide)"[^>]*x1="(-?[\d.]+)" y1="(-?[\d.]+)" x2="(-?[\d.]+)" y2="(-?[\d.]+)"/g;
+            return [...svg.matchAll(re)].filter((m) => {
+                const r1 = Math.hypot(Number(m[2]), Number(m[3]));
+                const r2 = Math.hypot(Number(m[4]), Number(m[5]));
+                const [lo, hi] = [Math.min(r1, r2), Math.max(r1, r2)];
+                return Math.abs(lo - desde) < 1 && Math.abs(hi - hasta) < 1;
+            });
+        };
+        expect(enLaBanda(194, 244)).toHaveLength(12);
+        expect(enLaBanda(244, 294)).toHaveLength(0);
+    });
+
+    it('los numeros de casa del anillo son los doce', () => {
+        const nums = [...svg.matchAll(/<text class="num-casa" style="font-size:8.5px"[^>]*>(\d+)<\/text>/g)]
+            .map((m) => Number(m[1]));
+        expect(nums.sort((x, y) => x - y)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
     });
 
     it('el retrogrado del anillo lleva su R; el que no, no', () => {

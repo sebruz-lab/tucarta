@@ -188,13 +188,19 @@ export function tablaPosicionesTransito(transitos, adentro = DE_ADENTRO) {
 // tiene las suyas, los transitos ya vienen con la natal).
 export function tablaPosicionesAnillo(anillo, natal, prefijo) {
     const cusps = natal.cusps.map((c) => c.lon);
+    // Los transitos no son una carta y no tienen casas propias; los
+    // demas anillos si, y entonces van las dos columnas.
+    const propias = anillo.cusps ? anillo.cusps.map((c) => c.lon) : null;
     const filas = [...anillo.puntos, ...(anillo.angulos || [])];
     return `<table class="tabla">
-        <thead><tr><th>${escapar(anillo.nombre)}</th><th>Signo</th><th class="num">Posición</th><th class="num">Casa natal</th><th><span class="visualmente-oculto">Retrógrado</span></th></tr></thead>
+        <thead><tr><th>${escapar(anillo.nombre)}</th><th>Signo</th><th class="num">Posición</th>${
+            propias ? `<th class="num">Casa ${escapar(anillo.sigla)}</th>` : ''
+        }<th class="num">Casa natal</th><th><span class="visualmente-oculto">Retrógrado</span></th></tr></thead>
         <tbody>${filas.map((p) => `<tr data-punto="${prefijo}${p.id}">
             <th scope="row">${G_PUNTOS[p.id] ? iconoSvg(G_PUNTOS[p.id], 18, NOMBRE_PUNTO[p.id]) : ''}<span>${NOMBRE_PUNTO[p.id]}</span></th>
             <td>${iconoSigno(p.signo)}<span>${NOMBRE_SIGNO[p.signo]}</span></td>
             <td class="num">${gradoMin(p)}</td>
+            ${propias ? `<td class="num">${casaDe(p.lon, propias)}</td>` : ''}
             <td class="num">${casaDe(p.lon, cusps)}</td>
             <td class="retro">${p.retro ? marcaRetro : ''}</td>
         </tr>`).join('')}</tbody>

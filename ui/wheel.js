@@ -176,23 +176,24 @@ const R_DOBLE = { exterior: 294, glifos: 271 };
 // No se dibujan lineas entre anillos a proposito: con tres cartas el
 // centro se vuelve ilegible. En el centro van los aspectos de la carta
 // de adentro consigo misma, y lo cruzado se lee en las grillas de abajo.
-const ESCALA_TRIPLE = 0.72;
-// Las dos bandas de afuera: 294 a 252 la de mas afuera y 252 a 212 la
-// del medio. La natal ocupa lo de adentro (294 * 0.72 = 211,7, que es
-// justo el borde de la banda del medio).
-const R_TRI = { exterior: 294, medio: 252, adentro: 212 };
-// En cada banda, el glifo arriba y el grado debajo. `marca` es el borde
-// de adentro de la banda, donde arranca el palito del grado exacto.
+const ESCALA_TRIPLE = 0.66;
+// Las dos bandas de afuera, de 50 cada una: 294 a 244 la de mas afuera y
+// 244 a 194 la del medio. La natal ocupa lo de adentro (294 * 0.66 =
+// 194, que es justo el borde de la banda del medio). Son anchas porque
+// cada anillo dibuja tambien sus casas.
+const R_TRI = { exterior: 294, medio: 244, adentro: 194 };
+// De afuera hacia adentro en cada banda: los numeros de casa, el glifo
+// del punto y su grado. `desde` y `hasta` son los bordes de la banda, y
+// las cuspides del anillo van de uno a otro.
 const R_TRI_ANILLOS = [
-    { glifo: 237, grado: 217, marca: 212 },  // el del medio
-    { glifo: 277, grado: 257, marca: 252 }   // el de afuera
+    { desde: 194, hasta: 244, numeros: 238, glifo: 222, grado: 206 },  // el del medio
+    { desde: 244, hasta: 294, numeros: 288, glifo: 272, grado: 256 }   // el de afuera
 ];
-// La natal adentro de la rueda de tres. Va mas achicada que en los
-// transitos (0,84) y menos que en la revolucion (0,62), asi que sus
-// medidas caen entre las dos.
-const R_NATAL_EN_TRIPLE = { exterior: 294, signos: 258, casas: 236, numeros: 247, rotulos: 247, planetas: 236, aspectos: 140 };
+// La natal adentro de la rueda de tres. Va casi tan achicada como en la
+// revolucion (0,62), asi que sus medidas son casi las mismas.
+const R_NATAL_EN_TRIPLE = { exterior: 294, signos: 256, casas: 234, numeros: 245, rotulos: 245, planetas: 234, aspectos: 105 };
 // Tamanios de la letra de los anillos livianos, en unidades de pantalla.
-const LETRA_ANILLO = { glifo: 22, grado: 10.5, retro: 8.5 };
+const LETRA_ANILLO = { glifo: 20, grado: 10, retro: 8.5, casa: 8.5 };
 
 // Revolucion solar (como Solar Fire): la natal adentro, mas chica, y la
 // revolucion afuera con su propio zodiaco, sus casas y sus planetas con
@@ -570,14 +571,27 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
     return `<svg class="rueda${clara ? ' rueda-clara' : ''}${transitos || revolucion || anillos.length ? ' rueda-doble' : ''}${anillos.length ? ' rueda-triple' : ''}" viewBox="-332 -332 664 664" role="img" aria-label="Rueda de la carta">${fondo}${cuerpo}</svg>`;
 }
 
-// Un anillo liviano de afuera: el glifo de cada punto y su grado, sin
-// casas ni columnas. Es lo que la rueda de tres pone en las dos bandas
-// de afuera, y lo mismo que el anillo de transitos de siempre con el
-// grado agregado.
+// Un anillo liviano de afuera: las cuspides de sus casas con sus
+// numeros, y el glifo de cada punto con su grado. Sin columnas: en una
+// banda de 50 no entran el signo y los minutos, y el signo ya se lee en
+// el zodiaco de la carta de adentro.
+//
+// Las casas van solo si el anillo las tiene. Los transitos no son una
+// carta: no tienen Ascendente ni cuspides propias, y por eso esa banda
+// sale sin casas (pedido de Seba del 26/11/2026).
 //
 // `m` son los radios de la banda (ver R_TRI_ANILLOS).
-function anilloSimple(puntos, m, { polar, linea, seleccion, nombres, prefijo, clase, etiqueta }) {
+function anilloSimple(puntos, m, { polar, linea, seleccion, nombres, prefijo, clase, etiqueta, cusps = null }) {
     const out = [];
+    if (cusps) {
+        const lons = cusps.map((c) => c.lon);
+        lons.forEach((lon, i) => {
+            // Los cuatro angulos, mas marcados; el resto, cuspide comun.
+            out.push(linea(lon, m.desde, m.hasta, i % 3 === 0 ? 'eje' : 'cuspide'));
+            const [x, y] = polar(medioCasa(lons, i), m.numeros);
+            out.push(`<text class="num-casa" style="font-size:${LETRA_ANILLO.casa}px" x="${f(x)}" y="${f(y)}">${i + 1}</text>`);
+        });
+    }
     // Separacion minima: lo que ocupa el glifo a ese radio, con aire.
     const minimo = (LETRA_ANILLO.glifo + 3) / m.glifo * 180 / Math.PI;
     const pos = repartir(puntos.map((p) => p.lon), minimo, puntos.map((p) => p.lon));
@@ -585,8 +599,9 @@ function anilloSimple(puntos, m, { polar, linea, seleccion, nombres, prefijo, cl
         const id = prefijo + p.id;
         const sel = seleccion.includes(id) ? ' sel' : '';
         out.push(`<g class="punto ${clase}${sel}" data-punto="${id}" tabindex="0" role="button" aria-label="${nombres[p.id] || p.id}${etiqueta}">`);
-        // El palito en el grado exacto, hacia afuera del borde de la banda.
-        out.push(linea(p.lon, m.marca, m.marca + 8, 'marca-punto'));
+        // El palito en el grado exacto, hacia afuera del borde de adentro
+        // de la banda.
+        out.push(linea(p.lon, m.desde, m.desde + 6, 'marca-punto'));
         const [x, y] = polar(pos[i], m.glifo);
         out.push(`<circle class="toque" cx="${f(x)}" cy="${f(y)}" r="${f(LETRA_ANILLO.glifo * 0.8)}"/>`);
         out.push(glifo(G_PUNTOS[p.id], x, y, LETRA_ANILLO.glifo));
@@ -618,7 +633,7 @@ function ruedaDeTres(anillos, natal, carta, { polar, linea, seleccion, nombres }
     });
     anillos.slice(0, 2).forEach((a, i) => {
         out.push(anilloSimple(a.puntos, R_TRI_ANILLOS[i], {
-            polar, linea, seleccion, nombres,
+            polar, linea, seleccion, nombres, cusps: a.cusps || null,
             prefijo: a.prefijo, clase: a.clase, etiqueta: a.etiqueta || ''
         }));
     });

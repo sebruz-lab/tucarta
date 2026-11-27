@@ -72,4 +72,11 @@ describe('la lista de vistas vive en un solo lugar', () => {
         expect(ids.length).toBeGreaterThan(15);
         expect(new Set(ids).size).toBe(ids.length);
     });
+
+    it('la lista va corrida, sin categorías', () => {
+        // Se probaron con optgroup el 26/11/2026 y Seba las prefiere en
+        // una sola lista larga, como estaban antes.
+        const js = readFileSync(join(ui, 'app.js'), 'utf8');
+        expect(js).not.toContain('<optgroup');
+    });
 });

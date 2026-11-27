@@ -268,57 +268,42 @@ const esTriple = (m) => m === 'triple';
 // veces (este arreglo y los tres <select> a mano del HTML), y de ahi
 // salio el parche de la v1.21.1: una vista que faltaba en uno de los
 // tres deja el selector en blanco al entrar en ella, sin manera de
-// volver. Los grupos son los que pidio Seba el 16/11/2026.
+// volver.
 //
-// `sinRueda`: las que no dibujan una carta, asi que no van en el panel
-// de pantalla completa.
+// Es una lista larga y corrida, sin categorias: se probaron agrupadas
+// con optgroup el 26/11/2026 y Seba las prefiere asi. El orden es el de
+// siempre, con la rueda de tres al final.
 const VISTAS = [
-    ['Tu carta', [
-        ['natal', 'Carta Natal'],
-        ['reubicacion', 'Carta relocalizada'],
-        ['draconica-sola', 'Carta dracónica'],
-        ['draconica', 'Carta Natal + dracónica']
-    ]],
-    ['El cielo de ahora', [
-        ['astros-ahora', 'Tránsitos actuales'],
-        ['transitos', 'Carta Natal + tránsitos'],
-        ['lunacion-sola', 'Luna Nueva o Llena'],
-        ['lunacion', 'Carta Natal + Luna Nueva o Llena'],
-        ['transitos-draconicos', 'Tránsitos dracónicos del día'],
-        ['draconica-transitos', 'Carta dracónica + tránsitos dracónicos'],
-        ['calendario', 'Calendario de tránsitos'],
-        ['efemerides', 'Efemérides gráficas']
-    ]],
-    ['Tu año', [
-        ['revolucion-sola', 'Revolución Solar'],
-        ['revolucion', 'Carta Natal + Revolución Solar']
-    ]],
-    ['Tus ciclos', [
-        ['progresion-sola', 'Progresiones secundarias'],
-        ['progresion', 'Carta Natal + Progresiones'],
-        ['lunacion-progresada-prenatal', 'Luna nueva progresada pre-natal'],
-        ['lunacion-progresada', 'Luna nueva progresada actual']
-    ]],
-    ['Con otra persona', [
-        ['sinastria', 'Sinastría: dos cartas'],
-        ['compuesta', 'Carta compuesta']
-    ]],
-    ['Superponer', [
-        ['triple', 'Superponer 3 cálculos']
-    ]]
+    ['natal', 'Carta Natal'],
+    ['revolucion-sola', 'Revolución Solar'],
+    ['revolucion', 'Carta Natal + Revolución Solar'],
+    ['astros-ahora', 'Tránsitos actuales'],
+    ['transitos', 'Carta Natal + tránsitos'],
+    ['lunacion-sola', 'Luna Nueva o Llena'],
+    ['lunacion', 'Carta Natal + Luna Nueva o Llena'],
+    ['calendario', 'Calendario de tránsitos'],
+    ['efemerides', 'Efemérides gráficas'],
+    ['progresion-sola', 'Progresiones secundarias'],
+    ['progresion', 'Carta Natal + Progresiones'],
+    ['lunacion-progresada-prenatal', 'Luna nueva progresada pre-natal'],
+    ['lunacion-progresada', 'Luna nueva progresada actual'],
+    ['reubicacion', 'Carta relocalizada'],
+    ['draconica-sola', 'Carta dracónica'],
+    ['draconica', 'Carta Natal + dracónica'],
+    ['transitos-draconicos', 'Tránsitos dracónicos del día'],
+    ['draconica-transitos', 'Carta dracónica + tránsitos dracónicos'],
+    ['sinastria', 'Sinastría: dos cartas'],
+    ['compuesta', 'Carta compuesta'],
+    ['triple', 'Superponer 3 cálculos']
 ];
-const MODOS = VISTAS.flatMap(([, vs]) => vs.map(([id]) => id));
+const MODOS = VISTAS.map(([id]) => id);
 
-// Los <option> de la lista, agrupados. `saltear` saca las que no van en
-// ese selector. optgroup no se anida ni se colapsa, pero conserva la
-// rueda nativa del celular, que es lo que importa.
-const opcionesDeVista = (saltear = []) => VISTAS.map(([grupo, vs]) => {
-    const items = vs.filter(([id]) => !saltear.includes(id));
-    return items.length
-        ? `<optgroup label="${grupo}">${items.map(([id, nombre]) =>
-            `<option value="${id}">${nombre}</option>`).join('')}</optgroup>`
-        : '';
-}).join('');
+// Los <option> de la lista. `saltear` saca las que no van en ese
+// selector.
+const opcionesDeVista = (saltear = []) => VISTAS
+    .filter(([id]) => !saltear.includes(id))
+    .map(([id, nombre]) => `<option value="${id}">${nombre}</option>`)
+    .join('');
 
 form.elements.tipo.innerHTML = opcionesDeVista();
 $('#selector-modo').innerHTML = opcionesDeVista();
@@ -1126,13 +1111,21 @@ function pintarFiguras(base, { transitos, externa }) {
     caja.hidden = !figuras.length;
     if (!figuras.length) { caja.innerHTML = ''; return; }
     const elegida = figuraElegida();
-    caja.innerHTML = `<span class="figuras-titulo">Figuras</span>` + figuras.map((f, i) => `
+    // Van cerradas: debajo de la rueda hay poco lugar y la mayoria de
+    // las veces no se las esta buscando. Se mantiene abierto lo que la
+    // persona haya abierto, y se abre solo si hay una figura elegida
+    // (al volver de tocar una, tiene que verse cual quedo marcada).
+    const abierto = caja.open || Boolean(elegida);
+    caja.innerHTML = `<summary class="figuras-titulo">Figuras de aspectos `
+        + `<span class="figuras-cuantas">${figuras.length}</span></summary>`
+        + '<div class="figuras-chapas">' + figuras.map((f, i) => `
         <button type="button" class="chapa-figura" data-figura="${i}" aria-pressed="${f === elegida}">
             <span>${escapar(f.nombre)}</span>
             ${f.puntos.map((id) => (G_PUNTOS[id]
                 ? iconoSvg(G_PUNTOS[id], 15, NOMBRE_PUNTO[id] || id)
                 : `<span class="sigla-punto">${escapar(NOMBRE_PUNTO[id] || id)}</span>`)).join('')}
-        </button>`).join('');
+        </button>`).join('') + '</div>';
+    caja.open = abierto;
 }
 
 $('#figuras').addEventListener('click', (e) => {
@@ -1451,13 +1444,17 @@ for (const [sel, clave] of [['#anillo-a', 'a'], ['#anillo-b', 'b']]) {
 function detalleAnillo(anillo, natal, id) {
     const p = anillo.puntos.find((x) => x.id === id.slice(2));
     if (!p) return '';
-    // La casa que importa es la natal: es la rueda de adentro.
+    // Las dos casas: la natal, que es la rueda de adentro, y la del
+    // propio anillo cuando la tiene (los transitos no).
     const casa = natal?.cusps ? casaDe(p.lon, natal.cusps.map((c) => c.lon)) : p.casa;
+    const propia = anillo.cusps ? casaDe(p.lon, anillo.cusps.map((c) => c.lon)) : null;
     const asp = (anillo.aspectosNatal || [])
         .filter((a) => a.a === p.id)
         .map((a) => `${NOMBRE_ASPECTO[a.aspecto].toLowerCase()} a ${NOMBRE_PUNTO[a.b]} natal (${orbeTexto(a.orbe)})`);
     return `<strong>${NOMBRE_PUNTO[p.id]}</strong> en ${anillo.nombre.toLowerCase()}: `
-        + `${gradoMin(p)} de ${NOMBRE_SIGNO[p.signo]}${casa ? `, casa ${casa} natal` : ''}`
+        + `${gradoMin(p)} de ${NOMBRE_SIGNO[p.signo]}`
+        + `${propia ? `, casa ${propia} ${anillo.sigla}` : ''}`
+        + `${casa ? `, casa ${casa} natal` : ''}`
         + `${p.retro ? ', retrógrado' : ''}.`
         + (asp.length ? `<br><span class="nota">${asp.join(' · ')}</span>` : '');
 }

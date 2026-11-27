@@ -909,18 +909,44 @@ body.sin-scroll { overflow: hidden; }
     background: rgba(59, 194, 188, 0.12);
 }
 
-/* Las figuras de aspectos de la carta, debajo de la rueda. Cada chapa
-   elige sus puntos y la rueda deja encendida solo esa figura. */
-.figuras {
+/* Las figuras de aspectos de la carta, debajo de la rueda. Van cerradas
+   y se abren a pedido: ahi abajo hay poco lugar. Cada chapa elige sus
+   puntos y la rueda deja encendida solo esa figura. */
+.figuras { margin: 10px 0 0; text-align: center; }
+.figuras[hidden] { display: none; }
+.figuras-titulo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--texto-suave);
+    cursor: pointer;
+    list-style: none;
+    padding: 2px 4px;
+}
+.figuras-titulo::-webkit-details-marker { display: none; }
+.figuras-titulo:hover { color: var(--texto); }
+/* La flechita, que gira al abrir. */
+.figuras-titulo::before {
+    content: 'B8';
+    font-size: 0.75em;
+    transition: transform 0.15s;
+}
+.figuras[open] .figuras-titulo::before { transform: rotate(90deg); }
+.figuras-cuantas {
+    font-size: 0.75rem;
+    border: 1px solid var(--linea);
+    border-radius: 999px;
+    padding: 0 6px;
+}
+.figuras-chapas {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    margin: 10px 0 0;
+    margin-top: 6px;
 }
-.figuras[hidden] { display: none; }
-.figuras-titulo { font-size: 0.8rem; color: var(--texto-suave); margin-right: 2px; }
 .chapa-figura {
     display: inline-flex;
     align-items: center;
@@ -2102,15 +2128,25 @@ body.sin-scroll { overflow: hidden; }
 .ef-svg { display: block; width: 100%; min-width: 1000px; height: auto; touch-action: pan-x pan-y; }
 /* El grafico se sale de la columna de 720px y toma la pantalla entera: es
    un ano de efemerides, y cuanto mas ancho, mas separadas quedan las
-   lineas. El margen negativo simetrico es el mismo truco de .figura-rueda.
-   El tope ya no es un ancho sino el ALTO: con la relacion 1200/700 del
-   viewBox, en una pantalla de 2500px el grafico mediria 1460 de alto y
-   habria que scrollear para ver el ano completo. Los controles y el
-   detalle se quedan en la columna: son texto. */
+   lineas. Los controles y el detalle se quedan en la columna: son texto.
+
+   A sangre, de borde a borde: el margen negativo es la mitad de lo que
+   le sobra a la pantalla sobre la columna. Los 24px de cada lado son
+   aire y, de paso, tapan el ancho de la barra de scroll, que 100vw
+   cuenta y 100% no.
+
+   Y aca NO hay caja de scroll: `overflow` vuelve a visible y se saca el
+   `min-width` de 1000px. Esos dos son del celular, donde el grafico se
+   desliza de costado porque no entra; en una pantalla grande entra, y
+   dejarlos puestos con un ancho limitado es lo que lo metia en una caja
+   de scroll que no tiene por que existir. */
 @media (min-width: 900px) {
     .efemerides .ef-grafico {
-        margin: 0 calc((100% - min(100vw - 32px, (100vh - 220px) * 1200 / 700)) / 2);
+        margin: 0 calc(24px - (100vw - 100%) / 2);
+        padding: 0;
+        overflow: visible;
     }
+    .efemerides .ef-svg { min-width: 0; }
 }
 .ef-svg .ef-fondo { fill: var(--superficie); fill-opacity: 0.45; }
 /* Meses y grados: la misma linea punteada; cada 5°, apenas mas oscura. */
