@@ -799,11 +799,15 @@ body.sin-scroll { overflow: hidden; }
     .selector-completa { font-size: 0.75rem; padding: 6px 24px 6px 8px; }
     .figura-rueda:fullscreen #rueda, .figura-rueda.completa #rueda { width: min(100vw - 500px, 100vh - 60px); }
 }
+/* En el celular y en la tableta lo que manda es el ancho de la pantalla
+   y nada mas: no hay un tope en pixeles (eran 640, y en una tableta
+   dejaba la rueda chica al pedo). El alto no hace falta acotarlo ahi,
+   porque una pantalla parada siempre es mas alta que ancha. */
 .rueda {
     display: block;
     width: 100%;
     height: auto;
-    max-width: 640px;
+    max-width: 100%;
     margin: 0 auto;
     overflow: visible;
 }
@@ -893,8 +897,11 @@ body.sin-scroll { overflow: hidden; }
    al hacer clic, y el boton existe para el telefono, donde no hay
    teclas (y de paso es el camino con el teclado). Prendido, cada toque
    suma. Al lado va la (i) que lo explica. */
-.fila-detalle { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 12px; }
-.fila-detalle .detalle-punto { margin-top: 0; }
+.fila-detalle { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 12px; min-height: 3.4em; }
+/* El alto minimo pasa a la fila: si se lo queda el texto, el texto se
+   pega arriba de su caja y los botones se centran contra la caja
+   entera, que es lo que los dejaba mas abajo que el renglon. */
+.fila-detalle .detalle-punto { margin-top: 0; min-height: 0; }
 .boton-sumar, .boton-info {
     display: inline-flex;
     align-items: center;
@@ -2084,18 +2091,22 @@ body.sin-scroll { overflow: hidden; }
     .acciones { flex-direction: row; gap: 24px; }
 }
 
-/* En la compu la rueda sale de la columna de texto para verse mas
-   grande, y entra entera en la ventana sin scrollear: la rueda es
-   cuadrada, asi que el alto que queda libre manda tambien el ancho.
-   Los 170px son lo que va debajo del circulo adentro de la figura (el
-   renglon del detalle, el + y las figuras) mas aire.
+/* En la compu la rueda sale de la columna de texto y se mide contra la
+   PANTALLA, no contra medidas sueltas: es cuadrada, asi que el alto
+   libre manda tambien el ancho, y en una pantalla apaisada ese alto es
+   siempre lo que queda chico.
+   El 92vh es el unico numero a mover. Parece poco aire, pero el dibujo
+   no llena su cuadrado: el borde de la rueda esta en 294 de 332, y los
+   rotulos AC/MC en 310, asi que lo que se ve ocupa un 93% del alto del
+   SVG. De 92vh queda, en limpio, un 14% de la ventana para el renglon
+   del detalle de abajo.
    La medida sale una sola vez, en --rueda, porque la usan los dos: el
    margen negativo de la figura (que es lo que lleva las esquinas a los
    costados del circulo) y el ancho del dibujo. Si se separan, las
    esquinas quedan lejos de la rueda. */
 @media (min-width: 900px) {
     .figura-rueda {
-        --rueda: min(860px, 100vw - 48px, 100vh - 170px);
+        --rueda: min(100vw - 48px, 92vh);
         margin: 0 calc((100% - var(--rueda)) / 2);
     }
     .rueda { max-width: var(--rueda); }

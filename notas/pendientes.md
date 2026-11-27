@@ -110,18 +110,33 @@ y un escape mal escrito deja un carácter de control adentro del archivo
 que se ve como tres símbolos raros en pantalla. Pasó el 26/11/2026.
 
 **La rueda también entra entera en la ventana** (pedido de Seba del
-26/11/2026). Es cuadrada, así que el alto libre manda también el ancho:
-`--rueda: min(860px, 100vw - 48px, 100vh - 170px)`. Los 170 px son lo que
-va debajo del círculo adentro de la figura (el renglón del detalle con
-sus botones, y las figuras) más aire. La medida sale **una sola vez**,
-en esa variable, porque la usan dos reglas: el margen negativo de
-`.figura-rueda`, que es lo que lleva las esquinas a los costados del
-círculo, y el ancho del dibujo. Si se separan, las esquinas quedan lejos
-de la rueda. Pantalla completa e impresión tienen sus propias medidas y
-no pasan por acá.
+26/11/2026), y se mide **contra la pantalla**, no contra números
+sueltos: `--rueda: min(100vw - 48px, 92vh)`. Es cuadrada, así que en una
+pantalla apaisada el alto es siempre lo que queda chico.
+
+El **92vh** es el único número a mover. Parece poco aire, pero el dibujo
+no llena su cuadrado: el borde de la rueda está en 294 de 332 y los
+rótulos AC/MC en 310, así que lo que se ve ocupa un 93% del alto del
+SVG. De 92vh queda, en limpio, un 14% de la ventana para el renglón del
+detalle. Un primer intento con `100vh - 170px` dejaba la rueda
+visiblemente chica: los píxeles sueltos no escalan con la pantalla.
+
+En el celular y en la tableta manda el ancho y nada más, sin tope en
+píxeles: el `max-width: 640px` de `.rueda` se fue (en una tableta
+dejaba la rueda chica al pedo). El alto no hace falta acotarlo ahí,
+porque una pantalla parada siempre es más alta que ancha.
+
+La medida sale **una sola vez**, en esa variable, porque la usan dos
+reglas: el margen negativo de `.figura-rueda`, que es lo que lleva las
+esquinas a los costados del círculo, y el ancho del dibujo. Si se
+separan, las esquinas quedan lejos de la rueda. Pantalla completa e
+impresión tienen sus propias medidas y no pasan por acá.
 
 El renglón del detalle, el **+** y la **(i)** van los tres en una línea
-(`.fila-detalle`). Al lado del **+** la **(i)** lo explica, y es el primero de
+(`.fila-detalle`). **El alto mínimo lo lleva la fila, no el texto**: si
+se lo queda el texto, el texto se pega arriba de su caja y los botones
+se centran contra la caja entera, así que quedan más abajo que el
+renglón. Al lado del **+** la **(i)** lo explica, y es el primero de
 varios: cualquier botón con `data-info="clave"` abre la misma ventana
 (`#ventana-info`) con el texto que le toca, que sale de la tabla `INFOS`
 de `ui/app.js`. Sumar una explicación es un botón y una entrada más, sin
