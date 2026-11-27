@@ -311,7 +311,7 @@ function columnas(puntos, cusps, { polar, linea, rTope, escala = 1, m, prefijo =
     const out = [];
     puntos.forEach((p, i) => {
         const id = prefijo + p.id;
-        const sel = seleccion === id ? ' sel' : '';
+        const sel = seleccion.includes(id) ? ' sel' : '';
         out.push(`<g class="punto${clase ? ' ' + clase : ''}${sel}" data-punto="${id}" tabindex="0" role="button" aria-label="${nombres[p.id] || p.id}${etiqueta}">`);
         const a = pos[i];
         const [x, y] = polar(a, rG);
@@ -379,7 +379,13 @@ const medioCasa = (lons, i) => lons[i] + ((((lons[(i + 1) % 12] - lons[i]) % 360
 // aspectosDe: en la rueda doble, que aspectos se dibujan. 'transito' son
 // los del cielo de paso a la carta de adentro; 'natal', los de la carta
 // natal entre si.
+// seleccion: los puntos elegidos, para resaltar sus aspectos. Con uno se
+// ven todos los suyos; con dos o mas, solo los que van de un elegido a
+// otro, que es como se mira una figura. Acepta un id suelto por los
+// llamados de antes.
 export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = false, transitos = null, revolucion = null, aspectosCruzados = null, aspectosDe = 'transito' } = {}) {
+    const elegidos = Array.isArray(seleccion) ? seleccion : seleccion ? [seleccion] : [];
+    seleccion = elegidos;
     const asc = carta.angulos.find((a) => a.id === 'asc').lon;
     const mc = carta.angulos.find((a) => a.id === 'mc').lon;
     // Con revolucion, manda su Ascendente (a la izquierda) y la natal gira.
@@ -469,8 +475,12 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         const [x1, y1] = polar(a.lonA, R.aspectos);
         const [x2, y2] = polar(lonDe[a.b], R.aspectos);
         const clase = CLASE_ASPECTO[a.aspecto];
-        const activo = seleccion && (a.a === seleccion || a.b === seleccion);
-        const atenuado = seleccion && !activo;
+        // Con un punto elegido se resalta todo lo suyo; con varios, solo
+        // lo que va de un elegido a otro: la figura y nada mas.
+        const activo = elegidos.length === 1
+            ? (a.a === elegidos[0] || a.b === elegidos[0])
+            : elegidos.includes(a.a) && elegidos.includes(a.b);
+        const atenuado = elegidos.length > 0 && !activo;
         // Un solo tono por familia de aspecto: sin degradar por el orbe (si no,
         // dos trigonos se ven de dos azules distintos). Lo unico que cambia la
         // opacidad es la atenuacion al elegir un punto.
@@ -511,7 +521,7 @@ export function dibujarRueda(carta, { nombres = {}, seleccion = null, clara = fa
         const pos = repartir(transitos.puntos.map((p) => p.lon), 6.5);
         transitos.puntos.forEach((p, i) => {
             const id = 't-' + p.id;
-            const sel = seleccion === id ? ' sel' : '';
+            const sel = elegidos.includes(id) ? ' sel' : '';
             doble.push(`<g class="punto transito${sel}" data-punto="${id}" tabindex="0" role="button" aria-label="${nombres[p.id] || p.id} en tránsito">`);
             doble.push(linea(p.lon, borde, borde + 9, 'marca-punto'));
             const [x, y] = polar(pos[i], R_DOBLE.glifos);

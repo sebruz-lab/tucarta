@@ -883,6 +883,63 @@ body.sin-scroll { overflow: hidden; }
 }
 .detalle-punto strong { color: var(--amarillo); font-weight: 400; }
 
+/* Marcar varios puntos a la vez. En la compu alcanza con ctrl o cmd al
+   hacer clic; este boton existe para el telefono, donde no hay teclas, y
+   de paso es el camino con el teclado. Prendido, cada toque suma. */
+.boton-sumar {
+    display: block;
+    margin: 2px auto 0;
+    width: 30px;
+    height: 30px;
+    font: inherit;
+    font-size: 1.1rem;
+    line-height: 1;
+    background: none;
+    border: 1px solid var(--linea);
+    color: var(--texto-suave);
+    border-radius: 999px;
+    cursor: pointer;
+}
+.boton-sumar:hover { border-color: var(--turquesa); color: var(--texto); }
+.boton-sumar[aria-pressed="true"] {
+    border-color: var(--turquesa);
+    color: var(--turquesa);
+    background: rgba(59, 194, 188, 0.12);
+}
+
+/* Las figuras de aspectos de la carta, debajo de la rueda. Cada chapa
+   elige sus puntos y la rueda deja encendida solo esa figura. */
+.figuras {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 10px 0 0;
+}
+.figuras[hidden] { display: none; }
+.figuras-titulo { font-size: 0.8rem; color: var(--texto-suave); margin-right: 2px; }
+.chapa-figura {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font: inherit;
+    font-size: 0.8rem;
+    background: var(--superficie);
+    border: 1px solid var(--linea);
+    color: var(--texto-suave);
+    padding: 5px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+}
+.chapa-figura:hover { border-color: var(--linea-fuerte); color: var(--texto); }
+.chapa-figura[aria-pressed="true"] {
+    border-color: var(--amarillo);
+    color: var(--amarillo);
+}
+.chapa-figura svg { fill: currentColor; }
+.chapa-figura .sigla-punto { font-size: 0.75rem; }
+
 /* La linea de la lunacion, debajo de la rueda: en que casa cae y donde
    leer que significa. Tambien sale en la hoja impresa. */
 .aviso-lunacion:not([hidden]) {
@@ -2120,7 +2177,8 @@ body.sin-scroll { overflow: hidden; }
     .figura-rueda .esquina,
     .figura-rueda .acciones-esquina, .figura-rueda .leyenda-aspectos,
     .figura-rueda .panel-completa, .figura-rueda .salir-completa,
-    .figura-rueda #controles-animacion, #detalle-punto {
+    .figura-rueda #controles-animacion, #detalle-punto,
+    .figura-rueda .boton-sumar, .figura-rueda #figuras {
         display: none !important;
     }
     main, #resultado { max-width: none; padding: 0; margin: 0; }

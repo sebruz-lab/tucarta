@@ -128,6 +128,27 @@ describe('el color de los aspectos', () => {
         expect(atenuadas.length).toBeGreaterThan(0);
         expect(atenuadas.length).toBeLessThan(l.length);
     });
+
+    const enteras = (svg) => lineas(svg).filter((x) => !x.includes('opacity="0.08"'));
+
+    it('un id suelto y una lista de uno hacen lo mismo', () => {
+        expect(enteras(dibujarRueda(conAspectos, { seleccion: ['marte'] })))
+            .toEqual(enteras(dibujarRueda(conAspectos, { seleccion: 'marte' })));
+    });
+
+    it('con varios elegidos quedan solo los aspectos que van de uno a otro', () => {
+        // Sol-Luna y Sol-Marte. Eligiendo Sol y Luna, Sol-Marte se apaga
+        // aunque toque al Sol: es la regla que deja ver una figura sola.
+        const svg = dibujarRueda(conAspectos, { seleccion: ['sol', 'luna'] });
+        expect(lineas(svg).length).toBe(lineas(dibujarRueda(conAspectos, {})).length);
+        // Las dos mitades de la linea Sol-Luna quedan enteras.
+        expect(enteras(svg)).toHaveLength(2);
+    });
+
+    it('sin nada elegido no se atenua nada', () => {
+        expect(lineas(dibujarRueda(conAspectos, { seleccion: [] }))
+            .filter((x) => x.includes('opacity'))).toEqual([]);
+    });
 });
 
 describe('los palitos de cada planeta', () => {

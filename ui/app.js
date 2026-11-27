@@ -7,7 +7,7 @@ import {
     tablaPosiciones, tablaAspectos, tablaCasas, detallePunto,
     tablaPosicionesTransito, tablaAspectosTransito, detalleTransito, detalleNatalConTransitos,
     tablaPosicionesRevolucion, detalleRevolucion, tablaAspectosANatal,
-    tablaPosicionesSinastria, tablaCasasSinastria
+    tablaPosicionesSinastria, tablaCasasSinastria, detalleVarios
 } from './tables.js';
 import { husoEn } from '../time/tz.js';
 import { panelHuso, trianguloHuso } from './huso.js';
@@ -29,6 +29,8 @@ import { dibujarEfemerides, geometria } from './efemerides.js';
 import { normalizarFecha, completarFecha, completarHora } from './fecha.js';
 import { dibujarAnexo } from './anexo.js';
 import { calcularAspectos, aspecta, participantes } from '../engine/aspects.js';
+import { figurasDe } from '../engine/figuras.js';
+import { PUNTOS as G_PUNTOS, iconoSvg } from './glyphs.js';
 import { TRANSITAN_EFEMERIDES } from '../engine/efemerides.js';
 import { PUNTOS_CIELO } from '../engine/eventos.js';
 import { conectarCuenta, sesionIniciada, conCuenta, abrirEntrar, esAdmin,
@@ -53,7 +55,7 @@ const estado = {
     ajustes: leerAjustes(),
     tz: null,           // resultado de localAUtc
     carta: null,
-    seleccion: null,    // punto tocado en la rueda ("t-..." si esta en transito)
+    seleccion: [],      // puntos tocados en la rueda ("t-..." si estan en transito)
     // 'natal' | 'revolucion-sola' | 'revolucion' | 'transitos' | 'calendario'
     // | 'progresion-sola' | 'progresion' | 'lunacion'
     modo: 'natal',
@@ -324,7 +326,7 @@ form.addEventListener('submit', async (e) => {
     mostrarError('');
     modoDelFormulario();
     estado.datos = datos;
-    estado.seleccion = null;
+    estado.seleccion = [];
     await calcular({ nueva: true });
 });
 
@@ -876,7 +878,7 @@ conectarBuscador($('#lugar-rs-nuevo'), $('#sugerencias-rs-nuevo'), async (l) => 
     }
     $('#lugar-rs-nuevo').value = '';
     $('#panel-lugar-rs').hidden = true;
-    estado.seleccion = null;
+    estado.seleccion = [];
     await (ahora ? calcularCartaDelMomento() : rl ? calcularReubicacion() : calcularRevolucionSolar());
     pintar();
     $('.figura-rueda').scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -997,9 +999,12 @@ function pintarRueda() {
         aspectosCruzados: esSIN(estado.modo) ? estado.sinastria?.aspectos || null : null
     });
     acomodarLuego();
-    const s = estado.seleccion;
+    pintarFiguras(base, { transitos, externa });
+    const s = unico();
     const e = etiquetaExterna();
-    $('#detalle-punto').innerHTML = !s
+    $('#detalle-punto').innerHTML = estado.seleccion.length > 1
+        ? detalleVarios(base, estado.seleccion, figuraElegida()?.nombre || null)
+        : !s
         ? (transitos ? `Tocá un planeta ${adentroDeLaVista()} o en tránsito para ver sus aspectos.`
             : externa ? `Tocá un planeta ${e.de} (afuera) o natal (adentro).`
                 : 'Tocá un planeta para ver dónde está y con quién se relaciona.')
@@ -1008,6 +1013,51 @@ function pintarRueda() {
             : transitos ? detalleNatalConTransitos(base, transitos, s, adentroDeLaVista())
                 : detallePunto(base, s);
 }
+
+// El punto elegido, cuando hay uno solo: todo el detalle de siempre
+// trabaja con un id suelto.
+const unico = () => (estado.seleccion.length === 1 ? estado.seleccion[0] : null);
+
+// ---------- Figuras de aspectos ----------
+//
+// Las configuraciones clasicas de la carta que se esta mirando. Tocar
+// una elige sus puntos, y de ahi en mas es una seleccion de varias como
+// cualquier otra: la rueda deja encendidos los aspectos que van de un
+// elegido a otro y apaga el resto.
+//
+// Solo se muestran donde la rueda dibuja los aspectos de esa carta
+// consigo misma. En una rueda doble el centro tiene los cruzados, asi
+// que resaltar una figura de la de adentro no encenderia nada.
+let figuras = [];
+
+const mismoGrupo = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
+const figuraElegida = () => figuras.find((f) => mismoGrupo(f.puntos, estado.seleccion));
+
+function pintarFiguras(base, { transitos, externa }) {
+    const caja = $('#figuras');
+    const propias = !externa && (!transitos || estado.ajustes.graficaTransitos === 'natal');
+    figuras = propias && base ? figurasDe(base.aspectos || []) : [];
+    caja.hidden = !figuras.length;
+    if (!figuras.length) { caja.innerHTML = ''; return; }
+    const elegida = figuraElegida();
+    caja.innerHTML = `<span class="figuras-titulo">Figuras</span>` + figuras.map((f, i) => `
+        <button type="button" class="chapa-figura" data-figura="${i}" aria-pressed="${f === elegida}">
+            <span>${escapar(f.nombre)}</span>
+            ${f.puntos.map((id) => (G_PUNTOS[id]
+                ? iconoSvg(G_PUNTOS[id], 15, NOMBRE_PUNTO[id] || id)
+                : `<span class="sigla-punto">${escapar(NOMBRE_PUNTO[id] || id)}</span>`)).join('')}
+        </button>`).join('');
+}
+
+$('#figuras').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-figura]');
+    if (!b) return;
+    const f = figuras[Number(b.dataset.figura)];
+    if (!f) return;
+    // Volver a tocar la que ya estaba elegida la suelta.
+    estado.seleccion = f === figuraElegida() ? [] : [...f.puntos];
+    pintarRueda();
+});
 
 // ---------- Transitos ----------
 
@@ -1108,7 +1158,7 @@ async function aplicarModo(modo) {
     estado.modo = modo;
     form.elements.tipo.value = modo;
     tipoElegido();
-    estado.seleccion = null;
+    estado.seleccion = [];
     if (modo === 'transitos') {
         await calcularTransitos();
         evento('transitos_vistos', {});
@@ -1293,7 +1343,7 @@ $('#mi-ubicacion').addEventListener('click', () => {
         });
         decir('');
         $('#panel-lugar-rs').hidden = true;
-        estado.seleccion = null;
+        estado.seleccion = [];
         await calcularCartaDelMomento();
         pintar();
         $('.figura-rueda').scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -1431,7 +1481,7 @@ async function invertirSinastria() {
     estado.datos = afuera.datos;
     estado.tz = afuera.tz;
     estado.carta = afuera.carta;
-    estado.seleccion = null;
+    estado.seleccion = [];
     await calcularSinastria();
     guardarDatos();
     guardarPareja();
@@ -1507,7 +1557,7 @@ async function usarPareja(datos, { guardar = false } = {}) {
     if (!estado.carta) return;
     if (!esDeDos(estado.modo)) { await aplicarModo('sinastria'); return; }
     $('#cargando').hidden = false;
-    estado.seleccion = null;
+    estado.seleccion = [];
     if (esSIN(estado.modo)) await calcularSinastria();
     else await calcularCompuesta();
     $('#cargando').hidden = true;
@@ -1711,7 +1761,7 @@ $('#controles-rs').addEventListener('click', async (e) => {
     const paso = e.target.closest('[data-rs]')?.dataset.rs;
     if (!paso) return;
     estado.revolucion.anio += Number(paso);
-    estado.seleccion = null;
+    estado.seleccion = [];
     await calcularRevolucionSolar();
     pintar();
 });
@@ -1768,7 +1818,7 @@ function pintarControlesProgresion() {
 async function cambiarProgresion(fecha, hora = null) {
     estado.progresion.fecha = fecha;
     if (hora) estado.progresion.hora = hora;
-    estado.seleccion = null;
+    estado.seleccion = [];
     await calcularProgresion();
     pintar();
 }
@@ -1868,7 +1918,7 @@ $('#controles-lnp').addEventListener('click', async (e) => {
     if (paso == null) return;
     estado.lunacionProgresada.salto = Number(paso) === 0
         ? 0 : (estado.lunacionProgresada.salto || 0) + Number(paso);
-    estado.seleccion = null;
+    estado.seleccion = [];
     $('#cargando').hidden = false;
     await calcularLunacionProgresada();
     $('#cargando').hidden = true;
@@ -1934,7 +1984,7 @@ async function recalcularMomento({ liviano = false } = {}) {
     }
     if (esRL(estado.modo)) await calcularReubicacion();
     if (esDR(estado.modo)) await calcularDraconica();
-    estado.seleccion = null;
+    estado.seleccion = [];
     pintar({ liviano });
 }
 
@@ -1942,7 +1992,7 @@ async function recalcularMomento({ liviano = false } = {}) {
 async function moverMomento(signo, veces = 1, liviano = false) {
     const k = animable();
     if (!k) return;
-    estado.seleccion = null;
+    estado.seleccion = [];
     const nuevo = avanzar(momentoAnimado(), estado.animacion.paso, signo, veces);
     if (k === 'transito') {
         estado.transito = nuevo;
@@ -2104,7 +2154,7 @@ async function irAlMomento(nuevo) {
     pararAnimacion();
     const k = animable();
     if (!k) return;
-    estado.seleccion = null;
+    estado.seleccion = [];
     if (k === 'transito') {
         estado.transito = nuevo;
         await recalcularTransitoDeLaVista();
@@ -2278,7 +2328,7 @@ $('#controles-ln').addEventListener('click', async (e) => {
         form.elements.tipo.value = estado.modo;
         tipoElegido();
         estado.transito = cuando;
-        estado.seleccion = null;
+        estado.seleccion = [];
         $('#cargando').hidden = false;
         await calcularCartaDelMomento();
         $('#cargando').hidden = true;
@@ -2289,7 +2339,7 @@ $('#controles-ln').addEventListener('click', async (e) => {
     estado.lunacion = paso === 'hoy'
         ? { referencia: momentoLocal(new Date()) }
         : { referencia: momentoLocal(fechaDeJd(laLunacion().jd + Number(paso) * MEDIO_MES)) };
-    estado.seleccion = null;
+    estado.seleccion = [];
     await calcularLunacion();
     pintar();
 });
@@ -2415,7 +2465,7 @@ async function recalcularCalendario() {
 // A la rueda doble, en el instante exacto del evento.
 async function irAlTransito(jd, punto) {
     estado.modo = 'transitos';
-    estado.seleccion = punto ? 't-' + punto : null;
+    estado.seleccion = punto ? ['t-' + punto] : [];
     estado.transito = momentoLocal(fechaDeJd(jd));
     await calcularTransitos();
     pintar();
@@ -2625,7 +2675,7 @@ $('#efemerides').addEventListener('click', async (e) => {
         // A la rueda doble, el dia exacto del aspecto.
         const c = estado.efemerides.datos.cruces[estado.efemerides.cruce];
         estado.modo = 'transitos';
-        estado.seleccion = 't-' + c.a;
+        estado.seleccion = ['t-' + c.a];
         estado.transito = momentoLocal(fechaDeJd(c.jd));
         await calcularTransitos();
         pintar();
@@ -2739,22 +2789,38 @@ $('#interpretaciones').addEventListener('click', (e) => {
 
 // ---------- Interacciones del resultado ----------
 
-function elegirPunto(id) {
-    estado.seleccion = estado.seleccion === id ? null : id;
+// Elegir un punto. `sumar` lo agrega al grupo en vez de reemplazarlo:
+// con ctrl (o cmd en Mac), o con el boton + prendido, que es el camino
+// del telefono, donde no hay teclas que apretar.
+function elegirPunto(id, sumar = false) {
+    const ya = estado.seleccion.includes(id);
+    estado.seleccion = sumar
+        ? (ya ? estado.seleccion.filter((x) => x !== id) : [...estado.seleccion, id])
+        : (ya && estado.seleccion.length === 1 ? [] : [id]);
     pintarRueda();
 }
 
+// El + de la rueda: mientras esta prendido, cada toque suma al grupo.
+let sumando = false;
+const conSumar = (e) => sumando || e.ctrlKey || e.metaKey || e.shiftKey;
+
 $('#rueda').addEventListener('click', (e) => {
     const g = e.target.closest('[data-punto]');
-    if (g) elegirPunto(g.dataset.punto);
+    if (g) elegirPunto(g.dataset.punto, conSumar(e));
 });
 $('#rueda').addEventListener('keydown', (e) => {
     const g = e.target.closest('[data-punto]');
     if (g && (e.key === 'Enter' || e.key === ' ')) {
         e.preventDefault();
-        elegirPunto(g.dataset.punto);
+        elegirPunto(g.dataset.punto, conSumar(e));
     }
 });
+document.querySelectorAll('[data-accion="sumar-puntos"]').forEach((b) =>
+    b.addEventListener('click', () => {
+        sumando = !sumando;
+        document.querySelectorAll('[data-accion="sumar-puntos"]')
+            .forEach((x) => x.setAttribute('aria-pressed', String(sumando)));
+    }));
 
 // Pestañas de las tablas.
 document.querySelectorAll('.pestanas [role="tab"]').forEach((tab) => {
@@ -3306,7 +3372,7 @@ async function abrirGuardada(c, { mismaVista = false, origen = 'lista' } = {}) {
         nombre: c.nombre || '', fecha: c.fecha, hora: c.hora, lugar: c.lugar,
         correccion: c.correccion || null, eleccion: c.eleccion || 0, tipo: c.tipo, grupo: c.grupo
     };
-    estado.seleccion = null;
+    estado.seleccion = [];
     estado.animacion = null;
     if (mismaVista) {
         form.elements.tipo.value = estado.modo;
@@ -3773,7 +3839,7 @@ async function abrirVista(vista) {
     if (typeof datos === 'string') return; // sin carta previa: queda el formulario listo
     modoDelFormulario();
     estado.datos = datos;
-    estado.seleccion = null;
+    estado.seleccion = [];
     estado.animacion = null;
     await calcular({ nueva: true });
     evento('vista_desde_enlace', { vista });

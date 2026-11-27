@@ -74,6 +74,23 @@ export function detallePunto(carta, id) {
         (asp.length ? `<br><span class="nota">${asp.join(' · ')}</span>` : '');
 }
 
+// Texto del detalle con varios puntos elegidos: los aspectos que van de
+// uno a otro, que es lo que la rueda deja encendido. `figura` es el
+// nombre si el grupo coincide con una figura conocida.
+export function detalleVarios(carta, ids, figura = null) {
+    // Un punto de otro anillo viene con su prefijo ("t-" en transito,
+    // "r-" en la de afuera): el nombre sale del id pelado.
+    const nombre = (id) => NOMBRE_PUNTO[id.replace(/^[tr]-/, '')] || id;
+    const nombres = ids.map(nombre);
+    const entre = (carta.aspectos || []).filter((a) => ids.includes(a.a) && ids.includes(a.b));
+    const lista = entre.map((a) =>
+        `${nombre(a.a)} ${NOMBRE_ASPECTO[a.aspecto].toLowerCase()} ${nombre(a.b)} (${orbeTexto(a.orbe)})`);
+    const titulo = figura ? `<strong>${escapar(figura)}</strong>: ${nombres.join(', ')}` : `<strong>${nombres.join(' · ')}</strong>`;
+    return titulo + (lista.length
+        ? `<br><span class="nota">${lista.join(' · ')}</span>`
+        : '<br><span class="nota">No hay aspectos entre estos puntos.</span>');
+}
+
 // ---------- Revolucion solar ----------
 
 // Planetas de la revolucion: signo, grado, casa de la revolucion y casa

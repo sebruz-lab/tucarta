@@ -597,6 +597,12 @@
             <div id="rueda"></div>
             <p id="aviso-lunacion" class="aviso-lunacion" hidden></p>
             <figcaption id="detalle-punto" class="detalle-punto" aria-live="polite">Tocá un planeta para ver dónde está y con quién se relaciona.</figcaption>
+            <!-- Marcar varios puntos a la vez: con ctrl (o cmd) en la compu,
+                 y con este boton en el telefono, donde no hay teclas. -->
+            <button type="button" class="boton-sumar" data-accion="sumar-puntos" aria-pressed="false"
+                title="Marcar varios puntos a la vez" aria-label="Marcar varios puntos a la vez">+</button>
+            <!-- Las figuras de aspectos de esta carta. Las arma pintarFiguras. -->
+            <div id="figuras" class="figuras" hidden></div>
             <div class="panel-completa">
                 <button type="button" class="cambiar-carta" data-completa="cartas" aria-expanded="false">Mis cartas</button>
                 <div class="cartas-completa" hidden>
@@ -628,6 +634,10 @@
                 <button type="button" class="boton-animar animar-completa" data-completa="animar"
                     aria-pressed="false" title="Animar la carta en el tiempo" aria-label="Animar la carta en el tiempo">
                     <span class="tri" aria-hidden="true">&#9654;</span> Animar
+                </button>
+                <button type="button" class="boton-animar sumar-completa" data-accion="sumar-puntos"
+                    aria-pressed="false" title="Marcar varios puntos a la vez">
+                    <span aria-hidden="true">+</span> Varios puntos
                 </button>
             </div>
             <button type="button" class="salir-completa" data-completa="salir" aria-label="Salir de pantalla completa">×</button>
