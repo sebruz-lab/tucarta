@@ -576,11 +576,12 @@
             <div id="esquina-der" class="esquina esquina-der"></div>
             <div id="rueda"></div>
             <p id="aviso-lunacion" class="aviso-lunacion" hidden></p>
-            <figcaption id="detalle-punto" class="detalle-punto" aria-live="polite">Tocá un planeta para ver dónde está y con quién se relaciona.</figcaption>
-            <!-- Marcar varios puntos a la vez: con ctrl (o cmd) en la compu,
-                 y con este boton en el telefono, donde no hay teclas. Al
-                 lado, la (i) que lo explica. -->
-            <div class="fila-sumar">
+            <!-- El renglon del detalle y, en la misma linea, el + para
+                 marcar varios puntos a la vez (con ctrl o cmd en la compu;
+                 el boton es para el telefono, donde no hay teclas) y la
+                 (i) que lo explica. -->
+            <div class="fila-detalle">
+                <figcaption id="detalle-punto" class="detalle-punto" aria-live="polite">Tocá un planeta para ver sus aspectos aislados.</figcaption>
                 <button type="button" class="boton-sumar" data-accion="sumar-puntos" aria-pressed="false"
                     title="Marcar varios puntos a la vez" aria-label="Marcar varios puntos a la vez">+</button>
                 <button type="button" class="boton-info" data-info="varios-puntos"

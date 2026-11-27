@@ -1076,7 +1076,7 @@ function pintarRueda() {
         ? (anillos.length ? `Tocá un planeta natal (adentro) o de los anillos de afuera.`
             : transitos ? `Tocá un planeta ${adentroDeLaVista()} o en tránsito para ver sus aspectos.`
             : externa ? `Tocá un planeta ${e.de} (afuera) o natal (adentro).`
-                : 'Tocá un planeta para ver dónde está y con quién se relaciona.')
+                : 'Tocá un planeta para ver sus aspectos aislados.')
         : s.startsWith('a-') || s.startsWith('b-')
             ? detalleAnillo(anillos[s.startsWith('a-') ? 0 : 1] || { puntos: [] }, estado.carta, s)
         : s.startsWith('r-') ? detalleRevolucion(externa, estado.carta, s, e.de, externa ? aspectosExternaANatal() : null)

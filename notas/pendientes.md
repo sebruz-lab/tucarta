@@ -67,10 +67,16 @@ aire y, de paso, tapan el ancho de la barra de scroll, que `100vw` cuenta
 y `100%` no.
 
 **Lo que lo acota no es un ancho sino un ALTO** (pedido de Seba del
-26/11/2026): `max-width: calc(min(72vh, 760px) * 1200 / 700)` sobre el
-SVG, o sea el ancho que sale de ese alto por la relación del viewBox. El
-gráfico crece hasta ahí y después para, centrado. El tope no es el ancho
-del resto de los cálculos: es hasta dónde se puede mirar el año de una.
+26/11/2026): `max-width: calc((100vh - 80px) * 1200 / 700)` sobre el SVG,
+o sea el ancho que sale de ese alto por la relación del viewBox. El
+gráfico toma todo el ancho que pueda sin que el cuadro entero —los 30
+grados— deje de entrar en la ventana, y después para, centrado. El tope
+no tiene nada que ver con el ancho del resto de los cálculos.
+
+Los **80 px** son el aire de arriba y abajo, y conviene que sigan siendo
+pocos: cada píxel que se les suma son casi dos de margen a cada lado. Con
+`min(72vh, 760px)`, que fue el primer intento, el gráfico quedaba chico y
+el margen enorme.
 
 **Y eso solo es seguro con `min-width: 0`.** `overflow-x: auto` y
 `min-width: 1000px` son del celular, donde el gráfico no entra y se
@@ -103,7 +109,19 @@ animar, y no en un `content` del CSS. Ahí hay que escribirla como escape
 y un escape mal escrito deja un carácter de control adentro del archivo
 que se ve como tres símbolos raros en pantalla. Pasó el 26/11/2026.
 
-Al lado del **+** hay una **(i)** que lo explica, y es el primero de
+**La rueda también entra entera en la ventana** (pedido de Seba del
+26/11/2026). Es cuadrada, así que el alto libre manda también el ancho:
+`--rueda: min(860px, 100vw - 48px, 100vh - 170px)`. Los 170 px son lo que
+va debajo del círculo adentro de la figura (el renglón del detalle con
+sus botones, y las figuras) más aire. La medida sale **una sola vez**,
+en esa variable, porque la usan dos reglas: el margen negativo de
+`.figura-rueda`, que es lo que lleva las esquinas a los costados del
+círculo, y el ancho del dibujo. Si se separan, las esquinas quedan lejos
+de la rueda. Pantalla completa e impresión tienen sus propias medidas y
+no pasan por acá.
+
+El renglón del detalle, el **+** y la **(i)** van los tres en una línea
+(`.fila-detalle`). Al lado del **+** la **(i)** lo explica, y es el primero de
 varios: cualquier botón con `data-info="clave"` abre la misma ventana
 (`#ventana-info`) con el texto que le toca, que sale de la tabla `INFOS`
 de `ui/app.js`. Sumar una explicación es un botón y una entrada más, sin

@@ -885,11 +885,16 @@ body.sin-scroll { overflow: hidden; }
 }
 .detalle-punto strong { color: var(--amarillo); font-weight: 400; }
 
-/* Marcar varios puntos a la vez. En la compu alcanza con ctrl o cmd al
-   hacer clic; este boton existe para el telefono, donde no hay teclas, y
-   de paso es el camino con el teclado. Prendido, cada toque suma. Al
-   lado va la (i) que lo explica. */
-.fila-sumar { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 2px; }
+/* El detalle y los dos botones, en un renglon. Con el texto corto los
+   tres quedan centrados; con el largo (un planeta elegido, con su lista
+   de aspectos) el texto se va a dos lineas y los botones se quedan al
+   medio, a su costado.
+   El + marca varios puntos a la vez: en la compu alcanza con ctrl o cmd
+   al hacer clic, y el boton existe para el telefono, donde no hay
+   teclas (y de paso es el camino con el teclado). Prendido, cada toque
+   suma. Al lado va la (i) que lo explica. */
+.fila-detalle { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 12px; }
+.fila-detalle .detalle-punto { margin-top: 0; }
 .boton-sumar, .boton-info {
     display: inline-flex;
     align-items: center;
@@ -2079,10 +2084,21 @@ body.sin-scroll { overflow: hidden; }
     .acciones { flex-direction: row; gap: 24px; }
 }
 
-/* En la compu la rueda sale de la columna de texto para verse mas grande. */
+/* En la compu la rueda sale de la columna de texto para verse mas
+   grande, y entra entera en la ventana sin scrollear: la rueda es
+   cuadrada, asi que el alto que queda libre manda tambien el ancho.
+   Los 170px son lo que va debajo del circulo adentro de la figura (el
+   renglon del detalle, el + y las figuras) mas aire.
+   La medida sale una sola vez, en --rueda, porque la usan los dos: el
+   margen negativo de la figura (que es lo que lleva las esquinas a los
+   costados del circulo) y el ancho del dibujo. Si se separan, las
+   esquinas quedan lejos de la rueda. */
 @media (min-width: 900px) {
-    .figura-rueda { margin: 0 calc((100% - min(860px, 100vw - 48px)) / 2); }
-    .rueda { max-width: 860px; }
+    .figura-rueda {
+        --rueda: min(860px, 100vw - 48px, 100vh - 170px);
+        margin: 0 calc((100% - var(--rueda)) / 2);
+    }
+    .rueda { max-width: var(--rueda); }
     .esquina { font-size: 0.82rem; }
 }
 
@@ -2153,17 +2169,19 @@ body.sin-scroll { overflow: hidden; }
         padding: 0;
         overflow: visible;
     }
-    /* Lo que lo acota no es el ancho sino el ALTO: el grafico se estira
-       hasta donde la pantalla de 1200x700 lo deje, y en una pantalla
-       muy ancha pararia de crecer antes de volverse mas alto que lo que
-       se puede mirar de una. El ancho maximo sale de ese alto por la
-       relacion del viewBox. Centrado cuando el tope lo alcanza.
+    /* Lo que lo acota no es el ancho sino el ALTO: el grafico toma todo
+       el ancho que pueda sin que el cuadro entero (los 30 grados) deje
+       de entrar en la ventana. El ancho maximo sale de ese alto por la
+       relacion del viewBox, 1200x700. Queda centrado cuando el tope lo
+       alcanza, y los 80px son el aire de arriba y abajo: con un numero
+       mas grande el margen se vuelve enorme y el grafico chico, que es
+       justo lo que no se quiere.
        Ojo: esto solo es seguro con min-width en 0; con el min-width de
        1000px del celular puesto, un tope mas chico mete el grafico en
        una caja de scroll (paso el 26/11/2026). */
     .efemerides .ef-svg {
         min-width: 0;
-        max-width: calc(min(72vh, 760px) * 1200 / 700);
+        max-width: calc((100vh - 80px) * 1200 / 700);
         margin: 0 auto;
     }
 }
@@ -2248,7 +2266,7 @@ body.sin-scroll { overflow: hidden; }
     .figura-rueda .acciones-esquina, .figura-rueda .leyenda-aspectos,
     .figura-rueda .panel-completa, .figura-rueda .salir-completa,
     .figura-rueda #controles-animacion, #detalle-punto,
-    .figura-rueda .fila-sumar, .figura-rueda #figuras {
+    .figura-rueda .fila-detalle, .figura-rueda #figuras {
         display: none !important;
     }
     main, #resultado { max-width: none; padding: 0; margin: 0; }
