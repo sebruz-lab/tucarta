@@ -61,22 +61,22 @@ lugares; ahora vive una sola vez, en `participantes()` de
 a borde. Los controles y el detalle se quedan en la columna de 720: son
 texto.
 
-Ojo con dos cosas que ya mordieron el mismo día:
-
-1. **`overflow-x: auto` y `min-width: 1000px` son del celular**, donde el
-   gráfico no entra y se desliza de costado. En una pantalla grande hay
-   que apagarlos: dejarlos puestos junto a un ancho limitado mete el
-   gráfico en una caja de scroll que no tiene por qué existir.
-2. **No acotar el ancho por el alto.** Se probó (`(100vh - 220px) * 1200 /
-   700`, para que el año entrara sin scrollear) y en una pantalla baja
-   deja la caja más angosta que el `min-width`, que es justamente lo del
-   punto 1. Si el gráfico queda muy alto en una pantalla enorme, se
-   resuelve de otra manera.
-
 El margen negativo es `calc(24px - (100vw - 100%) / 2)`: la mitad de lo
 que le sobra a la pantalla sobre la columna. Los 24 px de cada lado son
 aire y, de paso, tapan el ancho de la barra de scroll, que `100vw` cuenta
 y `100%` no.
+
+**Lo que lo acota no es un ancho sino un ALTO** (pedido de Seba del
+26/11/2026): `max-width: calc(min(72vh, 760px) * 1200 / 700)` sobre el
+SVG, o sea el ancho que sale de ese alto por la relación del viewBox. El
+gráfico crece hasta ahí y después para, centrado. El tope no es el ancho
+del resto de los cálculos: es hasta dónde se puede mirar el año de una.
+
+**Y eso solo es seguro con `min-width: 0`.** `overflow-x: auto` y
+`min-width: 1000px` son del celular, donde el gráfico no entra y se
+desliza de costado; en pantalla grande hay que apagar los dos. Con el
+`min-width` puesto, cualquier tope más chico que 1000 px mete el gráfico
+en una caja de scroll. Pasó el 26/11/2026, con esta misma regla.
 
 ## Tanda 2: figuras de aspectos
 
@@ -97,6 +97,19 @@ buscando); tocar una elige sus puntos y de ahí en más es una selección de
 varias como cualquier otra. El desplegable se queda abierto si la persona
 lo abrió, y se abre solo cuando hay una figura elegida: si no, al tocar
 una no se vería cuál quedó marcada.
+
+**La flechita del desplegable va en el HTML**, como la del botón de
+animar, y no en un `content` del CSS. Ahí hay que escribirla como escape
+y un escape mal escrito deja un carácter de control adentro del archivo
+que se ve como tres símbolos raros en pantalla. Pasó el 26/11/2026.
+
+Al lado del **+** hay una **(i)** que lo explica, y es el primero de
+varios: cualquier botón con `data-info="clave"` abre la misma ventana
+(`#ventana-info`) con el texto que le toca, que sale de la tabla `INFOS`
+de `ui/app.js`. Sumar una explicación es un botón y una entrada más, sin
+ventana ni listener propios, y hay un test que falla si falta una de las
+dos mitades. **No confundir con `data-ayuda`**, que ya existía y es otra
+cosa: el "?" de al lado del lugar, que despliega una nota ahí mismo.
 
 Tres cosas que conviene no deshacer:
 

@@ -1116,7 +1116,8 @@ function pintarFiguras(base, { transitos, externa }) {
     // persona haya abierto, y se abre solo si hay una figura elegida
     // (al volver de tocar una, tiene que verse cual quedo marcada).
     const abierto = caja.open || Boolean(elegida);
-    caja.innerHTML = `<summary class="figuras-titulo">Figuras de aspectos `
+    caja.innerHTML = '<summary class="figuras-titulo">'
+        + '<span class="tri-figuras" aria-hidden="true">&#9656;</span> Figuras de aspectos '
         + `<span class="figuras-cuantas">${figuras.length}</span></summary>`
         + '<div class="figuras-chapas">' + figuras.map((f, i) => `
         <button type="button" class="chapa-figura" data-figura="${i}" aria-pressed="${f === elegida}">
@@ -3052,6 +3053,36 @@ $('#rueda').addEventListener('keydown', (e) => {
         elegirPunto(g.dataset.punto, conSumar(e));
     }
 });
+// ---------- Los (i) de la pagina ----------
+//
+// Cada boton con data-info abre la misma ventana con el texto que le
+// toca. Sumar una explicacion nueva en cualquier parte de la pagina es
+// un boton con su clave y una entrada mas en esta tabla: no hay una
+// ventana ni un listener por cada una.
+//
+// No confundir con `data-ayuda`, que es el "?" de al lado del lugar:
+// ese despliega una nota ahi mismo y no abre ninguna ventana.
+const INFOS = {
+    'varios-puntos': {
+        titulo: 'Varios planetas a la vez',
+        cuerpo: `<p>Tocando el <strong>+</strong> podés sumar varios planetas para ver los
+            aspectos que hacen entre ellos. Los demás quedan apagados.</p>
+            <p class="nota">En la computadora es lo mismo con ctrl (o cmd en Mac) mientras hacés clic,
+            sin tocar el +. Para volver a uno solo, apagá el + y tocá cualquier planeta.</p>`
+    }
+};
+
+const ventanaInfo = $('#ventana-info');
+document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-info-cerrar]')) { ventanaInfo.close(); return; }
+    const clave = e.target.closest('[data-info]')?.dataset.info;
+    const a = clave && INFOS[clave];
+    if (!a) return;
+    $('#titulo-info').textContent = a.titulo;
+    $('#cuerpo-info').innerHTML = a.cuerpo;
+    if (!ventanaInfo.open) ventanaInfo.showModal();
+});
+
 document.querySelectorAll('[data-accion="sumar-puntos"]').forEach((b) =>
     b.addEventListener('click', () => {
         sumando = !sumando;

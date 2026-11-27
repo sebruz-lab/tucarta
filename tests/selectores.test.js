@@ -80,3 +80,29 @@ describe('la lista de vistas vive en un solo lugar', () => {
         expect(js).not.toContain('<optgroup');
     });
 });
+
+// Los (i) de la pagina: un boton con data-info y una entrada en INFOS.
+// Van a ser varios, asi que conviene que una mitad sin la otra falle
+// acá y no en silencio (un boton sin texto no hace nada al tocarlo).
+describe('los (i) de la página', () => {
+    const js = readFileSync(join(ui, 'app.js'), 'utf8');
+    const tabla = js.slice(js.indexOf('const INFOS = {'), js.indexOf('const ventanaInfo'));
+    const claves = [...tabla.matchAll(/^ {4}'([a-z0-9-]+)': \{$/gm)].map((m) => m[1]);
+    const botones = [...html.matchAll(/data-info="([a-z0-9-]+)"/g)].map((m) => m[1]);
+
+    it('cada botón tiene su texto', () => {
+        expect(botones.length).toBeGreaterThan(0);
+        expect(botones.filter((b) => !claves.includes(b))).toEqual([]);
+    });
+
+    it('cada texto tiene su botón', () => {
+        expect(claves.filter((c) => !botones.includes(c))).toEqual([]);
+    });
+
+    it('data-info no se pisa con data-ayuda, que es otra cosa', () => {
+        // data-ayuda es el "?" del lugar, que despliega una nota ahi
+        // mismo en vez de abrir la ventana.
+        const ayudas = [...html.matchAll(/data-ayuda="([a-z0-9-]+)"/g)].map((m) => m[1]);
+        expect(ayudas.filter((a) => claves.includes(a))).toEqual([]);
+    });
+});

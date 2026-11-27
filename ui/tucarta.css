@@ -887,10 +887,13 @@ body.sin-scroll { overflow: hidden; }
 
 /* Marcar varios puntos a la vez. En la compu alcanza con ctrl o cmd al
    hacer clic; este boton existe para el telefono, donde no hay teclas, y
-   de paso es el camino con el teclado. Prendido, cada toque suma. */
-.boton-sumar {
-    display: block;
-    margin: 2px auto 0;
+   de paso es el camino con el teclado. Prendido, cada toque suma. Al
+   lado va la (i) que lo explica. */
+.fila-sumar { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 2px; }
+.boton-sumar, .boton-info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 30px;
     height: 30px;
     font: inherit;
@@ -902,12 +905,17 @@ body.sin-scroll { overflow: hidden; }
     border-radius: 999px;
     cursor: pointer;
 }
-.boton-sumar:hover { border-color: var(--turquesa); color: var(--texto); }
+.boton-sumar:hover, .boton-info:hover { border-color: var(--turquesa); color: var(--texto); }
 .boton-sumar[aria-pressed="true"] {
     border-color: var(--turquesa);
     color: var(--turquesa);
     background: rgba(59, 194, 188, 0.12);
 }
+/* La (i): mas chica y mas callada que el +, que es el que se usa. Es
+   otra clase que `.boton-ayuda`, el "?" del lugar, que ya existia. */
+.boton-info { width: 24px; height: 24px; font-size: 0.85rem; font-style: italic; }
+.ventana-info p { margin: 0 0 10px; }
+.ventana-info p:last-child { margin-bottom: 0; }
 
 /* Las figuras de aspectos de la carta, debajo de la rueda. Van cerradas
    y se abren a pedido: ahi abajo hay poco lugar. Cada chapa elige sus
@@ -926,13 +934,12 @@ body.sin-scroll { overflow: hidden; }
 }
 .figuras-titulo::-webkit-details-marker { display: none; }
 .figuras-titulo:hover { color: var(--texto); }
-/* La flechita, que gira al abrir. */
-.figuras-titulo::before {
-    content: 'B8';
-    font-size: 0.75em;
-    transition: transform 0.15s;
-}
-.figuras[open] .figuras-titulo::before { transform: rotate(90deg); }
+/* La flechita va en el HTML, como la del boton de animar, y no en un
+   `content` del CSS: ahi hay que escribirla como escape ('25B8') y
+   un escape mal escrito deja un caracter de control en el archivo que
+   se ve como tres simbolos raros en pantalla. Paso el 26/11/2026. */
+.tri-figuras { font-size: 0.75em; transition: transform 0.15s; display: inline-block; }
+.figuras[open] .tri-figuras { transform: rotate(90deg); }
 .figuras-cuantas {
     font-size: 0.75rem;
     border: 1px solid var(--linea);
@@ -2146,7 +2153,19 @@ body.sin-scroll { overflow: hidden; }
         padding: 0;
         overflow: visible;
     }
-    .efemerides .ef-svg { min-width: 0; }
+    /* Lo que lo acota no es el ancho sino el ALTO: el grafico se estira
+       hasta donde la pantalla de 1200x700 lo deje, y en una pantalla
+       muy ancha pararia de crecer antes de volverse mas alto que lo que
+       se puede mirar de una. El ancho maximo sale de ese alto por la
+       relacion del viewBox. Centrado cuando el tope lo alcanza.
+       Ojo: esto solo es seguro con min-width en 0; con el min-width de
+       1000px del celular puesto, un tope mas chico mete el grafico en
+       una caja de scroll (paso el 26/11/2026). */
+    .efemerides .ef-svg {
+        min-width: 0;
+        max-width: calc(min(72vh, 760px) * 1200 / 700);
+        margin: 0 auto;
+    }
 }
 .ef-svg .ef-fondo { fill: var(--superficie); fill-opacity: 0.45; }
 /* Meses y grados: la misma linea punteada; cada 5°, apenas mas oscura. */
@@ -2229,7 +2248,7 @@ body.sin-scroll { overflow: hidden; }
     .figura-rueda .acciones-esquina, .figura-rueda .leyenda-aspectos,
     .figura-rueda .panel-completa, .figura-rueda .salir-completa,
     .figura-rueda #controles-animacion, #detalle-punto,
-    .figura-rueda .boton-sumar, .figura-rueda #figuras {
+    .figura-rueda .fila-sumar, .figura-rueda #figuras {
         display: none !important;
     }
     main, #resultado { max-width: none; padding: 0; margin: 0; }

@@ -199,6 +199,17 @@
         <button type="button" class="boton-texto" data-anexo="cerrar">Cancelar</button>
     </dialog>
 
+    <!-- Las explicaciones de los (i) de la pagina: una sola ventana para
+         todas, con el texto que le toca segun el data-info del boton.
+         Sumar una es una entrada mas en INFOS (ui/app.js).
+         Ojo: `data-ayuda` ya existe y es otra cosa (el "?" del lugar,
+         que despliega una nota ahi mismo en vez de abrir una ventana). -->
+    <dialog id="ventana-info" class="ventana-cuenta ventana-info" aria-labelledby="titulo-info">
+        <button type="button" class="cerrar" data-info-cerrar aria-label="Cerrar">×</button>
+        <h2 id="titulo-info"></h2>
+        <div id="cuerpo-info"></div>
+    </dialog>
+
     <dialog id="ventana-dia" class="ventana-cuenta ventana-dia" aria-labelledby="titulo-dia">
         <button type="button" class="cerrar" data-dia="cerrar" aria-label="Cerrar">×</button>
         <h2 id="titulo-dia"></h2>
@@ -567,9 +578,14 @@
             <p id="aviso-lunacion" class="aviso-lunacion" hidden></p>
             <figcaption id="detalle-punto" class="detalle-punto" aria-live="polite">Tocá un planeta para ver dónde está y con quién se relaciona.</figcaption>
             <!-- Marcar varios puntos a la vez: con ctrl (o cmd) en la compu,
-                 y con este boton en el telefono, donde no hay teclas. -->
-            <button type="button" class="boton-sumar" data-accion="sumar-puntos" aria-pressed="false"
-                title="Marcar varios puntos a la vez" aria-label="Marcar varios puntos a la vez">+</button>
+                 y con este boton en el telefono, donde no hay teclas. Al
+                 lado, la (i) que lo explica. -->
+            <div class="fila-sumar">
+                <button type="button" class="boton-sumar" data-accion="sumar-puntos" aria-pressed="false"
+                    title="Marcar varios puntos a la vez" aria-label="Marcar varios puntos a la vez">+</button>
+                <button type="button" class="boton-info" data-info="varios-puntos"
+                    title="Qué hace el +" aria-label="Qué hace el +">i</button>
+            </div>
             <!-- Las figuras de aspectos de esta carta: cerradas, se abren
                  a pedido. Las arma pintarFiguras. -->
             <details id="figuras" class="figuras" hidden></details>
