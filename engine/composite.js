@@ -18,7 +18,7 @@
 
 import { AJUSTES_POR_DEFECTO } from './config.js';
 import { enSigno, casaDe } from './chart.js';
-import { calcularAspectos, opcionesDeOrbe } from './aspects.js';
+import { calcularAspectos, opcionesDeOrbe, participantes } from './aspects.js';
 
 const norm = (x) => ((x % 360) + 360) % 360;
 
@@ -56,14 +56,8 @@ export function calcularCompuesta(swe, { a, b, ajustes = AJUSTES_POR_DEFECTO }) 
         { id: 'mc', lon: mc, ...enSigno(mc) }
     ];
 
-    const elegidos = ajustes.puntosAspectados;
-    const entra = (id) => (elegidos ? elegidos[id] !== false : true);
-    const conAngulos = elegidos ? (entra('asc') || entra('mc')) : ajustes.aspectosAngulos;
-    const participantes = [
-        ...puntos.filter((p) => entra(p.id)),
-        ...(conAngulos ? angulos.filter((x) => entra(x.id)) : [])
-    ];
-    const aspectos = calcularAspectos(participantes, participantes, {
+    const juegan = participantes({ puntos, angulos }, ajustes);
+    const aspectos = calcularAspectos(juegan, juegan, {
         ...opcionesDeOrbe(ajustes), mismaCarta: true
     });
 

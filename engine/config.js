@@ -173,15 +173,28 @@ export const ORBES_SINASTRIA = {
     conjuncion: 7, oposicion: 7, trigono: 5, cuadratura: 5, sextil: 4, menor: 2
 };
 
-// Que puntos entran en el juego de aspectos. Todos, salvo el Ascendente y
-// el Medio Cielo, que muchos prefieren no aspectar.
+// Que puntos entran en el juego de aspectos. Los de siempre aspectan; el
+// Ascendente y el Medio Cielo no, que muchos prefieren no aspectarlos.
+//
+// Los opcionales tampoco: se los suma a la carta para verlos, y recien
+// despues se decide si aspectan. El Nodo Sur y la Tierra son el punto
+// opuesto de otro, asi que aspectando duplican cada aspecto del Nodo
+// Norte y del Sol, dados vuelta; y los asteroides llenan la rueda de
+// lineas apenas se los prende. Quien los quiera aspectando los marca en
+// "Puntos aspectados", donde su casilla aparece apenas se prende el punto.
 export const PUNTOS_ASPECTADOS_POR_DEFECTO = {
     ...Object.fromEntries(PUNTOS.map((p) => [p.id, true])),
-    ...Object.fromEntries(PUNTOS_OPCIONALES.map((p) => [p.id, true])),
+    ...Object.fromEntries(PUNTOS_OPCIONALES.map((p) => [p.id, false])),
     asc: false, mc: false
 };
 
+// Version de la forma de los ajustes guardados. Sube cuando un valor por
+// defecto cambia de sentido y hay que corregir lo que ya esta en el
+// dispositivo: leerAjustes migra una sola vez y lo deja anotado en `v`.
+export const ESQUEMA_AJUSTES = 2;
+
 export const AJUSTES_POR_DEFECTO = {
+    v: ESQUEMA_AJUSTES,
     casas: 'P',
     orbes: ORBES_POR_DEFECTO,
     aspectosAngulos: false,

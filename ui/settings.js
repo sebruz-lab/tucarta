@@ -4,7 +4,7 @@
 import { SISTEMAS_CASAS, AJUSTES_POR_DEFECTO, ORBES_POR_DEFECTO, ORBES_MENORES, ORBES_TRANSITO, ORBES_SINASTRIA,
     ASPECTOS, ASPECTOS_POR_DEFECTO, ASPECTOS_TRANSITO_POR_DEFECTO, ORBES_ASPECTO, FACTORES_POR_DEFECTO,
     PUNTOS, PUNTOS_OPCIONALES, PUNTOS_ACTIVOS_POR_DEFECTO, PUNTOS_ASPECTADOS_POR_DEFECTO,
-    enLaCarta } from '../engine/config.js';
+    ESQUEMA_AJUSTES, enLaCarta } from '../engine/config.js';
 import { NOMBRE_PUNTO, NOMBRE_ASPECTO } from './textos.js';
 import { PUNTOS as G_PUNTOS, iconoSvg } from './glyphs.js';
 import { METODOS_PROGRESION } from '../engine/progressions.js';
@@ -16,6 +16,15 @@ const distinto = (tabla, guardada) =>
 
 const tocoLosOrbes = (g) =>
     distinto(ORBES_POR_DEFECTO, g.orbes) || distinto(ORBES_MENORES, g.orbesMenores);
+
+// Esquema 2: los puntos opcionales dejaron de aspectar por defecto. No
+// alcanza con cambiar la tabla de defectos, porque el panel ya los habia
+// guardado en `true` uno por uno (ajustesDesde escribe todo lo que ve en
+// pantalla), y lo guardado le gana al defecto. Se apagan una sola vez;
+// quien los quiera aspectando los vuelve a marcar.
+const migrarAspectados = (g) => (Number(g.v) >= 2
+    ? g.puntosAspectados
+    : { ...g.puntosAspectados, ...Object.fromEntries(PUNTOS_OPCIONALES.map((p) => [p.id, false])) });
 
 export function leerAjustes() {
     try {
@@ -37,7 +46,8 @@ export function leerAjustes() {
             orbesTransito: { ...ORBES_TRANSITO, ...g.orbesTransito },
             orbesSinastria: { ...ORBES_SINASTRIA, ...g.orbesSinastria },
             puntos: { ...PUNTOS_ACTIVOS_POR_DEFECTO, ...g.puntos },
-            puntosAspectados: { ...PUNTOS_ASPECTADOS_POR_DEFECTO, ...g.puntosAspectados }
+            puntosAspectados: { ...PUNTOS_ASPECTADOS_POR_DEFECTO, ...migrarAspectados(g) },
+            v: ESQUEMA_AJUSTES
         };
     } catch {}
     return structuredClone(AJUSTES_POR_DEFECTO);
@@ -302,6 +312,10 @@ export function ajustesDesde(form, previos) {
         if (c) puntosAspectados[id] = c.checked;
     }
     return {
+        // El numero de esquema viaja con los ajustes: sin el, la migracion
+        // volveria a correr en la proxima visita y apagaria otra vez lo
+        // que la persona acaba de prender.
+        v: previos.v || ESQUEMA_AJUSTES,
         puntos,
         puntosAspectados,
         fortunaNocturna: Boolean(form.elements['fortuna-nocturna']?.checked),

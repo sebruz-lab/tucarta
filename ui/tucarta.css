@@ -2028,8 +2028,17 @@ body.sin-scroll { overflow: hidden; }
 /* Ancho: en el celular el grafico se desliza de costado. */
 .ef-grafico { overflow-x: auto; margin: 0 -16px; padding: 0 16px; }
 .ef-svg { display: block; width: 100%; min-width: 1000px; height: auto; touch-action: pan-x pan-y; }
+/* El grafico se sale de la columna de 720px y toma la pantalla entera: es
+   un ano de efemerides, y cuanto mas ancho, mas separadas quedan las
+   lineas. El margen negativo simetrico es el mismo truco de .figura-rueda.
+   El tope ya no es un ancho sino el ALTO: con la relacion 1200/700 del
+   viewBox, en una pantalla de 2500px el grafico mediria 1460 de alto y
+   habria que scrollear para ver el ano completo. Los controles y el
+   detalle se quedan en la columna: son texto. */
 @media (min-width: 900px) {
-    .efemerides .ef-grafico { margin: 0 calc((100% - min(1180px, 100vw - 48px)) / 2); }
+    .efemerides .ef-grafico {
+        margin: 0 calc((100% - min(100vw - 32px, (100vh - 220px) * 1200 / 700)) / 2);
+    }
 }
 .ef-svg .ef-fondo { fill: var(--superficie); fill-opacity: 0.45; }
 /* Meses y grados: la misma linea punteada; cada 5°, apenas mas oscura. */

@@ -20,7 +20,7 @@
 // punto y se reusan para los cuatro carriles.
 
 import { PUNTOS, AJUSTES_POR_DEFECTO } from './config.js';
-import { aspectosActivos } from './aspects.js';
+import { aspectosActivos, participantes } from './aspects.js';
 import { flagsDe, SIGNOS } from './chart.js';
 import { crucesDe, UN_SEGUNDO } from './raices.js';
 import { fasesEntre } from './lunaciones.js';
@@ -95,9 +95,7 @@ export function eventosDelCielo(swe, {
     // Aspectos de un punto en transito a la carta abierta. Quien los
     // recibe sale de "Puntos aspectados", igual que en calendarioTransitos.
     if (quiero.aLaCarta && natal) {
-        const marcados = ajustes.puntosAspectados;
-        const natales = [...natal.puntos, ...natal.angulos]
-            .filter((p) => (marcados ? marcados[p.id] !== false : true));
+        const natales = participantes(natal, ajustes);
         for (const { p, lons } of serie.values()) {
             const lonP = lon(p);
             for (const nat of natales) {

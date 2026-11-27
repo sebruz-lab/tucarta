@@ -3,7 +3,7 @@
 // geocentricas); las casas son las de la carta natal.
 
 import { PUNTOS, PUNTOS_TRANSITO, AJUSTES_POR_DEFECTO, enLaCarta } from './config.js';
-import { calcularAspectos } from './aspects.js';
+import { calcularAspectos, participantes } from './aspects.js';
 import { diaJuliano, flagsDe, enSigno, casaDe } from './chart.js';
 
 const SE_MEAN_NODE = 10;
@@ -49,11 +49,7 @@ export function calcularTransitos(swe, { utc, natal, ajustes = AJUSTES_POR_DEFEC
     // solo del planeta en transito. Quien recibe los transitos es lo que
     // diga "Puntos aspectados": el Ascendente y el Medio Cielo entran solo
     // si estan prendidos ahi.
-    const elegidos = ajustes.puntosAspectados;
-    const recibe = (id) => (elegidos ? elegidos[id] !== false : true);
-    const natales = [...natal.puntos, ...natal.angulos]
-        .filter((p) => recibe(p.id))
-        .map((p) => ({ id: p.id, lon: p.lon, vel: 0 }));
+    const natales = participantes(natal, ajustes, { quieta: true });
     const aspectos = calcularAspectos(puntos, natales, {
         orbesPorAspecto: ajustes.orbesTransito || AJUSTES_POR_DEFECTO.orbesTransito,
         aspectos: ajustes.aspectosTransito || ajustes.aspectos

@@ -7,7 +7,7 @@
 // encontrar la entrada y la salida reales de los transitos largos.
 
 import { PUNTOS, AJUSTES_POR_DEFECTO } from './config.js';
-import { aspectosActivos } from './aspects.js';
+import { aspectosActivos, participantes } from './aspects.js';
 import { flagsDe } from './chart.js';
 import { biseccion } from './raices.js';
 
@@ -30,9 +30,7 @@ export function calendarioTransitos(swe, { natal, desde, hasta, ajustes = AJUSTE
     const activos = aspectosActivos(ajustes.aspectosTransito || ajustes.aspectos
         || AJUSTES_POR_DEFECTO.aspectosTransito);
     // Lo mismo que en los transitos: solo los puntos que se aspectan.
-    const elegidos = ajustes.puntosAspectados;
-    const natales = [...natal.puntos, ...natal.angulos]
-        .filter((p) => (elegidos ? elegidos[p.id] !== false : true));
+    const natales = participantes(natal, ajustes);
     const inicio = Math.floor(desde) - MARGEN;
     const dias = Math.ceil(hasta) + MARGEN - inicio;
     const res = [];

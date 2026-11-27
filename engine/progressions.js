@@ -8,7 +8,7 @@
 
 import { AJUSTES_POR_DEFECTO } from './config.js';
 import { calcularCarta } from './chart.js';
-import { calcularAspectos } from './aspects.js';
+import { calcularAspectos, participantes } from './aspects.js';
 import { utcDeJd } from './solarReturn.js';
 
 export const ANIO_TROPICO = 365.24219;
@@ -69,10 +69,13 @@ export function calcularProgresion(swe, { natal, jdObjetivo, ajustes = AJUSTES_P
     const casas = swe.houses(jdNatal, lat, lonCorrida, ajustes.casas);
     const carta = calcularCarta(swe, { utc, lat, lon, ajustes, casas });
     const opciones = { orbesPorAspecto: ORBES_PROGRESION, aspectos: ajustes.aspectos };
-    const participantes = ajustes.aspectosAngulos ? [...carta.puntos, ...carta.angulos] : carta.puntos;
-    carta.aspectos = calcularAspectos(participantes, participantes, { ...opciones, mismaCarta: true });
+    // Quien aspecta sale de "Puntos aspectados", igual que en todas las
+    // demas vistas: hasta la v1.25.0 esta era la unica que lo ignoraba, y
+    // un punto destildado seguia marcando aspectos aca.
+    const juegan = participantes(carta, ajustes);
+    carta.aspectos = calcularAspectos(juegan, juegan, { ...opciones, mismaCarta: true });
     // Progresada -> natal (la natal quieta, con sus angulos).
-    const natales = [...natal.puntos, ...natal.angulos].map((p) => ({ id: p.id, lon: p.lon, vel: 0 }));
-    const aspectosNatal = calcularAspectos([...carta.puntos, ...carta.angulos], natales, opciones);
+    const natales = participantes(natal, ajustes, { quieta: true });
+    const aspectosNatal = calcularAspectos(juegan, natales, opciones);
     return { edad, jd: jdProg, jdObjetivo, metodo, arco: dif(solProg.lon, solNatal.lon), carta, aspectosNatal };
 }

@@ -64,6 +64,32 @@ export function aspectosActivos(sel = ASPECTOS_POR_DEFECTO) {
     return ASPECTOS.filter((x) => (x.menor ? Boolean(sel?.[x.id]) : sel?.[x.id] !== false));
 }
 
+// Si un punto entra en el juego de aspectos. Lo dice "Puntos aspectados";
+// el que no figura en esa tabla entra, para que un ajuste guardado antes
+// de que existiera un punto no lo deje afuera sin querer.
+export const aspecta = (ajustes, id) =>
+    (ajustes?.puntosAspectados ? ajustes.puntosAspectados[id] !== false : true);
+
+// Los puntos de una carta que participan de los aspectos, con sus
+// angulos. Es el unico lugar donde se decide: antes esto estaba copiado
+// en los seis motores y en cuatro lugares de la pagina, y el que se
+// olvidaba de filtrar aspectaba puntos que nadie habia elegido.
+//
+// quieta: la carta que recibe (la natal bajo un transito) va con
+// velocidad 0, asi "aplicativo" depende solo del punto que se mueve.
+// Sin `puntosAspectados` en los ajustes (los guardados mas viejos), los
+// angulos siguen atados a `aspectosAngulos`.
+export function participantes(carta, ajustes, { quieta = false } = {}) {
+    const elegidos = ajustes?.puntosAspectados;
+    const entra = (id) => (elegidos ? elegidos[id] !== false : true);
+    const conAngulos = elegidos ? true : Boolean(ajustes?.aspectosAngulos);
+    const lista = [
+        ...carta.puntos.filter((p) => entra(p.id)),
+        ...(conAngulos ? (carta.angulos || []).filter((a) => entra(a.id)) : [])
+    ];
+    return quieta ? lista.map((p) => ({ id: p.id, lon: p.lon, vel: 0 })) : lista;
+}
+
 // Un aspecto es aplicativo si la distancia al angulo exacto se achica.
 // Hace falta la velocidad de los dos puntos; sin ella queda null.
 function aplicativo(a, b, angulo) {

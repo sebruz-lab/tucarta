@@ -3,7 +3,7 @@
 // interfaz dibuja y que los tests comparan contra Solar Fire.
 
 import { PUNTOS, PUNTOS_OPCIONALES, AJUSTES_POR_DEFECTO, enLaCarta } from './config.js';
-import { calcularAspectos, opcionesDeOrbe } from './aspects.js';
+import { calcularAspectos, opcionesDeOrbe, participantes } from './aspects.js';
 
 // Flags de Swiss Ephemeris (swephexp.h).
 const SEFLG_SWIEPH = 2;
@@ -155,17 +155,9 @@ export function calcularCarta(swe, { utc, lat, lon, ajustes = AJUSTES_POR_DEFECT
         ...puntosOpcionales(swe, jd, { puntos: todos, casas, velAsc, ajustes })
     ];
 
-    // Quien entra en los aspectos: lo que la persona haya elegido. El
-    // Ascendente y el Medio Cielo siguen atados a aspectosAngulos para no
-    // cambiarle la carta a quien ya lo tenia configurado.
-    const elegidos = ajustes.puntosAspectados;
-    const entra = (id) => (elegidos ? elegidos[id] !== false : true);
-    const conAngulos = elegidos ? (entra('asc') || entra('mc')) : ajustes.aspectosAngulos;
-    const participantes = [
-        ...puntos.filter((p) => entra(p.id)),
-        ...(conAngulos ? angulos.filter((a) => entra(a.id)) : [])
-    ];
-    const aspectos = calcularAspectos(participantes, participantes, {
+    // Quien entra en los aspectos: lo que la persona haya elegido.
+    const juegan = participantes({ puntos, angulos }, ajustes);
+    const aspectos = calcularAspectos(juegan, juegan, {
         ...opcionesDeOrbe(ajustes), mismaCarta: true
     });
 

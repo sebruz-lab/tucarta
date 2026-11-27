@@ -7,7 +7,8 @@ import { cargarSwe } from '../engine/ephe.js';
 import { calcularCarta } from '../engine/chart.js';
 import { calcularTransitos } from '../engine/transits.js';
 import { AJUSTES_POR_DEFECTO, PUNTOS, PUNTOS_OPCIONALES, enLaCarta } from '../engine/config.js';
-import { panelAjustes } from '../ui/settings.js';
+import { calcularProgresion } from '../engine/progressions.js';
+import { panelAjustes, leerAjustes } from '../ui/settings.js';
 
 const NACIMIENTO = { utc: { anio: 1983, mes: 5, dia: 14, hora: 17, minuto: 20 }, lat: -34.6, lon: -58.45 };
 const AHORA = { anio: 2026, mes: 11, dia: 11, hora: 15, minuto: 0 };
@@ -119,5 +120,103 @@ describe('el panel de ajustes', () => {
         const html = panelAjustes(con({ quiron: false }));
         expect(html).not.toContain('name="aspecta-quiron"');
         expect(html).toContain('name="aspecta-sol"');
+    });
+});
+
+// Los puntos opcionales se suman a la carta para verlos; aspectar es otra
+// decision. Hasta la v1.25.0 nacian aspectando, asi que prender el Nodo
+// Sur llenaba la rueda de lineas que nadie habia pedido (y que son las
+// del Nodo Norte dadas vuelta).
+describe('los puntos extra no aspectan hasta que se los marque', () => {
+    const aspectaA = (c, id) => c.aspectos.some((x) => x.a === id || x.b === id);
+
+    it('el Nodo Sur esta en la rueda y no en los aspectos', () => {
+        const c = carta(con({ nodosur: true }));
+        expect(ids(c)).toContain('nodosur');
+        expect(aspectaA(c, 'nodosur')).toBe(false);
+        // El Nodo Norte, que es de los de siempre, sigue aspectando.
+        expect(aspectaA(c, 'nodo')).toBe(true);
+    });
+
+    it('marcado en "Puntos aspectados", aspecta', () => {
+        const a = con({ nodosur: true });
+        const c = calcularCarta(swe, { ...NACIMIENTO,
+            ajustes: { ...a, puntosAspectados: { ...a.puntosAspectados, nodosur: true } } });
+        expect(aspectaA(c, 'nodosur')).toBe(true);
+    });
+
+    it('vale para todos los opcionales', () => {
+        const c = carta(con(Object.fromEntries(PUNTOS_OPCIONALES.map((p) => [p.id, true]))));
+        // Sedna y Eris traen su propia efemeride, que este test no carga:
+        // el motor los saltea en silencio y no estan en la carta.
+        const presentes = PUNTOS_OPCIONALES.filter((p) => ids(c).includes(p.id));
+        expect(presentes.map((p) => p.id)).toContain('nodosur');
+        expect(presentes.length).toBeGreaterThanOrEqual(7);
+        for (const p of presentes) expect(aspectaA(c, p.id), p.id).toBe(false);
+    });
+
+    it('su casilla aparece desmarcada apenas se prende el punto', () => {
+        const html = panelAjustes(con({ nodosur: true }));
+        expect(html).toContain('name="aspecta-nodosur"');
+        expect(html).not.toContain('name="aspecta-nodosur" checked');
+    });
+});
+
+// La progresion era la unica vista que no miraba "Puntos aspectados":
+// calculaba con todos los puntos y con los dos angulos siempre.
+describe('la progresion respeta "Puntos aspectados"', () => {
+    const progresion = (ajustes) => calcularProgresion(swe, {
+        natal: calcularCarta(swe, { ...NACIMIENTO, ajustes }),
+        jdObjetivo: 2461000.5, ajustes
+    });
+    const toca = (lista, id) => lista.some((x) => x.a === id || x.b === id);
+
+    it('un punto destildado no marca aspectos, ni propios ni a la natal', () => {
+        const base = AJUSTES_POR_DEFECTO;
+        const entera = progresion(base);
+        // Con el orbe de 1 grado de las progresiones no cualquier punto
+        // tiene aspecto: se elige uno que si tenga en las dos listas.
+        const id = entera.carta.aspectos.map((x) => x.a)
+            .find((x) => toca(entera.aspectosNatal, x));
+        expect(id, 'ningun punto aspecta en las dos listas').toBeTruthy();
+        const sin = { ...base, puntosAspectados: { ...base.puntosAspectados, [id]: false } };
+        expect(toca(progresion(sin).carta.aspectos, id)).toBe(false);
+        expect(toca(progresion(sin).aspectosNatal, id)).toBe(false);
+    });
+
+    it('los angulos entran solo si estan marcados', () => {
+        const base = AJUSTES_POR_DEFECTO;
+        expect(toca(progresion(base).aspectosNatal, 'asc')).toBe(false);
+        const conAsc = { ...base, puntosAspectados: { ...base.puntosAspectados, asc: true } };
+        expect(toca(progresion(conAsc).aspectosNatal, 'asc')).toBe(true);
+    });
+});
+
+// Quien ya tenia ajustes guardados los tiene con los opcionales en true,
+// escritos uno por uno por el panel: el defecto nuevo no le llegaria.
+describe('la migracion al esquema 2', () => {
+    const conGuardado = (g) => {
+        globalThis.localStorage = {
+            getItem: () => (g === null ? null : JSON.stringify(g)),
+            setItem: () => {}
+        };
+        try { return leerAjustes(); } finally { delete globalThis.localStorage; }
+    };
+
+    it('apaga los opcionales de unos ajustes viejos', () => {
+        const a = conGuardado({ puntosAspectados: { nodosur: true, ceres: true, sol: true } });
+        expect(a.puntosAspectados.nodosur).toBe(false);
+        expect(a.puntosAspectados.ceres).toBe(false);
+        expect(a.puntosAspectados.sol).toBe(true);
+        expect(a.v).toBe(2);
+    });
+
+    it('no vuelve a correr: lo que se prendio despues queda prendido', () => {
+        const a = conGuardado({ v: 2, puntosAspectados: { nodosur: true } });
+        expect(a.puntosAspectados.nodosur).toBe(true);
+    });
+
+    it('sin nada guardado, los opcionales ya nacen sin aspectar', () => {
+        expect(conGuardado(null).puntosAspectados.nodosur).toBe(false);
     });
 });

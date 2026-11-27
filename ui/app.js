@@ -28,7 +28,7 @@ import { grillaMes, agendaDias, tituloMes, bloqueDeUnDia } from './calendarioMes
 import { dibujarEfemerides, geometria } from './efemerides.js';
 import { normalizarFecha, completarFecha, completarHora } from './fecha.js';
 import { dibujarAnexo } from './anexo.js';
-import { calcularAspectos } from '../engine/aspects.js';
+import { calcularAspectos, aspecta, participantes } from '../engine/aspects.js';
 import { TRANSITAN_EFEMERIDES } from '../engine/efemerides.js';
 import { PUNTOS_CIELO } from '../engine/eventos.js';
 import { conectarCuenta, sesionIniciada, conCuenta, abrirEntrar, esAdmin,
@@ -982,8 +982,10 @@ const etiquetaExterna = () => (esPR(estado.modo)
 
 // Quien entra en los aspectos entre dos cartas: lo elegido en "Puntos
 // aspectados". El Ascendente y el Medio Cielo entran solo si estan
-// prendidos ahi, tambien para recibir transitos.
-const seAspecta = (id) => estado.ajustes.puntosAspectados?.[id] !== false;
+// prendidos ahi, tambien para recibir transitos. La regla vive en
+// engine/aspects.js, que es de donde la leen tambien los motores.
+const seAspecta = (id) => aspecta(estado.ajustes, id);
+const pts = (c) => participantes(c, estado.ajustes);
 
 function pintarRueda() {
     const transitos = transitosDeLaVista();
@@ -1367,7 +1369,6 @@ async function calcularDraconica() {
     const nodo = estado.ajustes.nodoDraconica === 'medio' ? 'medio' : 'real';
     try {
         const carta = await calcularEnWorker({ tipo: 'draconica', natal: estado.carta, nodo });
-        const pts = (c) => [...c.puntos, ...c.angulos].filter((p) => seAspecta(p.id));
         estado.draconica = {
             carta,
             aspectosNatal: calcularAspectos(pts(carta), pts(estado.carta),
@@ -1408,7 +1409,6 @@ async function calcularSinastria() {
     if (!estado.pareja?.datos) { estado.sinastria = null; return; }
     try {
         estado.pareja = await cartaDeDatos(estado.pareja.datos);
-        const pts = (c) => [...c.puntos, ...c.angulos].filter((p) => seAspecta(p.id));
         estado.sinastria = {
             aspectos: calcularAspectos(pts(estado.pareja.carta), pts(estado.carta),
                 { orbesPorAspecto: estado.ajustes.orbesSinastria, aspectos: estado.ajustes.aspectos })
@@ -1666,7 +1666,6 @@ async function calcularRevolucionSolar() {
             ahora: jdDeFecha(new Date()), lat: l.lat, lon: l.lon, ajustes: estado.ajustes
         });
         estado.revolucion.anio = estado.revolucion.resultado.anio;
-        const pts = (c) => [...c.puntos, ...c.angulos].filter((p) => seAspecta(p.id));
         estado.revolucion.resultado.aspectosNatal = calcularAspectos(
             pts(estado.revolucion.resultado.carta), pts(estado.carta),
             { orbesPorAspecto: estado.ajustes.orbesTransito, aspectos: estado.ajustes.aspectosTransito });
@@ -3434,7 +3433,6 @@ function anexoActual() {
     const { sola, externa } = cartasVista();
     const transitos = transitosDeLaVista();
     const base = sola || estado.carta;
-    const pts = (c) => [...c.puntos, ...c.angulos].filter((p) => seAspecta(p.id));
     const ids = (c) => pts(c).map((p) => p.id);
     let filas, columnas, aspectos, triangular, tituloGrilla = '';
     if (transitos) {
