@@ -111,15 +111,17 @@ que se ve como tres símbolos raros en pantalla. Pasó el 26/11/2026.
 
 **La rueda también entra entera en la ventana** (pedido de Seba del
 26/11/2026), y se mide **contra la pantalla**, no contra números
-sueltos: `--rueda: min(100vw - 48px, 92vh)`. Es cuadrada, así que en una
+sueltos: `--rueda: min(100vw - 48px, 98vh)`. Es cuadrada, así que en una
 pantalla apaisada el alto es siempre lo que queda chico.
 
-El **92vh** es el único número a mover. Parece poco aire, pero el dibujo
-no llena su cuadrado: el borde de la rueda está en 294 de 332 y los
-rótulos AC/MC en 310, así que lo que se ve ocupa un 93% del alto del
-SVG. De 92vh queda, en limpio, un 14% de la ventana para el renglón del
-detalle. Un primer intento con `100vh - 170px` dejaba la rueda
-visiblemente chica: los píxeles sueltos no escalan con la pantalla.
+El **98vh** es el único número a mover, y es casi la ventana entera a
+propósito: **el renglón del detalle no se reserva**, queda abajo del
+pliegue y se lo ve scrolleando (decisión de Seba del 26/11/2026).
+Igual el dibujo no llena su cuadrado —el borde de la rueda está en 294
+de 332 y los rótulos AC/MC en 310, así que lo que se ve ocupa un 93%
+del alto del SVG—, y por eso con 98vh la rueda entra clavada. Un primer
+intento con `100vh - 170px` la dejaba visiblemente chica: los píxeles
+sueltos no escalan con la pantalla.
 
 En el celular y en la tableta manda el ancho y nada más, sin tope en
 píxeles: el `max-width: 640px` de `.rueda` se fue (en una tableta

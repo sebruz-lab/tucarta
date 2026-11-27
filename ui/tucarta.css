@@ -2095,18 +2095,19 @@ body.sin-scroll { overflow: hidden; }
    PANTALLA, no contra medidas sueltas: es cuadrada, asi que el alto
    libre manda tambien el ancho, y en una pantalla apaisada ese alto es
    siempre lo que queda chico.
-   El 92vh es el unico numero a mover. Parece poco aire, pero el dibujo
-   no llena su cuadrado: el borde de la rueda esta en 294 de 332, y los
-   rotulos AC/MC en 310, asi que lo que se ve ocupa un 93% del alto del
-   SVG. De 92vh queda, en limpio, un 14% de la ventana para el renglon
-   del detalle de abajo.
+   El 98vh es el unico numero a mover, y es casi la ventana entera a
+   proposito: el renglon del detalle NO se reserva, queda abajo del
+   pliegue y se lo ve scrolleando (pedido de Seba del 26/11/2026). Igual
+   el dibujo no llena su cuadrado -- el borde de la rueda esta en 294 de
+   332 y los rotulos AC/MC en 310, asi que lo que se ve ocupa un 93% del
+   alto del SVG --, y por eso con 98vh la rueda entra clavada.
    La medida sale una sola vez, en --rueda, porque la usan los dos: el
    margen negativo de la figura (que es lo que lleva las esquinas a los
    costados del circulo) y el ancho del dibujo. Si se separan, las
    esquinas quedan lejos de la rueda. */
 @media (min-width: 900px) {
     .figura-rueda {
-        --rueda: min(100vw - 48px, 92vh);
+        --rueda: min(100vw - 48px, 98vh);
         margin: 0 calc((100% - var(--rueda)) / 2);
     }
     .rueda { max-width: var(--rueda); }
