@@ -113,8 +113,19 @@ function deTresYCuatro(aspectos) {
                         const lados = [[p1, p3], [p3, p2], [p2, p4], [p4, p1]];
                         if (lados.every(([x, y]) => es(x, y, 'cuadratura'))) {
                             sumar('granCruz', q, [[p1, p2], [p3, p4], ...lados]);
-                        } else if (es(p1, p3, 'trigono') && es(p2, p4, 'trigono')
-                            && es(p3, p2, 'sextil') && es(p4, p1, 'sextil')) {
+                            continue;
+                        }
+                        // El rectangulo: dos lados opuestos trigonos y
+                        // los otros dos sextiles. Las dos vueltas, no
+                        // una: con las oposiciones ya fijadas todavia
+                        // quedan dos maneras de recorrer el rectangulo
+                        // segun cual de los dos puntos de la segunda
+                        // oposicion venga primero, y mirar una sola
+                        // dejaba afuera la mitad de los rectangulos.
+                        const seguido = (a1, a2, a3, a4) =>
+                            es(p1, p3, a1) && es(p3, p2, a2) && es(p2, p4, a3) && es(p4, p1, a4);
+                        if (seguido('trigono', 'sextil', 'trigono', 'sextil')
+                            || seguido('sextil', 'trigono', 'sextil', 'trigono')) {
                             sumar('rectangulo', q, [[p1, p2], [p3, p4], ...lados]);
                         }
                     }

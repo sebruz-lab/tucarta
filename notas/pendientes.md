@@ -28,6 +28,31 @@ enlace es más grueso que el texto.
 
 ---
 
+# Lo que salió en v1.25.1 (2026-11-27)
+
+Un parche de la v1.25.0, al día siguiente: Seba miró una carta y el
+**rectángulo místico no aparecía**.
+
+Con las dos oposiciones ya fijadas todavía quedan **dos maneras de
+recorrer el rectángulo**, según cuál de los dos puntos de la segunda
+oposición venga primero: trígono · sextil · trígono · sextil, o sextil ·
+trígono · sextil · trígono. `figurasDe` miraba una sola, así que perdía
+**la mitad** de los rectángulos, y cuál mitad dependía del orden en que
+vinieran los puntos en `carta.aspectos` — o sea, del azar.
+
+Las otras seis figuras no tenían el problema y conviene saber por qué,
+para no "arreglarlas" al pepe: la T cuadrada y el yod prueban los tres
+puntos como vértice; el cometa prueba los tres como el opuesto, y sus
+dos sextiles son intercambiables; la gran cruz pide que los cuatro lados
+sean cuadraturas, que es simétrico; el gran trígono y el stellium no
+tienen orientación.
+
+Hay dos tests nuevos, y el segundo es el que importa: gira la lista de
+aspectos en las seis posiciones y da vuelta cada par, y espera el
+rectángulo en las doce. Los dos fallan contra el código de la v1.25.0.
+
+---
+
 # Lo que salió en v1.25.0 (2026-11-26)
 
 Cuatro pedidos de Seba del 26/11/2026, hechos y revisados con él en el

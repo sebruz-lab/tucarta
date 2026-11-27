@@ -117,6 +117,37 @@ describe('las figuras de cuatro puntos', () => {
         expect(tipos(f)).toEqual(['rectangulo']);
     });
 
+    it('rectángulo místico, con los trígonos y los sextiles al revés', () => {
+        // Es el mismo rectangulo recorrido para el otro lado, y hasta la
+        // v1.25.0 este no se encontraba: se miraba una sola de las dos
+        // vueltas, asi que se perdia la mitad de los rectangulos segun en
+        // que orden vinieran los puntos.
+        const f = figurasDe([
+            asp('sol', 'luna', 'oposicion'), asp('marte', 'saturno', 'oposicion'),
+            asp('sol', 'marte', 'sextil'), asp('luna', 'saturno', 'sextil'),
+            asp('marte', 'luna', 'trigono'), asp('saturno', 'sol', 'trigono')
+        ]);
+        expect(tipos(f)).toEqual(['rectangulo']);
+        expect(puntosDe(f, 'rectangulo')).toEqual(['luna', 'marte', 'saturno', 'sol']);
+    });
+
+    it('lo encuentra venga en el orden que venga', () => {
+        // El orden de la lista de aspectos es el orden en que se
+        // recorren los puntos: el rectangulo no puede depender de eso.
+        const base = [
+            asp('sol', 'luna', 'oposicion'), asp('marte', 'saturno', 'oposicion'),
+            asp('sol', 'marte', 'trigono'), asp('luna', 'saturno', 'trigono'),
+            asp('marte', 'luna', 'sextil'), asp('saturno', 'sol', 'sextil')
+        ];
+        for (let i = 0; i < base.length; i++) {
+            const girado = [...base.slice(i), ...base.slice(0, i)];
+            expect(tipos(figurasDe(girado)), `desde ${i}`).toEqual(['rectangulo']);
+            // Y con los dos puntos de cada oposicion dados vuelta.
+            const dadoVuelta = girado.map((x) => ({ ...x, a: x.b, b: x.a }));
+            expect(tipos(figurasDe(dadoVuelta)), `al reves desde ${i}`).toEqual(['rectangulo']);
+        }
+    });
+
     it('cometa: el gran trígono queda adentro y no se lista aparte', () => {
         const f = figurasDe([
             asp('sol', 'luna', 'trigono'), asp('luna', 'marte', 'trigono'), asp('sol', 'marte', 'trigono'),
