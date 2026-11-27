@@ -1116,9 +1116,9 @@ function pintarFiguras(base, { transitos, externa }) {
     // persona haya abierto, y se abre solo si hay una figura elegida
     // (al volver de tocar una, tiene que verse cual quedo marcada).
     const abierto = caja.open || Boolean(elegida);
-    caja.innerHTML = '<summary class="figuras-titulo">'
-        + '<span class="tri-figuras" aria-hidden="true">&#9656;</span> Figuras de aspectos '
-        + `<span class="figuras-cuantas">${figuras.length}</span></summary>`
+    // La flechita va al final, donde antes estaba la cuenta de figuras.
+    caja.innerHTML = '<summary class="figuras-titulo">Figuras de aspectos'
+        + '<span class="tri-figuras" aria-hidden="true">&#9656;</span></summary>'
         + '<div class="figuras-chapas">' + figuras.map((f, i) => `
         <button type="button" class="chapa-figura" data-figura="${i}" aria-pressed="${f === elegida}">
             <span>${escapar(f.nombre)}</span>

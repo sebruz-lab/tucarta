@@ -950,14 +950,8 @@ body.sin-scroll { overflow: hidden; }
    `content` del CSS: ahi hay que escribirla como escape ('25B8') y
    un escape mal escrito deja un caracter de control en el archivo que
    se ve como tres simbolos raros en pantalla. Paso el 26/11/2026. */
-.tri-figuras { font-size: 0.75em; transition: transform 0.15s; display: inline-block; }
+.tri-figuras { font-size: 2.25em; line-height: 0; transition: transform 0.15s; display: inline-block; }
 .figuras[open] .tri-figuras { transform: rotate(90deg); }
-.figuras-cuantas {
-    font-size: 0.75rem;
-    border: 1px solid var(--linea);
-    border-radius: 999px;
-    padding: 0 6px;
-}
 .figuras-chapas {
     display: flex;
     flex-wrap: wrap;
